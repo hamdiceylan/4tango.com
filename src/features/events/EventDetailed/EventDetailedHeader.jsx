@@ -15,7 +15,7 @@ const eventImageTextStyle = {
     color: 'white'
 };
 
-function EventDetailedHeader({event}) {
+const EventDetailedHeader = ({event}) => {
   return (
    <Segment.Group>
       <Segment basic attached="top" style={{ padding: '0' }}>
@@ -52,4 +52,4 @@ function EventDetailedHeader({event}) {
   )
 }
 
-export default EventDetailedHeader
+export default EventDetailedHeader;

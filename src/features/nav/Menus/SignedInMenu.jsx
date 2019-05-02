@@ -5,7 +5,6 @@ import { Link } from 'react-router-dom'
 
 function SignedInMenu({signOut, profile, auth}) {
   return (
-    <div>
       <Menu.Item position="right">
         <Image avatar spaced="right" src={profile.photoURL || "/assets/user.png"} />
         <Dropdown pointing="top left" text={profile.displayName}>
@@ -19,7 +18,6 @@ function SignedInMenu({signOut, profile, auth}) {
           </Dropdown.Menu>
         </Dropdown>
       </Menu.Item>
-    </div>
   )
 }
 

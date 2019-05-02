@@ -20,9 +20,8 @@ const mapState = (state) => ({
 })
 
 function SettingsDashboard({updatePassword, providerId, user, updateProfile}) {
-  console.log(user);
   return (
-    <Grid>
+    <Grid stackable>
       <Grid.Column width={12}>
         <Switch>
           <Redirect exact from='/settings' to='settings/basic'/>

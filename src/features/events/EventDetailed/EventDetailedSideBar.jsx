@@ -1,5 +1,6 @@
 import React from 'react'
 import { Segment, List, Label, Item } from 'semantic-ui-react'
+import { Link } from 'react-router-dom'
 
 function EventDetailedSideBar({attendees}) {
   const isHost = false;
@@ -18,7 +19,7 @@ function EventDetailedSideBar({attendees}) {
       <Segment attached>
         <List relaxed divided>
           {attendees && attendees.map((attendee) =>(
-            <Item key={attendee.name} style={{ position: 'relative' }}>
+            <Item key={attendee.id} style={{ position: 'relative' }}>
             {isHost &&
               <Label
                 style={{ position: 'absolute' }}
@@ -31,7 +32,7 @@ function EventDetailedSideBar({attendees}) {
             <Item.Image size="tiny" src={attendee.photoURL} />
             <Item.Content verticalAlign="middle">
               <Item.Header as="h3">
-                <a>{attendee.name}</a>
+                <Link to={`/profile/${attendee.id}`}>{attendee.displayName}</Link>
               </Item.Header>
             </Item.Content>
           </Item>

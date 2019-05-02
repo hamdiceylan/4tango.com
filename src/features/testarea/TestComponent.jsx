@@ -50,7 +50,7 @@ export class TestComponent extends Component {
       value: this.state.address,
       onChange: this.onChange,
     }
-    const {incrementAsync,descrementAsync,data, openModal, loading } = this.props; 
+    const {incrementAsync,descrementAsync, openModal, loading } = this.props; 
     return (
       <div>
         {/* <Script 

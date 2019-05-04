@@ -39,7 +39,7 @@ class NavBar extends Component {
         <Container>
           <Menu.Item header as={NavLink} to='/' name="Home">
             <img src="/assets/logo.png" alt="logo" />
-            Re-vents
+            Milonga Guide
           </Menu.Item>
           <Menu.Item as={NavLink} to='/events' name="Events" />
           {authenticated &&

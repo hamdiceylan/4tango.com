@@ -1,5 +1,6 @@
 import React, { Component } from 'react'
 import { connect } from 'react-redux'
+import { toastr } from 'react-redux-toastr'
 import { withFirestore } from 'react-redux-firebase'
 import EventDetailedHeader from './EventDetailedHeader'
 import EventDetailedInfo from './EventDetailedInfo'
@@ -31,6 +32,12 @@ class EventDetailedPage extends Component {
 
   async componentDidMount(){
     const {firestore, match} = this.props;
+    let event = await firestore.get(`events/${match.params.id}`);
+    if(!event.exists){
+      toastr.error('Not Found', 'This is not the event you are looking for');
+      this.props.history.push('/error');
+
+    }
     await firestore.setListener(`events/${match.params.id}`);
   }
   async componentWillUnmount(){

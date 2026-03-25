@@ -63,17 +63,28 @@ resource "aws_amplify_app" "main" {
     Name = "4tango-${var.environment}"
   }
 
-  # Ignore changes to repository settings (managed via Console)
+  # Ignore changes - app is managed via Console after import
   lifecycle {
     ignore_changes = [
       repository,
       access_token,
       oauth_token,
+      iam_service_role_arn,
+      build_spec,
+      enable_auto_branch_creation,
+      enable_branch_auto_build,
+      enable_branch_auto_deletion,
+      auto_branch_creation_patterns,
+      auto_branch_creation_config,
+      environment_variables,
+      custom_rule,
+      cache_config,
+      custom_headers,
     ]
   }
 }
 
-# Branch configuration - created after GitHub is connected via Console
+# Branch configuration - managed via Console after import
 resource "aws_amplify_branch" "main" {
   app_id      = aws_amplify_app.main.id
   branch_name = var.environment == "prod" ? "main" : "develop"
@@ -100,6 +111,16 @@ resource "aws_amplify_branch" "main" {
     Name = "4tango-${var.environment}-branch"
   }
 
+  # Ignore changes - branch is managed via Console after import
+  lifecycle {
+    ignore_changes = [
+      framework,
+      environment_variables,
+      enable_auto_build,
+      display_name,
+      stage,
+    ]
+  }
 }
 
 # Domain association (for custom domain)

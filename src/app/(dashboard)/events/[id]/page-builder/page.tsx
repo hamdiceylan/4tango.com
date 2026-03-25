@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { SECTION_TYPES, SectionType, SectionTypeInfo, getDefaultContent } from "@/lib/section-types";
 
 // Mock event data

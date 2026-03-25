@@ -81,7 +81,8 @@ export default function FormBuilderPage({ params }: { params: { id: string } }) 
   void params;
 
   const event = mockEvent;
-  const allFields = [...defaultFields, ...customFields];
+  // allFields used for form preview - keeping for future use
+  void [...defaultFields, ...customFields];
 
   const handleDragStart = (index: number) => {
     // Only allow dragging custom fields (offset by default fields count)

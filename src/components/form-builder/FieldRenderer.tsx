@@ -1,6 +1,6 @@
 "use client";
 
-import { FieldType, EventFormField, ConditionalRule } from "@/lib/field-types";
+import { EventFormField, ConditionalRule } from "@/lib/field-types";
 
 interface FieldRendererProps {
   field: EventFormField;
@@ -11,7 +11,7 @@ interface FieldRendererProps {
 }
 
 function shouldShowField(
-  conditionalOn: ConditionalRule | null,
+  conditionalOn: ConditionalRule | null | undefined,
   formValues?: Record<string, string | boolean>
 ): boolean {
   if (!conditionalOn || !formValues) return true;

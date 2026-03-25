@@ -2,6 +2,10 @@ import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 
 const ses = new SESClient({
   region: process.env.SES_REGION || "eu-west-1",
+  credentials: process.env.SES_ACCESS_KEY_ID && process.env.SES_SECRET_ACCESS_KEY ? {
+    accessKeyId: process.env.SES_ACCESS_KEY_ID,
+    secretAccessKey: process.env.SES_SECRET_ACCESS_KEY,
+  } : undefined,
 });
 
 const FROM_EMAIL = process.env.SES_FROM_EMAIL || "noreply@4tango.com";

@@ -1,46 +1,123 @@
 import { NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
 
-// GET /api/events/[slug] - Get public event by slug
+// GET /api/public/events/[slug] - Get public event by slug
 export async function GET(
   request: Request,
   { params }: { params: { slug: string } }
 ) {
   try {
-    // In production, fetch from database:
-    // const event = await prisma.event.findUnique({
-    //   where: { slug: params.slug, status: "PUBLISHED" },
-    //   include: { organizer: { select: { name: true, email: true } } }
-    // });
+    const event = await prisma.event.findUnique({
+      where: { slug: params.slug },
+      include: {
+        organizer: {
+          select: { name: true, email: true }
+        },
+        pageSections: {
+          where: { isVisible: true },
+          orderBy: { order: "asc" }
+        },
+        formFields: {
+          orderBy: { order: "asc" }
+        },
+        packages: {
+          where: { isActive: true },
+          orderBy: { order: "asc" }
+        },
+        _count: {
+          select: {
+            registrations: {
+              where: {
+                registrationStatus: { in: ["REGISTERED", "CONFIRMED"] }
+              }
+            }
+          }
+        }
+      }
+    });
 
-    // Mock response for now
-    const event = {
-      id: "1",
-      title: "Spring Tango Marathon",
-      slug: params.slug,
-      shortDescription: "Three days of non-stop tango in the heart of Barcelona",
-      description: "Join us for an unforgettable tango experience!",
-      city: "Barcelona",
-      country: "Spain",
-      venueName: "Sala Apolo",
-      address: "Carrer Nou de la Rambla, 113",
-      startAt: "2026-04-15T18:00:00Z",
-      endAt: "2026-04-17T06:00:00Z",
-      priceAmount: 9500, // cents
-      currency: "EUR",
-      capacityLimit: 150,
-      djs: ["DJ Pablo", "DJ Maria", "DJ Carlos"],
-      organizer: {
-        name: "Tango Barcelona",
-        email: "info@tangobarcelona.com",
-      },
-    };
+    if (!event) {
+      return NextResponse.json(
+        { error: "Event not found" },
+        { status: 404 }
+      );
+    }
 
-    return NextResponse.json(event);
+    // Only show published events publicly (or allow preview with special header)
+    const isPreview = request.headers.get("x-preview-mode") === "true";
+    if (event.status !== "PUBLISHED" && !isPreview) {
+      return NextResponse.json(
+        { error: "Event not found" },
+        { status: 404 }
+      );
+    }
+
+    // Calculate spots remaining
+    const spotsRemaining = event.capacityLimit
+      ? event.capacityLimit - event._count.registrations
+      : null;
+
+    return NextResponse.json({
+      id: event.id,
+      title: event.title,
+      slug: event.slug,
+      shortDescription: event.shortDescription,
+      description: event.description,
+      coverImageUrl: event.coverImageUrl,
+      city: event.city,
+      country: event.country,
+      venueName: event.venueName,
+      address: event.address,
+      startAt: event.startAt.toISOString(),
+      endAt: event.endAt.toISOString(),
+      priceAmount: event.priceAmount,
+      currency: event.currency,
+      capacityLimit: event.capacityLimit,
+      spotsRemaining,
+      registrationOpensAt: event.registrationOpensAt?.toISOString() || null,
+      registrationClosesAt: event.registrationClosesAt?.toISOString() || null,
+      status: event.status,
+      djs: event.djs,
+      primaryColor: event.primaryColor,
+      logoUrl: event.logoUrl,
+      bannerUrl: event.bannerUrl,
+      organizer: event.organizer,
+      pageSections: event.pageSections.map(section => ({
+        id: section.id,
+        type: section.type,
+        order: section.order,
+        title: section.title,
+        content: section.content,
+        isVisible: section.isVisible,
+      })),
+      formFields: event.formFields.map(field => ({
+        id: field.id,
+        fieldType: field.fieldType,
+        name: field.name,
+        label: field.label,
+        placeholder: field.placeholder,
+        helpText: field.helpText,
+        isRequired: field.isRequired,
+        order: field.order,
+        options: field.options,
+        validation: field.validation,
+        conditionalOn: field.conditionalOn,
+      })),
+      packages: event.packages.map(pkg => ({
+        id: pkg.id,
+        name: pkg.name,
+        description: pkg.description,
+        price: pkg.price,
+        currency: pkg.currency,
+        capacity: pkg.capacity,
+        order: pkg.order,
+      })),
+    });
   } catch (error) {
     console.error("Error fetching event:", error);
     return NextResponse.json(
-      { error: "Event not found" },
-      { status: 404 }
+      { error: "Failed to fetch event" },
+      { status: 500 }
     );
   }
 }

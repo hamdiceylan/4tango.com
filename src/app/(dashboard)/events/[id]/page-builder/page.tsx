@@ -1,60 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { SECTION_TYPES, SectionType, SectionTypeInfo, getDefaultContent } from "@/lib/section-types";
-
-// Mock event data
-const mockEvent = {
-  id: "1",
-  title: "Spring Tango Marathon",
-  slug: "spring-tango-marathon-2026",
-  primaryColor: "#f43f5e",
-};
-
-// Mock sections data
-const mockSections = [
-  {
-    id: "s1",
-    type: "HERO" as SectionType,
-    order: 0,
-    title: null,
-    content: {
-      title: "Spring Tango Marathon",
-      subtitle: "Three days of non-stop tango in the heart of Barcelona",
-      ctaText: "Register Now",
-      overlay: "dark",
-    },
-    isVisible: true,
-  },
-  {
-    id: "s2",
-    type: "ABOUT" as SectionType,
-    order: 1,
-    title: "About This Event",
-    content: {
-      content: "Join us for an unforgettable tango experience!",
-      images: [],
-    },
-    isVisible: true,
-  },
-  {
-    id: "s3",
-    type: "SCHEDULE" as SectionType,
-    order: 2,
-    title: "Schedule",
-    content: {
-      days: [
-        {
-          date: "2026-04-15",
-          label: "Friday",
-          items: [{ time: "18:00 - 06:00", title: "Opening Milonga" }],
-        },
-      ],
-    },
-    isVisible: true,
-  },
-];
 
 interface Section {
   id: string;
@@ -65,14 +13,55 @@ interface Section {
   isVisible: boolean;
 }
 
+interface Event {
+  id: string;
+  title: string;
+  slug: string;
+  primaryColor: string | null;
+}
+
 export default function PageBuilderPage({ params }: { params: { id: string } }) {
-  const [sections, setSections] = useState<Section[]>(mockSections);
+  const [event, setEvent] = useState<Event | null>(null);
+  const [sections, setSections] = useState<Section[]>([]);
   const [selectedSection, setSelectedSection] = useState<Section | null>(null);
   const [showAddPanel, setShowAddPanel] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  void params;
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
 
-  const event = mockEvent;
+  // Fetch event and sections
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [eventRes, sectionsRes] = await Promise.all([
+          fetch(`/api/events/${params.id}`),
+          fetch(`/api/events/${params.id}/sections`)
+        ]);
+
+        if (eventRes.ok) {
+          const eventData = await eventRes.json();
+          setEvent({
+            id: eventData.id,
+            title: eventData.title,
+            slug: eventData.slug,
+            primaryColor: eventData.primaryColor,
+          });
+        }
+
+        if (sectionsRes.ok) {
+          const sectionsData = await sectionsRes.json();
+          setSections(sectionsData);
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, [params.id]);
 
   const handleDragStart = (index: number) => {
     setDraggedIndex(index);
@@ -87,49 +76,124 @@ export default function PageBuilderPage({ params }: { params: { id: string } }) 
     newSections.splice(draggedIndex, 1);
     newSections.splice(index, 0, draggedSection);
 
-    // Update order values
     newSections.forEach((section, i) => {
       section.order = i;
     });
 
     setSections(newSections);
     setDraggedIndex(index);
+    setHasChanges(true);
   };
 
   const handleDragEnd = () => {
     setDraggedIndex(null);
-    // In production, call API to save new order
   };
 
-  const handleAddSection = (typeInfo: SectionTypeInfo) => {
-    const newSection: Section = {
-      id: `s${Date.now()}`,
-      type: typeInfo.type,
-      order: sections.length,
-      title: typeInfo.name,
-      content: getDefaultContent(typeInfo.type) as Record<string, unknown>,
-      isVisible: true,
-    };
+  const handleAddSection = async (typeInfo: SectionTypeInfo) => {
+    try {
+      const res = await fetch(`/api/events/${params.id}/sections`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: typeInfo.type,
+          title: typeInfo.name,
+          content: getDefaultContent(typeInfo.type),
+          isVisible: true,
+        }),
+      });
 
-    setSections([...sections, newSection]);
-    setShowAddPanel(false);
-    setSelectedSection(newSection);
-  };
-
-  const handleDeleteSection = (sectionId: string) => {
-    setSections(sections.filter((s) => s.id !== sectionId));
-    if (selectedSection?.id === sectionId) {
-      setSelectedSection(null);
+      if (res.ok) {
+        const newSection = await res.json();
+        setSections([...sections, newSection]);
+        setShowAddPanel(false);
+        setSelectedSection(newSection);
+      }
+    } catch (error) {
+      console.error("Error adding section:", error);
     }
   };
 
-  const handleToggleVisibility = (sectionId: string) => {
-    setSections(
-      sections.map((s) =>
-        s.id === sectionId ? { ...s, isVisible: !s.isVisible } : s
-      )
-    );
+  const handleDeleteSection = async (sectionId: string) => {
+    if (!confirm("Are you sure you want to delete this section?")) return;
+
+    try {
+      const res = await fetch(`/api/events/${params.id}/sections/${sectionId}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setSections(sections.filter((s) => s.id !== sectionId));
+        if (selectedSection?.id === sectionId) {
+          setSelectedSection(null);
+        }
+      }
+    } catch (error) {
+      console.error("Error deleting section:", error);
+    }
   };
+
+  const handleToggleVisibility = async (sectionId: string) => {
+    const section = sections.find(s => s.id === sectionId);
+    if (!section) return;
+
+    try {
+      const res = await fetch(`/api/events/${params.id}/sections/${sectionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isVisible: !section.isVisible }),
+      });
+
+      if (res.ok) {
+        setSections(
+          sections.map((s) =>
+            s.id === sectionId ? { ...s, isVisible: !s.isVisible } : s
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Error toggling visibility:", error);
+    }
+  };
+
+  const handleSaveChanges = async () => {
+    setSaving(true);
+    try {
+      // Save section order
+      await fetch(`/api/events/${params.id}/sections`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sectionIds: sections.map(s => s.id),
+        }),
+      });
+
+      // Save selected section content if any
+      if (selectedSection) {
+        await fetch(`/api/events/${params.id}/sections/${selectedSection.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: selectedSection.title,
+            content: selectedSection.content,
+          }),
+        });
+      }
+
+      setHasChanges(false);
+    } catch (error) {
+      console.error("Error saving changes:", error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateSelectedSection = useCallback((updates: Partial<Section>) => {
+    if (!selectedSection) return;
+    const updated = { ...selectedSection, ...updates };
+    setSelectedSection(updated);
+    setSections(sections.map(s => s.id === updated.id ? updated : s));
+    setHasChanges(true);
+  }, [selectedSection, sections]);
 
   const getSectionIcon = (type: SectionType): string => {
     const icons: Record<SectionType, string> = {
@@ -147,6 +211,30 @@ export default function PageBuilderPage({ params }: { params: { id: string } }) 
     };
     return icons[type] || icons.CUSTOM_TEXT;
   };
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-rose-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-500">Loading page builder...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!event) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <p className="text-gray-500">Event not found</p>
+          <Link href="/events" className="text-rose-500 hover:text-rose-600 mt-2 inline-block">
+            Back to Events
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -216,34 +304,26 @@ export default function PageBuilderPage({ params }: { params: { id: string } }) 
                 } ${!section.isVisible ? "opacity-50" : ""}`}
               >
                 <div className="flex items-center gap-3">
-                  {/* Drag Handle */}
                   <div className="cursor-grab text-gray-400 hover:text-gray-600">
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
                     </svg>
                   </div>
-
-                  {/* Icon */}
                   <div className="w-8 h-8 bg-rose-100 rounded flex items-center justify-center flex-shrink-0">
                     <svg className="w-4 h-4 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={getSectionIcon(section.type)} />
                     </svg>
                   </div>
-
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">
                       {section.title || SECTION_TYPES.find(t => t.type === section.type)?.name}
                     </p>
                     <p className="text-xs text-gray-500">{section.type}</p>
                   </div>
-
-                  {/* Actions */}
                   <div className="flex items-center gap-1">
                     <button
                       onClick={(e) => { e.stopPropagation(); handleToggleVisibility(section.id); }}
                       className="p-1 text-gray-400 hover:text-gray-600"
-                      title={section.isVisible ? "Hide section" : "Show section"}
                     >
                       {section.isVisible ? (
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -259,7 +339,6 @@ export default function PageBuilderPage({ params }: { params: { id: string } }) 
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDeleteSection(section.id); }}
                       className="p-1 text-gray-400 hover:text-red-600"
-                      title="Delete section"
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -296,8 +375,16 @@ export default function PageBuilderPage({ params }: { params: { id: string } }) 
             </svg>
             Preview Page
           </Link>
-          <button className="w-full px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-lg font-medium transition shadow-lg shadow-rose-500/25">
-            Save Changes
+          <button
+            onClick={handleSaveChanges}
+            disabled={saving || !hasChanges}
+            className={`w-full px-4 py-2 rounded-lg font-medium transition shadow-lg ${
+              hasChanges
+                ? "bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/25"
+                : "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
+            }`}
+          >
+            {saving ? "Saving..." : hasChanges ? "Save Changes" : "No Changes"}
           </button>
         </div>
       </div>
@@ -306,7 +393,6 @@ export default function PageBuilderPage({ params }: { params: { id: string } }) 
       <div className="flex-1 flex flex-col">
         {selectedSection ? (
           <>
-            {/* Editor Header */}
             <div className="bg-white border-b border-gray-200 px-6 py-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -328,10 +414,8 @@ export default function PageBuilderPage({ params }: { params: { id: string } }) 
               </div>
             </div>
 
-            {/* Editor Content */}
             <div className="flex-1 overflow-y-auto p-6">
               <div className="max-w-2xl">
-                {/* Section Title */}
                 <div className="mb-6">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Section Title
@@ -339,59 +423,28 @@ export default function PageBuilderPage({ params }: { params: { id: string } }) 
                   <input
                     type="text"
                     value={selectedSection.title || ""}
-                    onChange={(e) =>
-                      setSelectedSection({ ...selectedSection, title: e.target.value })
-                    }
+                    onChange={(e) => updateSelectedSection({ title: e.target.value })}
                     placeholder="Enter section title..."
                     className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-500"
                   />
                 </div>
 
-                {/* Section-specific fields would go here */}
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <p className="text-gray-500 text-sm">
-                    Section-specific editor fields for {selectedSection.type} would appear here.
-                    This includes:
-                  </p>
-                  <ul className="mt-2 text-gray-500 text-sm list-disc list-inside">
-                    {selectedSection.type === "HERO" && (
-                      <>
-                        <li>Background image upload</li>
-                        <li>Hero title and subtitle</li>
-                        <li>CTA button text</li>
-                        <li>Overlay style</li>
-                      </>
-                    )}
-                    {selectedSection.type === "ABOUT" && (
-                      <>
-                        <li>Rich text content editor</li>
-                        <li>Image gallery</li>
-                      </>
-                    )}
-                    {selectedSection.type === "SCHEDULE" && (
-                      <>
-                        <li>Day management</li>
-                        <li>Time slots editor</li>
-                      </>
-                    )}
-                    {selectedSection.type === "DJ_TEAM" && (
-                      <>
-                        <li>Team member list</li>
-                        <li>Photo uploads</li>
-                        <li>Bio editor</li>
-                      </>
-                    )}
-                  </ul>
-                </div>
-
-                {/* Raw content display for debugging */}
                 <div className="mt-6">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Content (JSON)
                   </label>
-                  <pre className="bg-gray-900 text-green-400 p-4 rounded-lg text-xs overflow-x-auto">
-                    {JSON.stringify(selectedSection.content, null, 2)}
-                  </pre>
+                  <textarea
+                    value={JSON.stringify(selectedSection.content, null, 2)}
+                    onChange={(e) => {
+                      try {
+                        const content = JSON.parse(e.target.value);
+                        updateSelectedSection({ content });
+                      } catch {
+                        // Invalid JSON, don't update
+                      }
+                    }}
+                    className="w-full h-64 px-4 py-3 bg-gray-900 text-green-400 font-mono text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  />
                 </div>
               </div>
             </div>

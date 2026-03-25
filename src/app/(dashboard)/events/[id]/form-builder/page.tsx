@@ -1,63 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { FIELD_TYPES, FieldType, FieldTypeInfo, generateFieldName } from "@/lib/field-types";
-
-// Mock event data
-const mockEvent = {
-  id: "1",
-  title: "Spring Tango Marathon",
-  slug: "spring-tango-marathon-2026",
-};
 
 // Default fields that are always present
 const defaultFields = [
-  { id: "default_1", name: "firstName", label: "First Name", fieldType: "TEXT" as FieldType, isRequired: true, isDefault: true },
-  { id: "default_2", name: "lastName", label: "Last Name", fieldType: "TEXT" as FieldType, isRequired: true, isDefault: true },
-  { id: "default_3", name: "email", label: "Email", fieldType: "EMAIL" as FieldType, isRequired: true, isDefault: true },
-  { id: "default_4", name: "role", label: "Dance Role", fieldType: "RADIO" as FieldType, isRequired: true, isDefault: true },
-];
-
-// Mock custom fields
-const mockCustomFields = [
-  {
-    id: "f1",
-    name: "experience",
-    label: "Experience Level",
-    fieldType: "SELECT" as FieldType,
-    placeholder: "Select your level",
-    helpText: null,
-    isRequired: true,
-    order: 0,
-    options: [
-      { value: "beginner", label: "Beginner (0-2 years)" },
-      { value: "intermediate", label: "Intermediate (2-5 years)" },
-      { value: "advanced", label: "Advanced (5+ years)" },
-    ],
-  },
-  {
-    id: "f2",
-    name: "check_in_date",
-    label: "Check-in Date",
-    fieldType: "DATE" as FieldType,
-    placeholder: null,
-    helpText: "When will you arrive at the hotel?",
-    isRequired: false,
-    order: 1,
-    options: null,
-  },
-  {
-    id: "f3",
-    name: "airport_transfer",
-    label: "Airport Transfer",
-    fieldType: "CHECKBOX" as FieldType,
-    placeholder: null,
-    helpText: "Do you need airport transfer? (+30 EUR)",
-    isRequired: false,
-    order: 2,
-    options: null,
-  },
+  { id: "default_1", name: "firstName", label: "First Name", fieldType: "TEXT" as FieldType, isRequired: true, isDefault: true, order: -4 },
+  { id: "default_2", name: "lastName", label: "Last Name", fieldType: "TEXT" as FieldType, isRequired: true, isDefault: true, order: -3 },
+  { id: "default_3", name: "email", label: "Email", fieldType: "EMAIL" as FieldType, isRequired: true, isDefault: true, order: -2 },
+  { id: "default_4", name: "role", label: "Dance Role", fieldType: "RADIO" as FieldType, isRequired: true, isDefault: true, order: -1 },
 ];
 
 interface FormField {
@@ -73,19 +25,57 @@ interface FormField {
   isDefault?: boolean;
 }
 
+interface Event {
+  id: string;
+  title: string;
+  slug: string;
+}
+
 export default function FormBuilderPage({ params }: { params: { id: string } }) {
-  const [customFields, setCustomFields] = useState<FormField[]>(mockCustomFields);
+  const [event, setEvent] = useState<Event | null>(null);
+  const [customFields, setCustomFields] = useState<FormField[]>([]);
   const [selectedField, setSelectedField] = useState<FormField | null>(null);
   const [showAddPanel, setShowAddPanel] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  void params;
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
 
-  const event = mockEvent;
-  // allFields used for form preview - keeping for future use
-  void [...defaultFields, ...customFields];
+  // Fetch event and form fields
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [eventRes, fieldsRes] = await Promise.all([
+          fetch(`/api/events/${params.id}`),
+          fetch(`/api/events/${params.id}/form-fields`)
+        ]);
+
+        if (eventRes.ok) {
+          const eventData = await eventRes.json();
+          setEvent({
+            id: eventData.id,
+            title: eventData.title,
+            slug: eventData.slug,
+          });
+        }
+
+        if (fieldsRes.ok) {
+          const fieldsData = await fieldsRes.json();
+          setCustomFields(fieldsData);
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, [params.id]);
+
+  const allFields = [...defaultFields, ...customFields];
 
   const handleDragStart = (index: number) => {
-    // Only allow dragging custom fields (offset by default fields count)
     const customIndex = index - defaultFields.length;
     if (customIndex >= 0) {
       setDraggedIndex(customIndex);
@@ -102,48 +92,134 @@ export default function FormBuilderPage({ params }: { params: { id: string } }) 
     newFields.splice(draggedIndex, 1);
     newFields.splice(customIndex, 0, draggedField);
 
-    // Update order values
     newFields.forEach((field, i) => {
       field.order = i;
     });
 
     setCustomFields(newFields);
     setDraggedIndex(customIndex);
+    setHasChanges(true);
   };
 
   const handleDragEnd = () => {
     setDraggedIndex(null);
   };
 
-  const handleAddField = (typeInfo: FieldTypeInfo) => {
-    const newField: FormField = {
-      id: `f${Date.now()}`,
-      name: generateFieldName(`new_${typeInfo.name.toLowerCase()}`),
-      label: typeInfo.name,
-      fieldType: typeInfo.type,
-      placeholder: typeInfo.defaultPlaceholder,
-      helpText: null,
-      isRequired: false,
-      order: customFields.length,
-      options: typeInfo.hasOptions ? [{ value: "option_1", label: "Option 1" }] : null,
-    };
+  const handleAddField = async (typeInfo: FieldTypeInfo) => {
+    const fieldName = generateFieldName(typeInfo.name);
 
-    setCustomFields([...customFields, newField]);
-    setShowAddPanel(false);
-    setSelectedField(newField);
-  };
+    try {
+      const res = await fetch(`/api/events/${params.id}/form-fields`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fieldType: typeInfo.type,
+          name: fieldName,
+          label: typeInfo.name,
+          placeholder: typeInfo.defaultPlaceholder || null,
+          isRequired: false,
+          options: typeInfo.hasOptions ? [{ value: "option1", label: "Option 1" }] : null,
+        }),
+      });
 
-  const handleDeleteField = (fieldId: string) => {
-    setCustomFields(customFields.filter((f) => f.id !== fieldId));
-    if (selectedField?.id === fieldId) {
-      setSelectedField(null);
+      if (res.ok) {
+        const newField = await res.json();
+        setCustomFields([...customFields, newField]);
+        setShowAddPanel(false);
+        setSelectedField(newField);
+      }
+    } catch (error) {
+      console.error("Error adding field:", error);
     }
   };
 
-  const handleUpdateField = (updatedField: FormField) => {
-    setCustomFields(customFields.map((f) => (f.id === updatedField.id ? updatedField : f)));
-    setSelectedField(updatedField);
+  const handleDeleteField = async (fieldId: string) => {
+    const field = customFields.find(f => f.id === fieldId);
+    if (field?.isDefault) return;
+
+    if (!confirm("Are you sure you want to delete this field?")) return;
+
+    try {
+      const res = await fetch(`/api/events/${params.id}/form-fields/${fieldId}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setCustomFields(customFields.filter((f) => f.id !== fieldId));
+        if (selectedField?.id === fieldId) {
+          setSelectedField(null);
+        }
+      }
+    } catch (error) {
+      console.error("Error deleting field:", error);
+    }
   };
+
+  const handleToggleRequired = async (fieldId: string) => {
+    const field = customFields.find(f => f.id === fieldId);
+    if (!field || field.isDefault) return;
+
+    try {
+      const res = await fetch(`/api/events/${params.id}/form-fields/${fieldId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isRequired: !field.isRequired }),
+      });
+
+      if (res.ok) {
+        setCustomFields(
+          customFields.map((f) =>
+            f.id === fieldId ? { ...f, isRequired: !f.isRequired } : f
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Error toggling required:", error);
+    }
+  };
+
+  const handleSaveChanges = async () => {
+    setSaving(true);
+    try {
+      // Save field order
+      await fetch(`/api/events/${params.id}/form-fields`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fieldIds: customFields.map(f => f.id),
+        }),
+      });
+
+      // Save selected field if any
+      if (selectedField && !selectedField.isDefault) {
+        await fetch(`/api/events/${params.id}/form-fields/${selectedField.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            label: selectedField.label,
+            placeholder: selectedField.placeholder,
+            helpText: selectedField.helpText,
+            isRequired: selectedField.isRequired,
+            options: selectedField.options,
+          }),
+        });
+      }
+
+      setHasChanges(false);
+    } catch (error) {
+      console.error("Error saving changes:", error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateSelectedField = useCallback((updates: Partial<FormField>) => {
+    if (!selectedField || selectedField.isDefault) return;
+    const updated = { ...selectedField, ...updates };
+    setSelectedField(updated);
+    setCustomFields(customFields.map(f => f.id === updated.id ? updated : f));
+    setHasChanges(true);
+  }, [selectedField, customFields]);
 
   const getFieldIcon = (type: FieldType): string => {
     const icons: Record<FieldType, string> = {
@@ -153,21 +229,44 @@ export default function FormBuilderPage({ params }: { params: { id: string } }) 
       NUMBER: "M7 20l4-16m2 16l4-16M6 9h14M4 15h14",
       DATE: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z",
       DATETIME: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z",
-      SELECT: "M8 9l4-4 4 4m0 6l-4 4-4-4",
+      SELECT: "M19 9l-7 7-7-7",
       RADIO: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z",
       CHECKBOX: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z",
       TEXTAREA: "M4 6h16M4 12h16M4 18h7",
       URL: "M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1",
-      FILE: "M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13",
+      FILE: "M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z",
     };
-    return icons[type];
+    return icons[type] || icons.TEXT;
   };
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-rose-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-500">Loading form builder...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!event) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <p className="text-gray-500">Event not found</p>
+          <Link href="/events" className="text-rose-500 hover:text-rose-600 mt-2 inline-block">
+            Back to Events
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Left Sidebar - Field List */}
       <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
-        {/* Header */}
         <div className="p-4 border-b border-gray-200">
           <Link href={`/events/${event.id}`} className="text-gray-500 hover:text-gray-900 transition flex items-center gap-2 mb-4">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -179,42 +278,9 @@ export default function FormBuilderPage({ params }: { params: { id: string } }) 
           <p className="text-gray-500 text-sm">{event.title}</p>
         </div>
 
-        {/* Fields List */}
         <div className="flex-1 overflow-y-auto p-4">
-          {/* Default Fields */}
-          <div className="mb-6">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Default Fields</h2>
-            <div className="space-y-2">
-              {defaultFields.map((field) => (
-                <div
-                  key={field.id}
-                  className="p-3 bg-gray-50 rounded-lg border border-gray-200 opacity-75"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gray-200 rounded flex items-center justify-center flex-shrink-0">
-                      <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={getFieldIcon(field.fieldType)} />
-                      </svg>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-700 truncate">
-                        {field.label}
-                        {field.isRequired && <span className="text-rose-500 ml-1">*</span>}
-                      </p>
-                      <p className="text-xs text-gray-400">{field.fieldType}</p>
-                    </div>
-                    <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Custom Fields */}
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Custom Fields</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Fields</h2>
             <button
               onClick={() => setShowAddPanel(!showAddPanel)}
               className="text-rose-500 hover:text-rose-600 p-1"
@@ -225,7 +291,6 @@ export default function FormBuilderPage({ params }: { params: { id: string } }) 
             </button>
           </div>
 
-          {/* Add Field Panel */}
           {showAddPanel && (
             <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
               <p className="text-sm font-medium text-gray-700 mb-2">Add Field</p>
@@ -246,75 +311,69 @@ export default function FormBuilderPage({ params }: { params: { id: string } }) 
             </div>
           )}
 
-          {/* Custom Field Items */}
           <div className="space-y-2">
-            {customFields.map((field, index) => (
+            {allFields.map((field, index) => (
               <div
                 key={field.id}
-                draggable
-                onDragStart={() => handleDragStart(index + defaultFields.length)}
-                onDragOver={(e) => handleDragOver(e, index + defaultFields.length)}
+                draggable={!field.isDefault}
+                onDragStart={() => handleDragStart(index)}
+                onDragOver={(e) => handleDragOver(e, index)}
                 onDragEnd={handleDragEnd}
                 onClick={() => setSelectedField(field)}
-                className={`p-3 bg-white rounded-lg border cursor-pointer transition ${
+                className={`p-3 rounded-lg border cursor-pointer transition ${
                   selectedField?.id === field.id
-                    ? "border-rose-500 ring-2 ring-rose-500/20"
-                    : "border-gray-200 hover:border-gray-300"
+                    ? "border-rose-500 ring-2 ring-rose-500/20 bg-white"
+                    : field.isDefault
+                    ? "border-gray-200 bg-gray-50"
+                    : "border-gray-200 hover:border-gray-300 bg-white"
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  {/* Drag Handle */}
-                  <div className="cursor-grab text-gray-400 hover:text-gray-600">
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
-                    </svg>
-                  </div>
-
-                  {/* Icon */}
-                  <div className="w-8 h-8 bg-rose-100 rounded flex items-center justify-center flex-shrink-0">
-                    <svg className="w-4 h-4 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  {!field.isDefault && (
+                    <div className="cursor-grab text-gray-400 hover:text-gray-600">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                      </svg>
+                    </div>
+                  )}
+                  <div className={`w-8 h-8 rounded flex items-center justify-center flex-shrink-0 ${field.isDefault ? "bg-gray-200" : "bg-rose-100"}`}>
+                    <svg className={`w-4 h-4 ${field.isDefault ? "text-gray-500" : "text-rose-600"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={getFieldIcon(field.fieldType)} />
                     </svg>
                   </div>
-
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {field.label}
-                      {field.isRequired && <span className="text-rose-500 ml-1">*</span>}
+                    <p className="text-sm font-medium text-gray-900 truncate">{field.label}</p>
+                    <p className="text-xs text-gray-500 flex items-center gap-1">
+                      {field.fieldType}
+                      {field.isRequired && <span className="text-rose-500">*</span>}
+                      {field.isDefault && <span className="bg-gray-200 px-1 rounded text-gray-600">Default</span>}
                     </p>
-                    <p className="text-xs text-gray-500">{field.fieldType}</p>
                   </div>
-
-                  {/* Delete */}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleDeleteField(field.id); }}
-                    className="p-1 text-gray-400 hover:text-red-600"
-                    title="Delete field"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
+                  {!field.isDefault && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleToggleRequired(field.id); }}
+                        className={`p-1 ${field.isRequired ? "text-rose-500" : "text-gray-400"} hover:text-rose-600`}
+                        title={field.isRequired ? "Required" : "Optional"}
+                      >
+                        <span className="text-sm font-bold">*</span>
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeleteField(field.id); }}
+                        className="p-1 text-gray-400 hover:text-red-600"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
           </div>
-
-          {customFields.length === 0 && !showAddPanel && (
-            <div className="text-center py-8">
-              <p className="text-gray-500 mb-4">No custom fields yet</p>
-              <button
-                onClick={() => setShowAddPanel(true)}
-                className="text-rose-500 hover:text-rose-600 font-medium"
-              >
-                Add your first field
-              </button>
-            </div>
-          )}
         </div>
 
-        {/* Footer Actions */}
         <div className="p-4 border-t border-gray-200 space-y-2">
           <Link
             href={`/${event.slug}/register`}
@@ -326,31 +385,35 @@ export default function FormBuilderPage({ params }: { params: { id: string } }) 
             </svg>
             Preview Form
           </Link>
-          <button className="w-full px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-lg font-medium transition shadow-lg shadow-rose-500/25">
-            Save Changes
+          <button
+            onClick={handleSaveChanges}
+            disabled={saving || !hasChanges}
+            className={`w-full px-4 py-2 rounded-lg font-medium transition shadow-lg ${
+              hasChanges
+                ? "bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/25"
+                : "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
+            }`}
+          >
+            {saving ? "Saving..." : hasChanges ? "Save Changes" : "No Changes"}
           </button>
         </div>
       </div>
 
       {/* Right Panel - Field Editor */}
       <div className="flex-1 flex flex-col">
-        {selectedField && !selectedField.isDefault ? (
+        {selectedField ? (
           <>
-            {/* Editor Header */}
             <div className="bg-white border-b border-gray-200 px-6 py-4">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">
-                    Edit {FIELD_TYPES.find(t => t.type === selectedField.fieldType)?.name} Field
+                    Edit {selectedField.label}
                   </h2>
                   <p className="text-gray-500 text-sm">
                     {FIELD_TYPES.find(t => t.type === selectedField.fieldType)?.description}
                   </p>
                 </div>
-                <button
-                  onClick={() => setSelectedField(null)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
+                <button onClick={() => setSelectedField(null)} className="text-gray-400 hover:text-gray-600">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
@@ -358,142 +421,79 @@ export default function FormBuilderPage({ params }: { params: { id: string } }) 
               </div>
             </div>
 
-            {/* Editor Content */}
             <div className="flex-1 overflow-y-auto p-6">
               <div className="max-w-2xl space-y-6">
-                {/* Label */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Label *
-                  </label>
-                  <input
-                    type="text"
-                    value={selectedField.label}
-                    onChange={(e) =>
-                      handleUpdateField({ ...selectedField, label: e.target.value })
-                    }
-                    placeholder="Field label"
-                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-500"
-                  />
-                </div>
-
-                {/* Field Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Field Name
-                  </label>
-                  <input
-                    type="text"
-                    value={selectedField.name}
-                    onChange={(e) =>
-                      handleUpdateField({ ...selectedField, name: e.target.value.toLowerCase().replace(/\s/g, '_') })
-                    }
-                    placeholder="field_name"
-                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
-                  />
-                  <p className="text-gray-500 text-sm mt-1">Used internally to identify the field</p>
-                </div>
-
-                {/* Placeholder */}
-                {(selectedField.fieldType === "TEXT" || selectedField.fieldType === "EMAIL" ||
-                  selectedField.fieldType === "TEL" || selectedField.fieldType === "URL" ||
-                  selectedField.fieldType === "TEXTAREA" || selectedField.fieldType === "NUMBER") && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Placeholder
-                    </label>
-                    <input
-                      type="text"
-                      value={selectedField.placeholder || ""}
-                      onChange={(e) =>
-                        handleUpdateField({ ...selectedField, placeholder: e.target.value })
-                      }
-                      placeholder="Enter placeholder text..."
-                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-500"
-                    />
+                {selectedField.isDefault ? (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <p className="text-gray-500 text-sm">
+                      This is a default field and cannot be edited. Default fields include First Name, Last Name, Email, and Dance Role.
+                    </p>
                   </div>
-                )}
-
-                {/* Help Text */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Help Text
-                  </label>
-                  <input
-                    type="text"
-                    value={selectedField.helpText || ""}
-                    onChange={(e) =>
-                      handleUpdateField({ ...selectedField, helpText: e.target.value })
-                    }
-                    placeholder="Additional help text shown below the field"
-                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-500"
-                  />
-                </div>
-
-                {/* Required */}
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium text-gray-900">Required</p>
-                    <p className="text-gray-500 text-sm">Make this field mandatory</p>
-                  </div>
-                  <button
-                    onClick={() => handleUpdateField({ ...selectedField, isRequired: !selectedField.isRequired })}
-                    className={`relative w-12 h-6 rounded-full transition ${
-                      selectedField.isRequired ? "bg-rose-500" : "bg-gray-300"
-                    }`}
-                  >
-                    <span
-                      className={`absolute top-1 w-4 h-4 bg-white rounded-full transition ${
-                        selectedField.isRequired ? "left-7" : "left-1"
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                {/* Options (for SELECT and RADIO) */}
-                {(selectedField.fieldType === "SELECT" || selectedField.fieldType === "RADIO") && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Options
-                    </label>
-                    <div className="space-y-2">
-                      {(selectedField.options || []).map((option, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={option.label}
-                            onChange={(e) => {
-                              const newOptions = [...(selectedField.options || [])];
-                              newOptions[index] = { ...newOptions[index], label: e.target.value };
-                              handleUpdateField({ ...selectedField, options: newOptions });
-                            }}
-                            placeholder="Option label"
-                            className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-500"
-                          />
-                          <button
-                            onClick={() => {
-                              const newOptions = (selectedField.options || []).filter((_, i) => i !== index);
-                              handleUpdateField({ ...selectedField, options: newOptions });
-                            }}
-                            className="p-2 text-gray-400 hover:text-red-600"
-                          >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        </div>
-                      ))}
-                      <button
-                        onClick={() => {
-                          const newOptions = [...(selectedField.options || []), { value: `option_${Date.now()}`, label: "New Option" }];
-                          handleUpdateField({ ...selectedField, options: newOptions });
-                        }}
-                        className="text-rose-500 hover:text-rose-600 text-sm font-medium"
-                      >
-                        + Add Option
-                      </button>
+                ) : (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Field Label</label>
+                      <input
+                        type="text"
+                        value={selectedField.label}
+                        onChange={(e) => updateSelectedField({ label: e.target.value })}
+                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                      />
                     </div>
-                  </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Placeholder</label>
+                      <input
+                        type="text"
+                        value={selectedField.placeholder || ""}
+                        onChange={(e) => updateSelectedField({ placeholder: e.target.value || null })}
+                        placeholder="Enter placeholder text..."
+                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Help Text</label>
+                      <input
+                        type="text"
+                        value={selectedField.helpText || ""}
+                        onChange={(e) => updateSelectedField({ helpText: e.target.value || null })}
+                        placeholder="Additional help text shown below the field..."
+                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="required"
+                        checked={selectedField.isRequired}
+                        onChange={(e) => updateSelectedField({ isRequired: e.target.checked })}
+                        className="w-4 h-4 text-rose-500 rounded focus:ring-rose-500"
+                      />
+                      <label htmlFor="required" className="text-sm font-medium text-gray-700">
+                        Required field
+                      </label>
+                    </div>
+
+                    {selectedField.options && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Options (JSON)</label>
+                        <textarea
+                          value={JSON.stringify(selectedField.options, null, 2)}
+                          onChange={(e) => {
+                            try {
+                              const options = JSON.parse(e.target.value);
+                              updateSelectedField({ options });
+                            } catch {
+                              // Invalid JSON
+                            }
+                          }}
+                          className="w-full h-32 px-4 py-3 bg-gray-900 text-green-400 font-mono text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -502,9 +502,9 @@ export default function FormBuilderPage({ params }: { params: { id: string } }) 
           <div className="flex-1 flex items-center justify-center bg-gray-50">
             <div className="text-center">
               <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <p className="text-gray-500">Select a custom field to edit</p>
+              <p className="text-gray-500">Select a field to edit</p>
               <p className="text-gray-400 text-sm mt-1">or add a new field from the sidebar</p>
             </div>
           </div>

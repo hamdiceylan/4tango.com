@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
+import prisma from "@/lib/prisma";
 
 // GET /api/auth/verify?token=xxx - Verify magic link
 export async function GET(request: Request) {
@@ -8,46 +9,59 @@ export async function GET(request: Request) {
     const token = searchParams.get("token");
 
     if (!token) {
-      return NextResponse.json(
-        { error: "Token is required" },
-        { status: 400 }
-      );
+      return NextResponse.redirect(new URL("/login?error=invalid_token", request.url));
     }
 
-    // In production:
-    // 1. Find token in database
-    // const magicLinkToken = await prisma.magicLinkToken.findUnique({
-    //   where: { token }
-    // });
+    // Find token in database
+    const magicLinkToken = await prisma.magicLinkToken.findUnique({
+      where: { token }
+    });
 
-    // 2. Check if token is valid and not expired
-    // if (!magicLinkToken || magicLinkToken.expiresAt < new Date() || magicLinkToken.usedAt) {
-    //   return NextResponse.json({ error: "Invalid or expired token" }, { status: 400 });
-    // }
+    // Check if token is valid and not expired
+    if (!magicLinkToken) {
+      return NextResponse.redirect(new URL("/login?error=invalid_token", request.url));
+    }
 
-    // 3. Mark token as used
-    // await prisma.magicLinkToken.update({
-    //   where: { id: magicLinkToken.id },
-    //   data: { usedAt: new Date() }
-    // });
+    if (magicLinkToken.expiresAt < new Date()) {
+      // Delete expired token
+      await prisma.magicLinkToken.delete({ where: { id: magicLinkToken.id } });
+      return NextResponse.redirect(new URL("/login?error=expired_token", request.url));
+    }
 
-    // 4. Find organizer
-    // const organizer = await prisma.organizer.findUnique({
-    //   where: { email: magicLinkToken.email }
-    // });
+    if (magicLinkToken.usedAt) {
+      return NextResponse.redirect(new URL("/login?error=token_used", request.url));
+    }
 
-    // 5. Create session
+    // Mark token as used
+    await prisma.magicLinkToken.update({
+      where: { id: magicLinkToken.id },
+      data: { usedAt: new Date() }
+    });
+
+    // Find organizer user
+    const organizerUser = await prisma.organizerUser.findUnique({
+      where: { email: magicLinkToken.email },
+      include: { organizer: true }
+    });
+
+    if (!organizerUser) {
+      return NextResponse.redirect(new URL("/login?error=no_account", request.url));
+    }
+
+    // Create session
     const sessionToken = crypto.randomBytes(32).toString("hex");
-    // await prisma.session.create({
-    //   data: {
-    //     userId: organizer.id,
-    //     userType: "organizer",
-    //     token: sessionToken,
-    //     expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
-    //   }
-    // });
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
-    // In development, redirect to dashboard
+    await prisma.session.create({
+      data: {
+        userId: organizerUser.id,
+        userType: "organizer",
+        token: sessionToken,
+        expiresAt,
+      }
+    });
+
+    // Redirect to dashboard
     const response = NextResponse.redirect(new URL("/dashboard", request.url));
 
     // Set session cookie
@@ -56,14 +70,12 @@ export async function GET(request: Request) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       maxAge: 30 * 24 * 60 * 60, // 30 days
+      path: "/",
     });
 
     return response;
   } catch (error) {
     console.error("Error verifying magic link:", error);
-    return NextResponse.json(
-      { error: "Failed to verify token" },
-      { status: 500 }
-    );
+    return NextResponse.redirect(new URL("/login?error=verification_failed", request.url));
   }
 }

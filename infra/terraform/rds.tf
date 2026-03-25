@@ -71,7 +71,7 @@ resource "aws_db_instance" "main" {
   # Deletion protection
   deletion_protection       = var.environment == "prod"
   skip_final_snapshot       = var.environment == "dev"
-  final_snapshot_identifier = var.environment == "prod" ? "4tango-${var.environment}-final-${formatdate("YYYY-MM-DD", timestamp())}" : null
+  final_snapshot_identifier = var.environment == "prod" ? "tango-${var.environment}-final-${formatdate("YYYY-MM-DD", timestamp())}" : null
 
   # Updates
   auto_minor_version_upgrade  = true

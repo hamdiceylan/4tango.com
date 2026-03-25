@@ -19,8 +19,8 @@ resource "aws_wafv2_web_acl" "main" {
     name     = "RateLimitRule"
     priority = 1
 
-    override_action {
-      none {}
+    action {
+      block {}
     }
 
     statement {
@@ -32,7 +32,7 @@ resource "aws_wafv2_web_acl" "main" {
 
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name                = "4tangoRateLimitRule"
+      metric_name                = "tangoRateLimitRule"
       sampled_requests_enabled   = true
     }
   }
@@ -63,7 +63,7 @@ resource "aws_wafv2_web_acl" "main" {
 
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name                = "4tangoCommonRules"
+      metric_name                = "tangoCommonRules"
       sampled_requests_enabled   = true
     }
   }
@@ -86,7 +86,7 @@ resource "aws_wafv2_web_acl" "main" {
 
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name                = "4tangoBadInputs"
+      metric_name                = "tangoBadInputs"
       sampled_requests_enabled   = true
     }
   }
@@ -109,7 +109,7 @@ resource "aws_wafv2_web_acl" "main" {
 
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name                = "4tangoSQLi"
+      metric_name                = "tangoSQLi"
       sampled_requests_enabled   = true
     }
   }
@@ -138,7 +138,7 @@ resource "aws_wafv2_web_acl" "main" {
 
   visibility_config {
     cloudwatch_metrics_enabled = true
-    metric_name                = "4tangoWAF"
+    metric_name                = "tangoWAF"
     sampled_requests_enabled   = true
   }
 

@@ -1,14 +1,15 @@
 # AWS Amplify Configuration for 4Tango
 # Hosts the Next.js application with automatic CI/CD
+# NOTE: Connect to GitHub manually via AWS Console after creation
 
 # Amplify App
-# Note: Connect to GitHub manually in AWS Console after creation
-# Or provide access_token variable for automatic connection
 resource "aws_amplify_app" "main" {
   name = "4tango-${var.environment}"
-  # repository = var.github_repository  # Requires GitHub OAuth token
 
-  # Build settings for Next.js
+  # Repository connection is done manually via AWS Console
+  # This allows using GitHub OAuth instead of personal access token
+
+  # Build settings for Next.js 14
   build_spec = <<-EOT
     version: 1
     frontend:
@@ -18,6 +19,7 @@ resource "aws_amplify_app" "main" {
             - npm ci
         build:
           commands:
+            - env | grep -e DATABASE_URL -e NEXT_PUBLIC_ >> .env.production
             - npm run build
       artifacts:
         baseDirectory: .next
@@ -41,7 +43,7 @@ resource "aws_amplify_app" "main" {
     ])
   }
 
-  # Enable auto branch creation for feature branches
+  # Enable auto branch creation for feature branches (dev only)
   enable_auto_branch_creation = var.environment == "dev"
   enable_branch_auto_build    = true
   enable_branch_auto_deletion = var.environment == "dev"
@@ -54,22 +56,24 @@ resource "aws_amplify_app" "main" {
     enable_pull_request_preview = var.environment == "dev"
   }
 
-  # Custom rules for Next.js routing
-  custom_rule {
-    source = "/<*>"
-    status = "404-200"
-    target = "/index.html"
-  }
-
   # Platform for SSR
   platform = "WEB_COMPUTE"
 
   tags = {
     Name = "4tango-${var.environment}"
   }
+
+  # Ignore changes to repository settings (managed via Console)
+  lifecycle {
+    ignore_changes = [
+      repository,
+      access_token,
+      oauth_token,
+    ]
+  }
 }
 
-# Branch configuration
+# Branch configuration - created after GitHub is connected via Console
 resource "aws_amplify_branch" "main" {
   app_id      = aws_amplify_app.main.id
   branch_name = var.environment == "prod" ? "main" : "develop"
@@ -82,9 +86,8 @@ resource "aws_amplify_branch" "main" {
     NEXT_PUBLIC_ENV = var.environment
     NEXT_PUBLIC_URL = var.environment == "prod" ? "https://4tango.com" : "https://dev.4tango.com"
 
-    # Database URL will be set via AWS Secrets Manager
-    # These are placeholders - actual values from secrets
-    DATABASE_URL = "PLACEHOLDER_SET_VIA_SECRETS"
+    # Database URL will be set manually or via secrets
+    DATABASE_URL = "PLACEHOLDER_SET_VIA_CONSOLE"
 
     # AWS region for SES
     SES_REGION     = var.aws_region
@@ -96,6 +99,7 @@ resource "aws_amplify_branch" "main" {
   tags = {
     Name = "4tango-${var.environment}-branch"
   }
+
 }
 
 # Domain association (for custom domain)
@@ -134,7 +138,7 @@ resource "aws_amplify_domain_association" "dev" {
   wait_for_verification = true
 }
 
-# Webhook for GitHub (manual trigger if needed)
+# Webhook for manual triggers
 resource "aws_amplify_webhook" "main" {
   app_id      = aws_amplify_app.main.id
   branch_name = aws_amplify_branch.main.branch_name
@@ -161,4 +165,9 @@ output "amplify_webhook_url" {
   description = "Webhook URL for manual triggers"
   value       = aws_amplify_webhook.main.url
   sensitive   = true
+}
+
+output "amplify_console_url" {
+  description = "URL to connect GitHub via AWS Console"
+  value       = "https://${var.aws_region}.console.aws.amazon.com/amplify/home?region=${var.aws_region}#/${aws_amplify_app.main.id}"
 }

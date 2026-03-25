@@ -33,6 +33,7 @@ variable "github_branch" {
   default     = "main"
 }
 
+
 # Database
 variable "db_instance_class" {
   description = "RDS instance class"

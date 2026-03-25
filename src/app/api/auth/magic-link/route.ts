@@ -55,7 +55,7 @@ export async function POST(request: Request) {
 
     // Generate magic link URL
     const baseUrl = process.env.NEXT_PUBLIC_URL || "https://4tango.com";
-    const magicLink = `${baseUrl}/auth/verify?token=${token}`;
+    const magicLink = `${baseUrl}/api/auth/verify?token=${token}`;
 
     // Send email via SES
     try {

@@ -4,12 +4,14 @@ import prisma from "@/lib/prisma";
 
 // GET /api/auth/verify?token=xxx - Verify magic link
 export async function GET(request: Request) {
+  const baseUrl = process.env.NEXT_PUBLIC_URL || "https://4tango.com";
+
   try {
     const { searchParams } = new URL(request.url);
     const token = searchParams.get("token");
 
     if (!token) {
-      return NextResponse.redirect(new URL("/login?error=invalid_token", request.url));
+      return NextResponse.redirect(`${baseUrl}/login?error=invalid_token`);
     }
 
     // Find token in database
@@ -19,17 +21,17 @@ export async function GET(request: Request) {
 
     // Check if token is valid and not expired
     if (!magicLinkToken) {
-      return NextResponse.redirect(new URL("/login?error=invalid_token", request.url));
+      return NextResponse.redirect(`${baseUrl}/login?error=invalid_token`);
     }
 
     if (magicLinkToken.expiresAt < new Date()) {
       // Delete expired token
       await prisma.magicLinkToken.delete({ where: { id: magicLinkToken.id } });
-      return NextResponse.redirect(new URL("/login?error=expired_token", request.url));
+      return NextResponse.redirect(`${baseUrl}/login?error=expired_token`);
     }
 
     if (magicLinkToken.usedAt) {
-      return NextResponse.redirect(new URL("/login?error=token_used", request.url));
+      return NextResponse.redirect(`${baseUrl}/login?error=token_used`);
     }
 
     // Mark token as used
@@ -45,7 +47,7 @@ export async function GET(request: Request) {
     });
 
     if (!organizerUser) {
-      return NextResponse.redirect(new URL("/login?error=no_account", request.url));
+      return NextResponse.redirect(`${baseUrl}/login?error=no_account`);
     }
 
     // Create session
@@ -62,12 +64,12 @@ export async function GET(request: Request) {
     });
 
     // Redirect to dashboard
-    const response = NextResponse.redirect(new URL("/dashboard", request.url));
+    const response = NextResponse.redirect(`${baseUrl}/dashboard`);
 
     // Set session cookie
     response.cookies.set("session", sessionToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: true,
       sameSite: "lax",
       maxAge: 30 * 24 * 60 * 60, // 30 days
       path: "/",
@@ -76,6 +78,6 @@ export async function GET(request: Request) {
     return response;
   } catch (error) {
     console.error("Error verifying magic link:", error);
-    return NextResponse.redirect(new URL("/login?error=verification_failed", request.url));
+    return NextResponse.redirect(`${baseUrl}/login?error=verification_failed`);
   }
 }

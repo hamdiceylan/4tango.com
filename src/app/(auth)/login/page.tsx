@@ -12,8 +12,24 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    router.push(`/check-email?email=${encodeURIComponent(email)}`);
+
+    try {
+      const res = await fetch("/api/auth/magic-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to send magic link");
+      }
+
+      router.push(`/check-email?email=${encodeURIComponent(email)}`);
+    } catch (error) {
+      console.error("Login error:", error);
+      setIsLoading(false);
+    }
   };
 
   return (

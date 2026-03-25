@@ -26,7 +26,16 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
+.env
 .env*.local
+
+# screenshots (local testing)
+/screenshots/
+
+# terraform
+*.tfstate
+*.tfstate.*
+.terraform/
 
 # vercel
 .vercel

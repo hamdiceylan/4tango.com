@@ -1,0 +1,303 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Organizer - The paying customer who creates events
+model Organizer {
+  id               String   @id @default(cuid())
+  name             String
+  email            String   @unique
+  logoUrl          String?
+  stripeAccountId  String?
+  defaultCurrency  String   @default("EUR")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  users  OrganizerUser[]
+  events Event[]
+}
+
+// Organizer Users - For future multi-admin support
+model OrganizerUser {
+  id          String   @id @default(cuid())
+  organizerId String
+  email       String   @unique
+  fullName    String
+  role        String   @default("admin") // admin, editor, viewer
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  organizer Organizer @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+}
+
+// Magic Link tokens for authentication
+model MagicLinkToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+}
+
+// Session for authenticated users
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  userType     String   // "organizer" or "dancer"
+  token        String   @unique
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+}
+
+// Event - Tango events created by organizers
+model Event {
+  id                   String    @id @default(cuid())
+  organizerId          String
+  title                String
+  slug                 String    @unique
+  shortDescription     String?
+  description          String?
+  coverImageUrl        String?
+  city                 String
+  country              String
+  venueName            String?
+  address              String?
+  startAt              DateTime
+  endAt                DateTime
+  currency             String    @default("EUR")
+  priceAmount          Int       @default(0) // In cents
+  capacityLimit        Int?
+  registrationOpensAt  DateTime?
+  registrationClosesAt DateTime?
+  status               EventStatus @default(DRAFT)
+  djs                  String[]  // Array of DJ names
+  // Theme settings for page builder
+  primaryColor         String?   @default("#f43f5e") // rose-500
+  logoUrl              String?
+  bannerUrl            String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  organizer     Organizer          @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  registrations Registration[]
+  pageSections  EventPageSection[]
+  formFields    EventFormField[]
+  packages      EventPackage[]
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  CANCELLED
+}
+
+// Dancer - Central dancer database built from registrations
+model Dancer {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  fullName  String
+  role      DancerRole @default(FOLLOWER)
+  city      String?
+  country   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  registrations Registration[]
+}
+
+enum DancerRole {
+  LEADER
+  FOLLOWER
+  SWITCH
+}
+
+// Registration - Event registrations
+model Registration {
+  id                 String             @id @default(cuid())
+  eventId            String
+  dancerId           String
+  // Snapshots at time of registration
+  fullNameSnapshot   String
+  emailSnapshot      String
+  roleSnapshot       DancerRole
+  citySnapshot       String?
+  countrySnapshot    String?
+  experience         String?
+  partnerEmail       String?
+  dietaryRestrictions String?
+  notes              String?
+  internalNote       String?
+  // Package selection
+  packageId          String?
+  // Status
+  registrationStatus RegistrationStatus @default(REGISTERED)
+  paymentStatus      PaymentStatus      @default(UNPAID)
+  paymentProvider    String?            // "stripe"
+  paymentReference   String?            // Stripe payment intent ID
+  paymentAmount      Int?               // Amount in cents
+  // Secure access token for dancer to view their registration
+  accessToken        String             @unique @default(cuid())
+  // Email tracking
+  emailSentAt        DateTime?
+  emailDeliveredAt   DateTime?
+  emailOpenedAt      DateTime?
+  emailClickedAt     DateTime?
+  emailBouncedAt     DateTime?
+  // Timestamps
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  event             Event                    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  dancer            Dancer                   @relation(fields: [dancerId], references: [id], onDelete: Cascade)
+  emailEvents       EmailEvent[]
+  customFieldValues RegistrationFieldValue[]
+
+  @@unique([eventId, dancerId])
+}
+
+enum RegistrationStatus {
+  REGISTERED
+  CONFIRMED
+  CANCELLED
+  WAITLIST
+}
+
+enum PaymentStatus {
+  UNPAID
+  PENDING
+  PAID
+  REFUNDED
+  FAILED
+}
+
+// Email Events - Track email delivery status from SES
+model EmailEvent {
+  id               String   @id @default(cuid())
+  registrationId   String
+  eventType        String   // sent, delivered, opened, clicked, bounced, complained
+  providerMessageId String?
+  payloadJson      String?  @db.Text
+  occurredAt       DateTime
+  createdAt        DateTime @default(now())
+
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+}
+
+// ==========================================
+// PAGE BUILDER MODELS
+// ==========================================
+
+// Event page sections for custom page builder
+model EventPageSection {
+  id        String      @id @default(cuid())
+  eventId   String
+  type      SectionType
+  order     Int
+  title     String?
+  content   Json        // Section-specific data (varies by type)
+  isVisible Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, order])
+}
+
+enum SectionType {
+  HERO
+  ABOUT
+  SCHEDULE
+  ACCOMMODATION
+  DJ_TEAM
+  PHOTOGRAPHERS
+  PRICING
+  GALLERY
+  CONTACT
+  CUSTOM_TEXT
+  CUSTOM_HTML
+}
+
+// ==========================================
+// FORM BUILDER MODELS
+// ==========================================
+
+// Custom form fields for registration form builder
+model EventFormField {
+  id            String    @id @default(cuid())
+  eventId       String
+  fieldType     FieldType
+  name          String    // Internal field name (e.g., "check_in_date")
+  label         String    // Display label (e.g., "Check-in Date")
+  placeholder   String?
+  helpText      String?
+  isRequired    Boolean   @default(false)
+  order         Int
+  options       Json?     // For SELECT/RADIO: [{value: "option1", label: "Option 1"}]
+  validation    Json?     // {min, max, pattern, minLength, maxLength, etc.}
+  conditionalOn Json?     // {fieldName: "role", value: "leader"} - show only when condition met
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, order])
+}
+
+enum FieldType {
+  TEXT
+  EMAIL
+  TEL
+  NUMBER
+  DATE
+  DATETIME
+  SELECT
+  RADIO
+  CHECKBOX
+  TEXTAREA
+  URL
+  FILE
+}
+
+// Registration custom field values - stores answers to custom form fields
+model RegistrationFieldValue {
+  id             String @id @default(cuid())
+  registrationId String
+  fieldId        String // References EventFormField.id
+  value          String @db.Text
+
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@unique([registrationId, fieldId])
+  @@index([registrationId])
+}
+
+// ==========================================
+// PRICING PACKAGES
+// ==========================================
+
+// Event pricing packages for accommodation/package selection
+model EventPackage {
+  id          String   @id @default(cuid())
+  eventId     String
+  name        String
+  description String?  @db.Text
+  price       Int      // In cents
+  currency    String   @default("EUR")
+  capacity    Int?     // Max people who can select this package
+  order       Int
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, order])
+}

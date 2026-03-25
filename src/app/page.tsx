@@ -1,100 +1,309 @@
-import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="min-h-screen bg-gradient-to-b from-white to-rose-50">
+      {/* Navigation */}
+      <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-rose-500 to-rose-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">4T</span>
+              </div>
+              <span className="text-gray-900 font-bold text-xl">4Tango</span>
+            </div>
+            <div className="hidden md:flex items-center gap-8">
+              <Link href="#features" className="text-gray-600 hover:text-gray-900 transition">Features</Link>
+              <Link href="#how-it-works" className="text-gray-600 hover:text-gray-900 transition">How it works</Link>
+              <Link href="#pricing" className="text-gray-600 hover:text-gray-900 transition">Pricing</Link>
+              <Link href="#faq" className="text-gray-600 hover:text-gray-900 transition">FAQ</Link>
+            </div>
+            <div className="flex items-center gap-4">
+              <Link href="/login" className="text-gray-600 hover:text-gray-900 transition">Log in</Link>
+              <Link href="/signup" className="bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-lg font-medium transition shadow-sm">
+                Get Started
+              </Link>
+            </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="pt-32 pb-20 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 bg-rose-100 text-rose-700 px-4 py-2 rounded-full text-sm font-medium mb-6">
+                <span className="w-2 h-2 bg-rose-500 rounded-full animate-pulse"></span>
+                Now accepting early access signups
+              </div>
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
+                Run your tango events with{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-rose-600">
+                  less admin
+                </span>
+              </h1>
+              <p className="text-xl text-gray-600 mb-8 leading-relaxed">
+                Create beautiful event pages, collect registrations, manage attendees, and keep everything in one place. Built specifically for tango organizers.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link href="/signup" className="bg-rose-500 hover:bg-rose-600 text-white px-8 py-4 rounded-xl font-semibold text-lg transition shadow-lg shadow-rose-500/25 text-center">
+                  Create your first event
+                </Link>
+                <Link href="/demo" className="border border-gray-300 hover:border-gray-400 text-gray-700 px-8 py-4 rounded-xl font-semibold text-lg transition text-center bg-white">
+                  Book a demo
+                </Link>
+              </div>
+              <p className="text-gray-500 mt-4 text-sm">Free trial - No credit card required</p>
+            </div>
+            <div className="relative">
+              <div className="bg-white rounded-2xl p-6 shadow-2xl shadow-gray-200/50 border border-gray-100">
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                    <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                    <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="bg-white rounded-lg p-4 border border-gray-100 shadow-sm">
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="text-gray-900 font-semibold">Spring Tango Marathon</h3>
+                        <span className="bg-emerald-100 text-emerald-700 text-xs px-2 py-1 rounded-full font-medium">Published</span>
+                      </div>
+                      <p className="text-gray-500 text-sm mb-3">Apr 15-17, 2026 - Barcelona</p>
+                      <div className="flex gap-4 text-sm">
+                        <span className="text-gray-600"><strong className="text-gray-900">127</strong> registrations</span>
+                        <span className="text-gray-600"><strong className="text-emerald-600">98</strong> paid</span>
+                      </div>
+                    </div>
+                    <div className="bg-white rounded-lg p-4 border border-gray-100 shadow-sm">
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="text-gray-900 font-semibold">Summer Milonga Night</h3>
+                        <span className="bg-amber-100 text-amber-700 text-xs px-2 py-1 rounded-full font-medium">Draft</span>
+                      </div>
+                      <p className="text-gray-500 text-sm mb-3">Jun 20, 2026 - Madrid</p>
+                      <div className="flex gap-4 text-sm">
+                        <span className="text-gray-600"><strong className="text-gray-900">0</strong> registrations</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-rose-200 rounded-full blur-2xl opacity-60"></div>
+              <div className="absolute -top-4 -left-4 w-32 h-32 bg-rose-100 rounded-full blur-3xl opacity-60"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Social Proof */}
+      <section className="py-12 border-y border-gray-100 bg-white">
+        <div className="max-w-7xl mx-auto px-4">
+          <p className="text-center text-gray-500 mb-8">Trusted by tango organizers worldwide</p>
+          <div className="flex flex-wrap justify-center items-center gap-12">
+            <div className="text-gray-400 font-semibold text-lg">Buenos Aires Tango Club</div>
+            <div className="text-gray-400 font-semibold text-lg">European Tango Network</div>
+            <div className="text-gray-400 font-semibold text-lg">Tokyo Milonga</div>
+            <div className="text-gray-400 font-semibold text-lg">Berlin Tango Festival</div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section id="features" className="py-24 px-4 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Everything you need to run successful tango events
+            </h2>
+            <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+              From event creation to attendee management, we handle the admin so you can focus on the dance.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[
+              { icon: "📄", title: "Beautiful Event Pages", description: "Create stunning, mobile-friendly event pages in minutes. Share them anywhere and let dancers register instantly." },
+              { icon: "📋", title: "Registration Management", description: "See all your registrations in one place. Filter by status, role, payment, and more. Export to CSV anytime." },
+              { icon: "💳", title: "Payment Collection", description: "Accept payments securely with Stripe. Support both free and paid events with automatic payment tracking." },
+              { icon: "👥", title: "Dancer Database", description: "Build your community database automatically. Every registration adds to your central dancer list." },
+              { icon: "✉️", title: "Email Confirmations", description: "Automatic confirmation emails with full tracking. Know when emails are delivered, opened, and clicked." },
+              { icon: "📊", title: "Export & Reports", description: "Export your data anytime. Generate attendee lists, check-in sheets, and registration reports." }
+            ].map((feature, i) => (
+              <div key={i} className="bg-gray-50 rounded-2xl p-6 border border-gray-100 hover:border-rose-200 hover:shadow-lg hover:shadow-rose-100/50 transition-all">
+                <div className="text-4xl mb-4">{feature.icon}</div>
+                <h3 className="text-gray-900 font-semibold text-xl mb-2">{feature.title}</h3>
+                <p className="text-gray-600">{feature.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section id="how-it-works" className="py-24 px-4 bg-gradient-to-b from-white to-rose-50">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Get started in three simple steps
+            </h2>
+            <p className="text-gray-600 text-lg">
+              From zero to live event page in under 10 minutes
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              { step: "1", title: "Create your event", description: "Fill in your event details, set the price, upload a cover image, and configure registration settings." },
+              { step: "2", title: "Share your page", description: "Publish your event and share the beautiful public page on social media, email lists, and tango communities." },
+              { step: "3", title: "Manage registrations", description: "Watch registrations come in. Track payments, send emails, and manage your attendee list from one dashboard." }
+            ].map((item, i) => (
+              <div key={i} className="text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl flex items-center justify-center text-white text-2xl font-bold mx-auto mb-6 shadow-lg shadow-rose-500/25">
+                  {item.step}
+                </div>
+                <h3 className="text-gray-900 font-semibold text-xl mb-2">{item.title}</h3>
+                <p className="text-gray-600">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="pricing" className="py-24 px-4 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Simple, transparent pricing
+            </h2>
+            <p className="text-gray-600 text-lg">
+              Start free, upgrade when you need more
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {[
+              { name: "Free", price: "0", period: "forever", description: "Perfect for trying out 4Tango", features: ["1 active event", "Up to 50 registrations", "Basic event page", "Email confirmations", "CSV export"], cta: "Start free", highlighted: false },
+              { name: "Starter", price: "19", period: "per month", description: "For regular event organizers", features: ["5 active events", "Up to 200 registrations/event", "Custom event branding", "Payment collection", "Email tracking", "Priority support"], cta: "Start free trial", highlighted: true },
+              { name: "Pro", price: "49", period: "per month", description: "For festivals and large events", features: ["Unlimited events", "Unlimited registrations", "Advanced customization", "Team access", "API access", "Dedicated support"], cta: "Contact us", highlighted: false }
+            ].map((plan, i) => (
+              <div key={i} className={`rounded-2xl p-8 ${plan.highlighted ? "bg-gradient-to-b from-rose-500 to-rose-600 text-white relative shadow-xl shadow-rose-500/25" : "bg-white border border-gray-200"}`}>
+                {plan.highlighted && (
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-white text-rose-600 text-sm font-medium px-4 py-1 rounded-full shadow-md">
+                    Most Popular
+                  </div>
+                )}
+                <h3 className={`font-semibold text-xl mb-2 ${plan.highlighted ? "text-white" : "text-gray-900"}`}>{plan.name}</h3>
+                <div className="mb-4">
+                  <span className={`text-4xl font-bold ${plan.highlighted ? "text-white" : "text-gray-900"}`}>{plan.price} EUR</span>
+                  <span className={`ml-2 ${plan.highlighted ? "text-rose-100" : "text-gray-500"}`}>{plan.period}</span>
+                </div>
+                <p className={`mb-6 ${plan.highlighted ? "text-rose-100" : "text-gray-600"}`}>{plan.description}</p>
+                <ul className="space-y-3 mb-8">
+                  {plan.features.map((feature, j) => (
+                    <li key={j} className={`flex items-center gap-2 ${plan.highlighted ? "text-white" : "text-gray-700"}`}>
+                      <svg className={`w-5 h-5 ${plan.highlighted ? "text-white" : "text-rose-500"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <button className={`w-full py-3 rounded-xl font-semibold transition ${plan.highlighted ? "bg-white text-rose-600 hover:bg-rose-50" : "bg-gray-100 hover:bg-gray-200 text-gray-900"}`}>
+                  {plan.cta}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section id="faq" className="py-24 px-4 bg-gray-50">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Frequently asked questions
+            </h2>
+          </div>
+          <div className="space-y-4">
+            {[
+              { q: "Do dancers need to create an account to register?", a: "No! Dancers can register for events without creating an account. They just fill in the registration form and receive a confirmation email. This keeps the experience smooth and frictionless." },
+              { q: "Can I export my registration data?", a: "Yes, you can export all your registration data to CSV at any time. This includes all attendee information, payment status, and email tracking data." },
+              { q: "Can I run paid events?", a: "Absolutely. We integrate with Stripe for secure payment processing. You can set any price in your preferred currency, and payments are tracked automatically." },
+              { q: "Can I manage leader/follower ratios?", a: "This feature is on our roadmap. For now, you can see the role breakdown in your registration list and manage it manually. Automated balancing is coming soon." },
+              { q: "Is there a limit on registrations?", a: "The free plan allows up to 50 registrations per event. Starter and Pro plans have higher or unlimited limits. Check our pricing for details." },
+              { q: "Can I use my own domain?", a: "Pro plan users can use custom domains for their event pages. Contact us for setup assistance." }
+            ].map((faq, i) => (
+              <div key={i} className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
+                <h3 className="text-gray-900 font-semibold mb-2">{faq.q}</h3>
+                <p className="text-gray-600">{faq.a}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-24 px-4 bg-gradient-to-r from-rose-500 to-rose-600">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+            Ready to simplify your event management?
+          </h2>
+          <p className="text-rose-100 text-lg mb-8">
+            Join hundreds of tango organizers who save time with 4Tango
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/signup" className="bg-white text-rose-600 hover:bg-rose-50 px-8 py-4 rounded-xl font-semibold text-lg transition shadow-lg">
+              Create your first event
+            </Link>
+            <Link href="/demo" className="border-2 border-white/50 hover:border-white text-white px-8 py-4 rounded-xl font-semibold text-lg transition">
+              Book a demo
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-12 px-4 bg-gray-900">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 bg-gradient-to-br from-rose-500 to-rose-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">4T</span>
+                </div>
+                <span className="text-white font-bold text-xl">4Tango</span>
+              </div>
+              <p className="text-gray-400 text-sm">The event platform built for tango organizers.</p>
+            </div>
+            <div>
+              <h4 className="text-white font-semibold mb-4">Product</h4>
+              <ul className="space-y-2">
+                <li><Link href="#features" className="text-gray-400 hover:text-white transition">Features</Link></li>
+                <li><Link href="#pricing" className="text-gray-400 hover:text-white transition">Pricing</Link></li>
+                <li><Link href="#faq" className="text-gray-400 hover:text-white transition">FAQ</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-white font-semibold mb-4">Company</h4>
+              <ul className="space-y-2">
+                <li><Link href="/about" className="text-gray-400 hover:text-white transition">About</Link></li>
+                <li><Link href="/contact" className="text-gray-400 hover:text-white transition">Contact</Link></li>
+                <li><Link href="/blog" className="text-gray-400 hover:text-white transition">Blog</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-white font-semibold mb-4">Legal</h4>
+              <ul className="space-y-2">
+                <li><Link href="/privacy" className="text-gray-400 hover:text-white transition">Privacy Policy</Link></li>
+                <li><Link href="/terms" className="text-gray-400 hover:text-white transition">Terms of Service</Link></li>
+              </ul>
+            </div>
+          </div>
+          <div className="pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-gray-500 text-sm">2026 4Tango. All rights reserved.</p>
+          </div>
+        </div>
       </footer>
     </div>
   );

@@ -154,6 +154,7 @@ enum EventStatus {
 model Dancer {
   id                String     @id @default(cuid())
   email             String     @unique
+  passwordHash      String?    // For email/password auth (null if social login only)
   fullName          String
   role              DancerRole @default(FOLLOWER)
   city              String?
@@ -164,6 +165,8 @@ model Dancer {
   websiteUrl        String?
   socialLinks       Json?      // { instagram, facebook }
   preferences       Json?      // { emailNotifications }
+  emailVerified     Boolean    @default(false)
+  emailVerifyToken  String?    // Token for email verification
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
 

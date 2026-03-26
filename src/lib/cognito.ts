@@ -12,10 +12,10 @@ export function getCognitoConfig(): CognitoConfig {
   const userPoolId = process.env.COGNITO_USER_POOL_ID;
   const clientId = process.env.COGNITO_CLIENT_ID;
   const region = process.env.COGNITO_REGION || process.env.AWS_REGION || 'eu-west-1';
-  const domain = process.env.COGNITO_DOMAIN;
+  const domain = process.env.COGNITO_DOMAIN || `https://4tango-${process.env.NODE_ENV === 'production' ? 'prod' : 'dev'}.auth.${region}.amazoncognito.com`;
 
-  if (!userPoolId || !clientId || !domain) {
-    throw new Error('Missing required Cognito environment variables');
+  if (!userPoolId || !clientId) {
+    throw new Error('Missing required Cognito environment variables (COGNITO_USER_POOL_ID, COGNITO_CLIENT_ID)');
   }
 
   return {

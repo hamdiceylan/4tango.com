@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, use } from "react";
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 
 interface Registration {
   id: string;
@@ -37,19 +38,20 @@ interface Event {
   registrations: Registration[];
 }
 
-export default function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = use(params);
+export default function EventDetailPage() {
+  const params = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState<"overview" | "registrations" | "settings">("overview");
   const [selectedRegistration, setSelectedRegistration] = useState<Registration | null>(null);
   const [copied, setCopied] = useState(false);
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     async function fetchEvent() {
       try {
-        const response = await fetch(`/api/events/${resolvedParams.id}`);
+        const response = await fetch(`/api/events/${params.id}`);
         if (!response.ok) {
           throw new Error("Event not found");
         }
@@ -62,7 +64,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       }
     }
     fetchEvent();
-  }, [resolvedParams.id]);
+  }, [params.id]);
 
   if (loading) {
     return (
@@ -137,6 +139,26 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       hour: "2-digit",
       minute: "2-digit"
     });
+  };
+
+  const updateStatus = async (newStatus: string) => {
+    if (!event || updating) return;
+    setUpdating(true);
+    try {
+      const response = await fetch(`/api/events/${params.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to update status");
+      }
+      setEvent({ ...event, status: newStatus });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update status");
+    } finally {
+      setUpdating(false);
+    }
   };
 
   return (
@@ -542,24 +564,45 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Event Status</h2>
             <div className="flex items-center gap-4">
-              <button className={`px-4 py-2 rounded-lg font-medium transition ${
-                event.status === "PUBLISHED"
-                  ? "bg-green-100 text-green-700 border-2 border-green-500"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}>
-                Published
+              <button
+                onClick={() => updateStatus("PUBLISHED")}
+                disabled={updating}
+                className={`px-4 py-2 rounded-lg font-medium transition ${
+                  event.status === "PUBLISHED"
+                    ? "bg-green-100 text-green-700 border-2 border-green-500"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                } disabled:opacity-50`}
+              >
+                {updating && event.status !== "PUBLISHED" ? "..." : "Published"}
               </button>
-              <button className={`px-4 py-2 rounded-lg font-medium transition ${
-                event.status === "DRAFT"
-                  ? "bg-yellow-100 text-yellow-700 border-2 border-yellow-500"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}>
+              <button
+                onClick={() => updateStatus("DRAFT")}
+                disabled={updating}
+                className={`px-4 py-2 rounded-lg font-medium transition ${
+                  event.status === "DRAFT"
+                    ? "bg-yellow-100 text-yellow-700 border-2 border-yellow-500"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                } disabled:opacity-50`}
+              >
                 Draft
               </button>
-              <button className="px-4 py-2 rounded-lg font-medium transition bg-gray-100 text-gray-600 hover:bg-gray-200">
+              <button
+                onClick={() => updateStatus("CLOSED")}
+                disabled={updating}
+                className={`px-4 py-2 rounded-lg font-medium transition ${
+                  event.status === "CLOSED"
+                    ? "bg-red-100 text-red-700 border-2 border-red-500"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                } disabled:opacity-50`}
+              >
                 Closed
               </button>
             </div>
+            {event.status === "PUBLISHED" && (
+              <p className="text-green-600 text-sm mt-3">
+                Your event is live at: <a href={`/${event.slug}`} target="_blank" className="underline font-medium">{window.location.origin}/{event.slug}</a>
+              </p>
+            )}
           </div>
 
           <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">

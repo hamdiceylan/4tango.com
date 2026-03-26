@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const {
       title,
-      slug,
+      slug: providedSlug,
       shortDescription,
       description,
       city,
@@ -73,23 +73,41 @@ export async function POST(request: Request) {
     } = body;
 
     // Validate required fields
-    if (!title || !slug || !city || !country || !startAt || !endAt) {
+    if (!title || !city || !country || !startAt || !endAt) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    // Check if slug is unique
-    const existingEvent = await prisma.event.findUnique({
+    // Generate slug from title if not provided
+    let slug = providedSlug || title.toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim();
+
+    // Check if slug is unique, if not add a random suffix
+    let existingEvent = await prisma.event.findUnique({
       where: { slug }
     });
 
     if (existingEvent) {
-      return NextResponse.json(
-        { error: "An event with this URL slug already exists" },
-        { status: 400 }
-      );
+      // Add random suffix to make it unique
+      const suffix = Math.random().toString(36).substring(2, 6);
+      slug = `${slug}-${suffix}`;
+
+      // Verify the new slug is unique
+      existingEvent = await prisma.event.findUnique({
+        where: { slug }
+      });
+
+      if (existingEvent) {
+        return NextResponse.json(
+          { error: "An event with this URL slug already exists" },
+          { status: 400 }
+        );
+      }
     }
 
     const event = await prisma.event.create({

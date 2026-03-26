@@ -107,13 +107,14 @@ export async function authenticateWithCognitoTokens(
   const email = payload.email;
   const name = payload.name;
   const provider = getProviderFromToken(payload);
+  const organizationName = payload['custom:organizerId']; // Stores org name from signup
 
   // Check if this is an organizer (email/password users are typically organizers)
   // Social login users are typically dancers
   const isOrganizerLogin = !provider; // No provider means email/password login
 
   if (isOrganizerLogin) {
-    return authenticateOrganizer(cognitoUserId, email, name);
+    return authenticateOrganizer(cognitoUserId, email, name, organizationName);
   } else {
     return authenticateDancer(cognitoUserId, email, name, provider);
   }
@@ -123,7 +124,8 @@ export async function authenticateWithCognitoTokens(
 async function authenticateOrganizer(
   cognitoUserId: string,
   email: string,
-  name?: string
+  name?: string,
+  organizationName?: string
 ): Promise<CognitoAuthResult> {
   // Check if organizer user exists with this Cognito ID
   let organizerUser = await prisma.organizerUser.findUnique({
@@ -171,9 +173,10 @@ async function authenticateOrganizer(
 
   // New organizer - create organizer and organizer user
   const fullName = name || email.split('@')[0];
+  const orgName = organizationName || fullName;
   const organizer = await prisma.organizer.create({
     data: {
-      name: fullName,
+      name: orgName,
       email,
       users: {
         create: {
@@ -322,18 +325,27 @@ export async function signInOrganizerWithPassword(
     }
   );
 
-  if (!response.ok) {
-    const error = await response.json();
-    if (error.__type === 'NotAuthorizedException') {
-      throw new Error('Invalid email or password');
-    }
-    if (error.__type === 'UserNotFoundException') {
-      throw new Error('User not found');
-    }
-    throw new Error(error.message || 'Authentication failed');
+  const text = await response.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(`Authentication failed: ${text || response.statusText}`);
   }
 
-  const data = await response.json();
+  if (!response.ok) {
+    if (data.__type === 'NotAuthorizedException') {
+      throw new Error('Invalid email or password');
+    }
+    if (data.__type === 'UserNotFoundException') {
+      throw new Error('User not found');
+    }
+    if (data.__type === 'UserNotConfirmedException') {
+      throw new Error('Please verify your email first');
+    }
+    throw new Error(data.message || 'Authentication failed');
+  }
+
   const result = data.AuthenticationResult;
 
   return {
@@ -349,7 +361,8 @@ export async function signInOrganizerWithPassword(
 export async function signUpOrganizerWithPassword(
   email: string,
   password: string,
-  fullName: string
+  fullName: string,
+  organizationName?: string
 ): Promise<{ userSub: string; confirmed: boolean }> {
   const config = getCognitoConfig();
 
@@ -369,13 +382,20 @@ export async function signUpOrganizerWithPassword(
           { Name: 'email', Value: email },
           { Name: 'name', Value: fullName },
           { Name: 'custom:userType', Value: 'organizer' },
+          { Name: 'custom:organizerId', Value: organizationName || fullName },
         ],
       }),
     }
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const text = await response.text();
+    let error;
+    try {
+      error = JSON.parse(text);
+    } catch {
+      throw new Error(`Sign up failed: ${text || response.statusText}`);
+    }
     if (error.__type === 'UsernameExistsException') {
       throw new Error('An account with this email already exists');
     }
@@ -417,7 +437,13 @@ export async function confirmSignUp(
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const text = await response.text();
+    let error;
+    try {
+      error = JSON.parse(text);
+    } catch {
+      throw new Error(`Confirmation failed: ${text || response.statusText}`);
+    }
     if (error.__type === 'CodeMismatchException') {
       throw new Error('Invalid verification code');
     }
@@ -425,6 +451,31 @@ export async function confirmSignUp(
       throw new Error('Verification code has expired');
     }
     throw new Error(error.message || 'Confirmation failed');
+  }
+}
+
+// Resend confirmation code
+export async function resendConfirmationCode(email: string): Promise<void> {
+  const config = getCognitoConfig();
+
+  const response = await fetch(
+    `https://cognito-idp.${config.region}.amazonaws.com/`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-amz-json-1.1',
+        'X-Amz-Target': 'AWSCognitoIdentityProviderService.ResendConfirmationCode',
+      },
+      body: JSON.stringify({
+        ClientId: config.clientId,
+        Username: email,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to resend code');
   }
 }
 

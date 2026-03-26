@@ -4,6 +4,7 @@ import {
   signInOrganizerWithPassword,
   signUpOrganizerWithPassword,
   confirmSignUp,
+  resendConfirmationCode,
   forgotPassword,
   confirmForgotPassword,
   authenticateWithCognitoTokens,
@@ -19,15 +20,17 @@ export async function POST(request: Request) {
 
     switch (action) {
       case 'signin':
-        return handleSignIn(body);
+        return await handleSignIn(body);
       case 'signup':
-        return handleSignUp(body);
+        return await handleSignUp(body);
       case 'confirm':
-        return handleConfirmSignUp(body);
+        return await handleConfirmSignUp(body);
       case 'forgot':
-        return handleForgotPassword(body);
+        return await handleForgotPassword(body);
       case 'reset':
-        return handleResetPassword(body);
+        return await handleResetPassword(body);
+      case 'resend':
+        return await handleResendCode(body);
       default:
         return NextResponse.json(
           { error: 'Invalid action' },
@@ -101,8 +104,9 @@ async function handleSignUp(body: {
   email: string;
   password: string;
   fullName: string;
+  organizationName?: string;
 }) {
-  const { email, password, fullName } = body;
+  const { email, password, fullName, organizationName } = body;
 
   if (!email || !password || !fullName) {
     return NextResponse.json(
@@ -120,7 +124,12 @@ async function handleSignUp(body: {
   }
 
   // Sign up with Cognito
-  const result = await signUpOrganizerWithPassword(email, password, fullName);
+  const result = await signUpOrganizerWithPassword(
+    email,
+    password,
+    fullName,
+    organizationName || fullName
+  );
 
   return NextResponse.json({
     success: true,
@@ -199,5 +208,24 @@ async function handleResetPassword(body: {
   return NextResponse.json({
     success: true,
     message: 'Password reset successfully. You can now sign in with your new password.',
+  });
+}
+
+// Resend confirmation code
+async function handleResendCode(body: { email: string }) {
+  const { email } = body;
+
+  if (!email) {
+    return NextResponse.json(
+      { error: 'Email is required' },
+      { status: 400 }
+    );
+  }
+
+  await resendConfirmationCode(email);
+
+  return NextResponse.json({
+    success: true,
+    message: 'Verification code sent successfully.',
   });
 }

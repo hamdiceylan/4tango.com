@@ -9,5 +9,10 @@ export default async function OnboardingPage() {
     redirect("/login");
   }
 
+  // If onboarding is already completed, redirect to dashboard
+  if (user.onboardingCompleted) {
+    redirect("/dashboard");
+  }
+
   return <OnboardingWizard userName={user.fullName} />;
 }

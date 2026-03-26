@@ -1,0 +1,16 @@
+{
+  "required": "To pole jest wymagane",
+  "required.firstName": "Imię jest wymagane",
+  "required.lastName": "Nazwisko jest wymagane",
+  "required.email": "E-mail jest wymagany",
+  "required.role": "Wybierz swoją rolę taneczną",
+  "required.country": "Wybierz swój kraj",
+  "required.terms": "Musisz zaakceptować regulamin",
+  "invalid.email": "Wprowadź prawidłowy adres e-mail",
+  "invalid.phone": "Wprowadź prawidłowy numer telefonu",
+  "invalid.url": "Wprowadź prawidłowy adres URL",
+  "minLength": "Musi zawierać co najmniej {{min}} znaków",
+  "maxLength": "Nie może przekraczać {{max}} znaków",
+  "min": "Musi wynosić co najmniej {{min}}",
+  "max": "Nie może przekraczać {{max}}"
+}

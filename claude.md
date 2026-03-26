@@ -21,6 +21,15 @@
 
 ## Development Rules
 
+### 0. Local Development
+
+**Always run the dev server on port 3000**:
+```bash
+npm run dev
+```
+- If port 3000 is in use, kill the process first: `lsof -ti:3000 | xargs kill -9`
+- Never run on alternate ports (3001, 3002, etc.)
+
 ### 1. Keep Dev and Prod Aligned
 
 **Database Schema**:
@@ -82,7 +91,8 @@ DATABASE_URL="<prod_url>" npx prisma migrate deploy
 
 ### 5. Event Page Structure
 
-Events are accessible at `/{slug}` URLs.
+Events are accessible at `/{lang}/{slug}` URLs (e.g., `/en/summer-tango-2024`).
+Supported languages: en, es, de, fr, it, pl, tr.
 
 **Reserved slugs** (cannot be used as event names):
 - dashboard, events, settings, registrations
@@ -141,7 +151,7 @@ aws amplify list-jobs --app-id <APP_ID> --branch-name <BRANCH> --region eu-west-
 | `src/lib/email.ts` | SES email client |
 | `src/lib/prisma.ts` | Prisma client singleton |
 | `src/app/api/public/events/[slug]/register/route.ts` | Registration API |
-| `src/app/[slug]/page.tsx` | Public event page |
+| `src/app/[lang]/[slug]/page.tsx` | Public event page (i18n) |
 
 ### 10. AWS Resource Reference
 

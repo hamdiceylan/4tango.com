@@ -46,7 +46,7 @@ export async function POST(request: Request) {
           organizerId: organizer.id,
           email: normalizedEmail,
           fullName: name,
-          role: "admin",
+          role: "ADMIN",
         }
       });
 

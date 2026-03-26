@@ -1,0 +1,20 @@
+{
+  "hero.title": "{{eventTitle}}",
+  "hero.dates": "{{startDate}} - {{endDate}}",
+  "hero.location": "{{city}}, {{country}}",
+  "section.program": "Program",
+  "section.accommodation": "Zakwaterowanie",
+  "section.djTeam": "Zespół DJ",
+  "section.photographers": "Fotografowie",
+  "section.prices": "Ceny",
+  "section.register": "Zarejestruj się",
+  "register.title": "Zarejestruj się",
+  "register.description": "Gotowy, by dołączyć do nas na niezapomniane tangowe doświadczenie? Kliknij poniżej, aby dokończyć rejestrację.",
+  "accommodation.checkIn": "Zameldowanie o {{time}}",
+  "accommodation.checkOut": "Wymeldowanie o {{time}}",
+  "preview.banner": "Tryb podglądu - To wydarzenie nie jest jeszcze opublikowane.",
+  "preview.close": "Zamknij podgląd",
+  "notFound.title": "Nie znaleziono wydarzenia",
+  "notFound.description": "Wydarzenie, którego szukasz, nie istnieje lub nie zostało opublikowane.",
+  "notFound.goBack": "Wróć na stronę główną"
+}

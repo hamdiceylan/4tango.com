@@ -1,38 +1,59 @@
 import { NextResponse } from "next/server";
-import { getDancerSession } from "@/lib/auth";
+import { getAnySession, getDancerSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
-// GET /api/auth/profile - Get current dancer profile
+// GET /api/auth/profile - Get current user profile (organizer or dancer)
 export async function GET() {
   try {
-    const dancer = await getDancerSession();
+    const session = await getAnySession();
 
-    if (!dancer) {
+    if (!session) {
       return NextResponse.json(
         { error: "Not authenticated" },
         { status: 401 }
       );
     }
 
-    const fullDancer = await prisma.dancer.findUnique({
-      where: { id: dancer.id },
-    });
-
-    if (!fullDancer) {
-      return NextResponse.json(
-        { error: "Dancer not found" },
-        { status: 404 }
-      );
+    if (session.type === "organizer") {
+      return NextResponse.json({
+        type: "organizer",
+        id: session.user.id,
+        email: session.user.email,
+        fullName: session.user.fullName,
+        role: session.user.role,
+        organizerId: session.user.organizerId,
+        organizerName: session.user.organizerName,
+        onboardingCompleted: session.user.onboardingCompleted,
+      });
     }
 
-    return NextResponse.json({
-      id: fullDancer.id,
-      email: fullDancer.email,
-      fullName: fullDancer.fullName,
-      role: fullDancer.role,
-      city: fullDancer.city,
-      country: fullDancer.country,
-    });
+    if (session.type === "dancer") {
+      const fullDancer = await prisma.dancer.findUnique({
+        where: { id: session.user.id },
+      });
+
+      if (!fullDancer) {
+        return NextResponse.json(
+          { error: "Dancer not found" },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json({
+        type: "dancer",
+        id: fullDancer.id,
+        email: fullDancer.email,
+        fullName: fullDancer.fullName,
+        role: fullDancer.role,
+        city: fullDancer.city,
+        country: fullDancer.country,
+      });
+    }
+
+    return NextResponse.json(
+      { error: "Unknown session type" },
+      { status: 400 }
+    );
   } catch (error) {
     console.error("Error fetching profile:", error);
     return NextResponse.json(

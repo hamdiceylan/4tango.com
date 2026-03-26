@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { createActivityLog, computeChanges, ACTIVITY_ACTIONS } from "@/lib/activity-log";
 
 // GET /api/events/[id] - Get event details
 export async function GET(
@@ -169,6 +170,36 @@ export async function PATCH(
       }
     });
 
+    // Compute changes for logging
+    const changes = computeChanges(
+      {
+        title: existingEvent.title,
+        status: existingEvent.status,
+        city: existingEvent.city,
+        country: existingEvent.country,
+        priceAmount: existingEvent.priceAmount,
+        capacityLimit: existingEvent.capacityLimit,
+      },
+      {
+        title: event.title,
+        status: event.status,
+        city: event.city,
+        country: event.country,
+        priceAmount: event.priceAmount,
+        capacityLimit: event.capacityLimit,
+      }
+    );
+
+    // Log the activity (non-blocking)
+    createActivityLog(user, {
+      action: ACTIVITY_ACTIONS.EVENT.UPDATE,
+      entityType: "event",
+      entityId: event.id,
+      entityLabel: event.title,
+      eventId: event.id,
+      changes,
+    }).catch((err) => console.error("Failed to log activity:", err));
+
     return NextResponse.json({
       id: event.id,
       slug: event.slug,
@@ -209,6 +240,18 @@ export async function DELETE(
     await prisma.event.delete({
       where: { id: params.id }
     });
+
+    // Log the activity (non-blocking)
+    createActivityLog(user, {
+      action: ACTIVITY_ACTIONS.EVENT.DELETE,
+      entityType: "event",
+      entityId: params.id,
+      entityLabel: event.title,
+      metadata: {
+        city: event.city,
+        country: event.country,
+      },
+    }).catch((err) => console.error("Failed to log activity:", err));
 
     return NextResponse.json({ success: true });
   } catch (error) {

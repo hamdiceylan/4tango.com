@@ -1,0 +1,16 @@
+{
+  "required": "This field is required",
+  "required.firstName": "First name is required",
+  "required.lastName": "Last name is required",
+  "required.email": "Email is required",
+  "required.role": "Please select your dance role",
+  "required.country": "Please select your country",
+  "required.terms": "You must agree to the terms",
+  "invalid.email": "Please enter a valid email",
+  "invalid.phone": "Please enter a valid phone number",
+  "invalid.url": "Please enter a valid URL",
+  "minLength": "Must be at least {{min}} characters",
+  "maxLength": "Must be no more than {{max}} characters",
+  "min": "Must be at least {{min}}",
+  "max": "Must be no more than {{max}}"
+}

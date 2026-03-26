@@ -1,0 +1,20 @@
+{
+  "hero.title": "{{eventTitle}}",
+  "hero.dates": "{{startDate}} - {{endDate}}",
+  "hero.location": "{{city}}, {{country}}",
+  "section.program": "Programme",
+  "section.accommodation": "Hébergement",
+  "section.djTeam": "Équipe DJ",
+  "section.photographers": "Photographes",
+  "section.prices": "Tarifs",
+  "section.register": "S'inscrire",
+  "register.title": "S'inscrire",
+  "register.description": "Prêt à nous rejoindre pour une expérience de tango inoubliable ? Cliquez ci-dessous pour compléter votre inscription.",
+  "accommodation.checkIn": "L'heure d'arrivée est {{time}}",
+  "accommodation.checkOut": "L'heure de départ est {{time}}",
+  "preview.banner": "Mode aperçu - Cet événement n'est pas encore publié.",
+  "preview.close": "Fermer l'aperçu",
+  "notFound.title": "Événement non trouvé",
+  "notFound.description": "L'événement que vous recherchez n'existe pas ou n'est pas publié.",
+  "notFound.goBack": "Retour à l'accueil"
+}

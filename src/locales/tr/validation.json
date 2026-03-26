@@ -1,0 +1,16 @@
+{
+  "required": "Bu alan zorunludur",
+  "required.firstName": "Ad zorunludur",
+  "required.lastName": "Soyad zorunludur",
+  "required.email": "E-posta zorunludur",
+  "required.role": "Lütfen dans rolünüzü seçin",
+  "required.country": "Lütfen ülkenizi seçin",
+  "required.terms": "Şartları kabul etmelisiniz",
+  "invalid.email": "Lütfen geçerli bir e-posta adresi girin",
+  "invalid.phone": "Lütfen geçerli bir telefon numarası girin",
+  "invalid.url": "Lütfen geçerli bir URL girin",
+  "minLength": "En az {{min}} karakter olmalıdır",
+  "maxLength": "En fazla {{max}} karakter olmalıdır",
+  "min": "En az {{min}} olmalıdır",
+  "max": "En fazla {{max}} olmalıdır"
+}

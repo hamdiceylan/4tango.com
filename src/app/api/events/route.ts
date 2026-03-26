@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { createActivityLog, ACTIVITY_ACTIONS } from "@/lib/activity-log";
 
 // GET /api/events - Get all events for the logged-in organizer
 export async function GET() {
@@ -131,6 +132,21 @@ export async function POST(request: Request) {
         status: "DRAFT",
       }
     });
+
+    // Log the activity (non-blocking)
+    createActivityLog(user, {
+      action: ACTIVITY_ACTIONS.EVENT.CREATE,
+      entityType: "event",
+      entityId: event.id,
+      entityLabel: event.title,
+      eventId: event.id,
+      metadata: {
+        city: event.city,
+        country: event.country,
+        startAt: event.startAt,
+        endAt: event.endAt,
+      },
+    }).catch((err) => console.error("Failed to log activity:", err));
 
     return NextResponse.json({
       id: event.id,

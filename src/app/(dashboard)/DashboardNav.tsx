@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
+import type { OrganizerRole } from "@prisma/client";
+import { hasPermission, type Permission } from "@/lib/permissions";
 
 interface Event {
   id: string;
@@ -10,11 +12,22 @@ interface Event {
   slug: string;
 }
 
-const navigation = [
+interface NavItem {
+  name: string;
+  href: string;
+  icon: string;
+  permission?: Permission;
+}
+
+const navigation: NavItem[] = [
   { name: "Dashboard", href: "/dashboard", icon: "home" },
-  { name: "Events", href: "/events", icon: "calendar" },
-  { name: "Registrations", href: "/registrations", icon: "users" },
-  { name: "Settings", href: "/settings", icon: "settings" },
+  { name: "Events", href: "/events", icon: "calendar", permission: "event:view" },
+  { name: "Registrations", href: "/registrations", icon: "users", permission: "registration:view" },
+  { name: "Settings", href: "/settings", icon: "settings", permission: "org:settings:view" },
+];
+
+const settingsSubNav: NavItem[] = [
+  { name: "Team", href: "/settings/team", icon: "team", permission: "org:team:view" },
 ];
 
 const icons: Record<string, React.ReactNode> = {
@@ -39,6 +52,11 @@ const icons: Record<string, React.ReactNode> = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
   ),
+  team: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+    </svg>
+  ),
 };
 
 export default function DashboardNav() {
@@ -46,18 +64,25 @@ export default function DashboardNav() {
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [showEventDropdown, setShowEventDropdown] = useState(false);
+  const [userRole, setUserRole] = useState<OrganizerRole | null>(null);
 
-  // Fetch events for the dropdown
+  // Fetch user role and events
   useEffect(() => {
-    async function fetchEvents() {
+    async function fetchData() {
       try {
-        const res = await fetch("/api/events");
-        if (res.ok) {
-          const data = await res.json();
+        // Fetch user profile for role
+        const profileRes = await fetch("/api/auth/profile");
+        if (profileRes.ok) {
+          const profile = await profileRes.json();
+          setUserRole(profile.role);
+        }
+
+        // Fetch events
+        const eventsRes = await fetch("/api/events");
+        if (eventsRes.ok) {
+          const data = await eventsRes.json();
           setEvents(data);
-          // Set default selected event if we have events
           if (data.length > 0 && !selectedEventId) {
-            // Try to get from localStorage first
             const stored = localStorage.getItem("selectedEventId");
             if (stored && data.find((e: Event) => e.id === stored)) {
               setSelectedEventId(stored);
@@ -70,7 +95,7 @@ export default function DashboardNav() {
         // Ignore errors
       }
     }
-    fetchEvents();
+    fetchData();
   }, [selectedEventId]);
 
   const handleEventSelect = (eventId: string) => {
@@ -80,6 +105,22 @@ export default function DashboardNav() {
   };
 
   const selectedEvent = events.find((e) => e.id === selectedEventId);
+
+  // Filter navigation items based on permissions
+  const filteredNavigation = navigation.filter((item) => {
+    if (!item.permission || !userRole) return true;
+    return hasPermission(userRole, item.permission);
+  });
+
+  const filteredSettingsSubNav = settingsSubNav.filter((item) => {
+    if (!item.permission || !userRole) return true;
+    return hasPermission(userRole, item.permission);
+  });
+
+  // Check if user can access quick event actions
+  const canEditLanding = userRole && hasPermission(userRole, "landing:edit");
+  const canEditForm = userRole && hasPermission(userRole, "form:edit");
+  const canViewEvent = userRole && hasPermission(userRole, "event:view");
 
   return (
     <div className="flex flex-col h-[calc(100%-4rem)]">
@@ -142,21 +183,47 @@ export default function DashboardNav() {
 
       {/* Navigation */}
       <nav className="p-4 space-y-1 flex-1">
-        {navigation.map((item) => {
+        {filteredNavigation.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+          const isSettingsActive = item.href === "/settings" && pathname.startsWith("/settings");
+
           return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition ${
-                isActive
-                  ? "bg-rose-500 text-white shadow-lg shadow-rose-500/25"
-                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-              }`}
-            >
-              {icons[item.icon]}
-              {item.name}
-            </Link>
+            <div key={item.name}>
+              <Link
+                href={item.href}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition ${
+                  isActive
+                    ? "bg-rose-500 text-white shadow-lg shadow-rose-500/25"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                }`}
+              >
+                {icons[item.icon]}
+                {item.name}
+              </Link>
+
+              {/* Settings sub-navigation */}
+              {item.href === "/settings" && isSettingsActive && filteredSettingsSubNav.length > 0 && (
+                <div className="ml-4 mt-1 space-y-1">
+                  {filteredSettingsSubNav.map((subItem) => {
+                    const isSubActive = pathname === subItem.href;
+                    return (
+                      <Link
+                        key={subItem.name}
+                        href={subItem.href}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition ${
+                          isSubActive
+                            ? "bg-rose-100 text-rose-700"
+                            : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        {icons[subItem.icon]}
+                        {subItem.name}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           );
         })}
       </nav>
@@ -165,34 +232,40 @@ export default function DashboardNav() {
       {selectedEvent && events.length > 1 && (
         <div className="px-4 pb-4 space-y-1">
           <p className="text-xs font-medium text-gray-400 uppercase tracking-wider px-4 mb-2">Quick Access</p>
-          <Link
-            href={`/events/${selectedEventId}`}
-            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-            Event Details
-          </Link>
-          <Link
-            href={`/events/${selectedEventId}/page-builder`}
-            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-            Page Builder
-          </Link>
-          <Link
-            href={`/events/${selectedEventId}/form-builder`}
-            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-            Form Builder
-          </Link>
+          {canViewEvent && (
+            <Link
+              href={`/events/${selectedEventId}`}
+              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              Event Details
+            </Link>
+          )}
+          {canEditLanding && (
+            <Link
+              href={`/events/${selectedEventId}/page-builder`}
+              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              Page Builder
+            </Link>
+          )}
+          {canEditForm && (
+            <Link
+              href={`/events/${selectedEventId}/form-builder`}
+              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              Form Builder
+            </Link>
+          )}
         </div>
       )}
     </div>

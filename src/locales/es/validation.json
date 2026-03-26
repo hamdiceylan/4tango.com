@@ -1,0 +1,16 @@
+{
+  "required": "Este campo es obligatorio",
+  "required.firstName": "El nombre es obligatorio",
+  "required.lastName": "El apellido es obligatorio",
+  "required.email": "El correo electronico es obligatorio",
+  "required.role": "Por favor selecciona tu rol de baile",
+  "required.country": "Por favor selecciona tu pais",
+  "required.terms": "Debes aceptar los terminos",
+  "invalid.email": "Por favor ingresa un correo electronico valido",
+  "invalid.phone": "Por favor ingresa un numero de telefono valido",
+  "invalid.url": "Por favor ingresa una URL valida",
+  "minLength": "Debe tener al menos {{min}} caracteres",
+  "maxLength": "Debe tener como maximo {{max}} caracteres",
+  "min": "Debe ser al menos {{min}}",
+  "max": "Debe ser como maximo {{max}}"
+}

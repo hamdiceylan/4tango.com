@@ -1,0 +1,16 @@
+{
+  "required": "Questo campo è obbligatorio",
+  "required.firstName": "Il nome è obbligatorio",
+  "required.lastName": "Il cognome è obbligatorio",
+  "required.email": "L'e-mail è obbligatoria",
+  "required.role": "Seleziona il tuo ruolo di ballo",
+  "required.country": "Seleziona il tuo paese",
+  "required.terms": "Devi accettare i termini",
+  "invalid.email": "Inserisci un indirizzo e-mail valido",
+  "invalid.phone": "Inserisci un numero di telefono valido",
+  "invalid.url": "Inserisci un URL valido",
+  "minLength": "Deve contenere almeno {{min}} caratteri",
+  "maxLength": "Non deve superare {{max}} caratteri",
+  "min": "Deve essere almeno {{min}}",
+  "max": "Non deve superare {{max}}"
+}

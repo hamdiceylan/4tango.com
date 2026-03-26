@@ -1,0 +1,20 @@
+{
+  "hero.title": "{{eventTitle}}",
+  "hero.dates": "{{startDate}} - {{endDate}}",
+  "hero.location": "{{city}}, {{country}}",
+  "section.program": "Program",
+  "section.accommodation": "Konaklama",
+  "section.djTeam": "DJ Ekibi",
+  "section.photographers": "Fotoğrafçılar",
+  "section.prices": "Fiyatlar",
+  "section.register": "Kayıt Ol",
+  "register.title": "Kayıt Ol",
+  "register.description": "Unutulmaz bir tango deneyimi için bize katılmaya hazır mısınız? Kaydınızı tamamlamak için aşağıya tıklayın.",
+  "accommodation.checkIn": "Giriş saati {{time}}",
+  "accommodation.checkOut": "Çıkış saati {{time}}",
+  "preview.banner": "Önizleme Modu - Bu etkinlik henüz yayınlanmadı.",
+  "preview.close": "Önizlemeyi Kapat",
+  "notFound.title": "Etkinlik Bulunamadı",
+  "notFound.description": "Aradığınız etkinlik mevcut değil veya yayınlanmamış.",
+  "notFound.goBack": "Ana sayfaya dön"
+}

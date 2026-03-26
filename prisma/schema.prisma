@@ -23,21 +23,64 @@ model Organizer {
   events         Event[]
   preferences    OrganizerPreferences?
   emailTemplates EmailTemplate[]
+  invitations    TeamInvitation[]
+  dancerNotes    DancerNote[]
+  dancerTags     DancerTag[]
+  activityLogs   ActivityLog[]
 }
 
-// Organizer Users - For future multi-admin support
-model OrganizerUser {
-  id            String   @id @default(cuid())
-  organizerId   String
-  email         String   @unique
-  fullName      String
-  role          String   @default("admin") // admin, editor, viewer
-  cognitoUserId String?  @unique // AWS Cognito user ID for password auth
-  passwordHash  String?  // For email/password auth (hashed)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+// Organizer role enum for team management
+enum OrganizerRole {
+  OWNER
+  ADMIN
+  SITE_MANAGER
+  FINANCE_MANAGER
+  REGISTRATION_MANAGER
+  VIEWER
+}
 
-  organizer Organizer @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+// Team invitation status
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  CANCELLED
+}
+
+// Organizer Users - For multi-admin support with roles
+model OrganizerUser {
+  id            String        @id @default(cuid())
+  organizerId   String
+  email         String        @unique
+  fullName      String
+  role          OrganizerRole @default(ADMIN)
+  cognitoUserId String?       @unique // AWS Cognito user ID for password auth
+  passwordHash  String?       // For email/password auth (hashed)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  organizer       Organizer        @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  invitationsSent TeamInvitation[]
+  dancerNotes     DancerNote[]
+}
+
+// Team invitation for adding new team members
+model TeamInvitation {
+  id          String           @id @default(cuid())
+  organizerId String
+  email       String
+  role        OrganizerRole
+  token       String           @unique
+  invitedById String
+  status      InvitationStatus @default(PENDING)
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime         @default(now())
+
+  organizer Organizer     @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  invitedBy OrganizerUser @relation(fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@unique([organizerId, email])
 }
 
 // Magic Link tokens for authentication
@@ -62,10 +105,10 @@ model Session {
 
 // Event - Tango events created by organizers
 model Event {
-  id                   String    @id @default(cuid())
+  id                   String      @id @default(cuid())
   organizerId          String
   title                String
-  slug                 String    @unique
+  slug                 String      @unique
   shortDescription     String?
   description          String?
   coverImageUrl        String?
@@ -75,19 +118,22 @@ model Event {
   address              String?
   startAt              DateTime
   endAt                DateTime
-  currency             String    @default("EUR")
-  priceAmount          Int       @default(0) // In cents
+  currency             String      @default("EUR")
+  priceAmount          Int         @default(0) // In cents
   capacityLimit        Int?
   registrationOpensAt  DateTime?
   registrationClosesAt DateTime?
   status               EventStatus @default(DRAFT)
-  djs                  String[]  // Array of DJ names
+  djs                  String[]    // Array of DJ names
   // Theme settings for page builder
-  primaryColor         String?   @default("#f43f5e") // rose-500
+  primaryColor         String?     @default("#f43f5e") // rose-500
   logoUrl              String?
   bannerUrl            String?
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  // i18n settings
+  defaultLanguage      String      @default("en")
+  availableLanguages   String[]    @default(["en"])
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
 
   organizer      Organizer          @relation(fields: [organizerId], references: [id], onDelete: Cascade)
   registrations  Registration[]
@@ -106,28 +152,37 @@ enum EventStatus {
 
 // Dancer - Central dancer database built from registrations
 model Dancer {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  fullName  String
-  role      DancerRole @default(FOLLOWER)
-  city      String?
-  country   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                String     @id @default(cuid())
+  email             String     @unique
+  fullName          String
+  role              DancerRole @default(FOLLOWER)
+  city              String?
+  country           String?
+  profilePictureUrl String?
+  bio               String?    @db.Text
+  phoneNumber       String?
+  websiteUrl        String?
+  socialLinks       Json?      // { instagram, facebook }
+  preferences       Json?      // { emailNotifications }
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
 
   registrations Registration[]
   auth          DancerAuth?
+  notes         DancerNote[]
+  tags          DancerTagAssignment[]
 }
 
 // DancerAuth - Authentication data for dancers (social login)
 model DancerAuth {
-  id            String    @id @default(cuid())
-  dancerId      String    @unique
-  cognitoUserId String    @unique // AWS Cognito user ID from social provider
-  provider      String?   // "google", "apple", "facebook"
-  lastLoginAt   DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                 String    @id @default(cuid())
+  dancerId           String    @unique
+  cognitoUserId      String    @unique // AWS Cognito user ID from social provider
+  provider           String?   // "google", "apple", "facebook"
+  providerPictureUrl String?   // OAuth profile picture URL
+  lastLoginAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   dancer Dancer @relation(fields: [dancerId], references: [id], onDelete: Cascade)
 }
@@ -269,6 +324,10 @@ model EventFormField {
   options       Json?     // For SELECT/RADIO: [{value: "option1", label: "Option 1"}]
   validation    Json?     // {min, max, pattern, minLength, maxLength, etc.}
   conditionalOn Json?     // {fieldName: "role", value: "leader"} - show only when condition met
+  // i18n fields for multi-language support
+  labels        Json?     // { en: "Full Name", es: "Nombre Completo" }
+  placeholders  Json?     // { en: "Enter your name", es: "Ingrese su nombre" }
+  helpTexts     Json?     // { en: "Help text", es: "Texto de ayuda" }
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -357,6 +416,7 @@ model EmailTemplate {
   subject     String
   htmlContent String   @db.Text
   variables   Json     // Available variables: [{name: "dancerName", description: "Full name of dancer"}]
+  language    String   @default("en")
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -364,6 +424,104 @@ model EmailTemplate {
   organizer Organizer @relation(fields: [organizerId], references: [id], onDelete: Cascade)
   event     Event?    @relation(fields: [eventId], references: [id], onDelete: SetNull)
 
+  @@unique([organizerId, name, language])
   @@index([organizerId])
   @@index([eventId])
+}
+
+// ==========================================
+// DANCER MANAGEMENT (for Organizers)
+// ==========================================
+
+// Internal notes about dancers (visible only to organizer team)
+model DancerNote {
+  id          String   @id @default(cuid())
+  dancerId    String
+  organizerId String
+  content     String   @db.Text
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  dancer    Dancer        @relation(fields: [dancerId], references: [id], onDelete: Cascade)
+  organizer Organizer     @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  createdBy OrganizerUser @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([dancerId, organizerId])
+}
+
+// Tags for categorizing dancers (per organizer)
+model DancerTag {
+  id          String   @id @default(cuid())
+  organizerId String
+  name        String
+  color       String   @default("#6B7280")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  organizer   Organizer             @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  assignments DancerTagAssignment[]
+
+  @@unique([organizerId, name])
+}
+
+// Assignment of tags to dancers
+model DancerTagAssignment {
+  id        String   @id @default(cuid())
+  dancerId  String
+  tagId     String
+  createdAt DateTime @default(now())
+
+  dancer Dancer    @relation(fields: [dancerId], references: [id], onDelete: Cascade)
+  tag    DancerTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([dancerId, tagId])
+}
+
+// ==========================================
+// ACTIVITY LOG / AUDIT TRAIL
+// ==========================================
+
+enum ActivityCategory {
+  REGISTRATION
+  PAYMENT
+  COMMUNICATION
+  TEAM
+  EVENT
+  SETTINGS
+}
+
+model ActivityLog {
+  id          String           @id @default(cuid())
+  organizerId String
+  actorId     String           // OrganizerUser who performed the action
+  actorEmail  String           // Snapshot (preserved if user deleted)
+  actorName   String           // Snapshot (preserved if user deleted)
+
+  action      String           // e.g., "registration.approve", "team.invite"
+  category    ActivityCategory
+
+  entityType  String           // "registration", "event", "team_member"
+  entityId    String
+  entityLabel String?          // Human-readable (e.g., dancer name)
+
+  changes     Json?            // { field: { old: value, new: value } }
+  metadata    Json?            // Additional context
+
+  eventId        String?       // For fast event filtering
+  registrationId String?       // For fast registration filtering
+
+  ipAddress   String?
+  userAgent   String?
+
+  createdAt   DateTime @default(now())
+
+  organizer   Organizer @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+
+  @@index([organizerId, createdAt])
+  @@index([organizerId, action])
+  @@index([organizerId, entityType, entityId])
+  @@index([organizerId, actorId])
+  @@index([eventId])
+  @@index([registrationId])
 }

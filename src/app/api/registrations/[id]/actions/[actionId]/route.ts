@@ -3,6 +3,11 @@ import prisma from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
 import { getAction, getAvailableActions } from "@/lib/registration-actions/registry";
 import { ActionContext, ActionInput } from "@/lib/registration-actions/types";
+import {
+  createActivityLog,
+  computeChanges,
+  mapActionIdToActivityAction,
+} from "@/lib/activity-log";
 
 // GET available actions for a registration
 export async function GET(
@@ -140,10 +145,39 @@ export async function POST(
       );
     }
 
+    // Capture state before action for change tracking
+    const beforeState = {
+      registrationStatus: registration.registrationStatus,
+      paymentStatus: registration.paymentStatus,
+    };
+
     // Execute the action
     const result = await action.execute(context, input);
 
     if (result.success) {
+      // Fetch updated registration for change tracking
+      const updatedRegistration = await prisma.registration.findUnique({
+        where: { id },
+        select: {
+          registrationStatus: true,
+          paymentStatus: true,
+        },
+      });
+
+      // Log the activity (non-blocking)
+      createActivityLog(auth, {
+        action: mapActionIdToActivityAction(actionId),
+        entityType: "registration",
+        entityId: id,
+        entityLabel: registration.fullNameSnapshot,
+        eventId: registration.eventId,
+        registrationId: id,
+        changes: updatedRegistration
+          ? computeChanges(beforeState, updatedRegistration)
+          : undefined,
+        metadata: input && Object.keys(input).length > 0 ? input : undefined,
+      }).catch((err) => console.error("Failed to log activity:", err));
+
       return NextResponse.json({
         success: true,
         message: result.message,

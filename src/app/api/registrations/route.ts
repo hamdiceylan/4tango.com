@@ -31,7 +31,12 @@ export async function GET(request: Request) {
             startAt: true,
           }
         },
-        dancer: true,
+        dancer: {
+          select: {
+            id: true,
+            profilePictureUrl: true,
+          },
+        },
         customFieldValues: true,
       },
       orderBy: { createdAt: "desc" },
@@ -61,6 +66,8 @@ export async function GET(request: Request) {
       },
       createdAt: reg.createdAt.toISOString(),
       customFieldValues: reg.customFieldValues,
+      dancerId: reg.dancer?.id,
+      dancerProfilePictureUrl: reg.dancer?.profilePictureUrl,
     })));
   } catch (error) {
     console.error("Error fetching registrations:", error);

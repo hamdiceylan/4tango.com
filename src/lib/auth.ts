@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import prisma from "@/lib/prisma";
+import type { OrganizerRole } from "@prisma/client";
 
 // Organizer user session
 export interface AuthUser {
@@ -8,6 +9,7 @@ export interface AuthUser {
   fullName: string;
   organizerId: string;
   organizerName: string;
+  role: OrganizerRole;
   onboardingCompleted: boolean;
 }
 
@@ -63,6 +65,7 @@ export async function getSession(): Promise<AuthUser | null> {
         fullName: organizerUser.fullName,
         organizerId: organizerUser.organizerId,
         organizerName: organizerUser.organizer.name,
+        role: organizerUser.role,
         onboardingCompleted: !!organizerUser.organizer.onboardingCompletedAt,
       };
     }
@@ -113,6 +116,7 @@ export async function getAnySession(): Promise<SessionUser | null> {
           fullName: organizerUser.fullName,
           organizerId: organizerUser.organizerId,
           organizerName: organizerUser.organizer.name,
+          role: organizerUser.role,
           onboardingCompleted: !!organizerUser.organizer.onboardingCompletedAt,
         },
       };

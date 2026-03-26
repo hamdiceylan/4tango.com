@@ -1,0 +1,16 @@
+{
+  "required": "Ce champ est obligatoire",
+  "required.firstName": "Le prénom est obligatoire",
+  "required.lastName": "Le nom est obligatoire",
+  "required.email": "L'e-mail est obligatoire",
+  "required.role": "Veuillez sélectionner votre rôle de danse",
+  "required.country": "Veuillez sélectionner votre pays",
+  "required.terms": "Vous devez accepter les conditions",
+  "invalid.email": "Veuillez entrer une adresse e-mail valide",
+  "invalid.phone": "Veuillez entrer un numéro de téléphone valide",
+  "invalid.url": "Veuillez entrer une URL valide",
+  "minLength": "Doit contenir au moins {{min}} caractères",
+  "maxLength": "Ne doit pas dépasser {{max}} caractères",
+  "min": "Doit être au moins {{min}}",
+  "max": "Ne doit pas dépasser {{max}}"
+}

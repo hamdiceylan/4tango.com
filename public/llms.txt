@@ -1,0 +1,34 @@
+# 4Tango - Tango Event Management Platform
+
+## About
+4Tango is a modern platform for tango event organizers to create, manage, and promote their events. Organizers can build custom landing pages, handle registrations, manage payments, and communicate with attendees.
+
+## Platform Features
+- Event landing page builder with customizable sections
+- Registration form builder
+- Payment processing integration
+- Email communication system
+- Multi-language support (English, Spanish, German, French, Italian, Polish, Turkish)
+- Team management with role-based permissions
+
+## Event Discovery
+Find tango events by visiting:
+- Homepage: https://4tango.com
+- Sitemap: https://4tango.com/sitemap.xml
+
+## URL Patterns
+- Event pages: https://4tango.com/{lang}/{event-slug}
+- Registration: https://4tango.com/{lang}/{event-slug}/register
+- Confirmation: https://4tango.com/registration/{access-token}
+
+## Supported Languages
+- en: English
+- es: Spanish
+- de: German
+- fr: French
+- it: Italian
+- pl: Polish
+- tr: Turkish
+
+## Contact
+For support or inquiries, visit: https://4tango.com/contact

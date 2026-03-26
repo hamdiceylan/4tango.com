@@ -123,6 +123,7 @@ export interface CognitoIdTokenPayload {
   email: string;
   email_verified: boolean;
   name?: string;
+  picture?: string; // Profile picture URL from OAuth provider
   'cognito:username': string;
   'cognito:groups'?: string[];
   'custom:organizerId'?: string;

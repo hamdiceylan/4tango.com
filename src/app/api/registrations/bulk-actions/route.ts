@@ -3,6 +3,12 @@ import prisma from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
 import { getAction } from "@/lib/registration-actions/registry";
 import { ActionContext, ActionInput, BulkActionResult } from "@/lib/registration-actions/types";
+import {
+  createActivityLog,
+  computeChanges,
+  mapActionIdToActivityAction,
+  ACTIVITY_ACTIONS,
+} from "@/lib/activity-log";
 
 // POST execute a bulk action on multiple registrations
 export async function POST(request: NextRequest) {
@@ -119,6 +125,31 @@ export async function POST(request: NextRequest) {
       failed,
       results,
     };
+
+    // Log the bulk action (non-blocking)
+    if (successful > 0) {
+      // Get event ID from first registration for filtering
+      const eventId = registrations[0]?.eventId;
+      const successfulNames = registrations
+        .filter((r) => results.find((res) => res.registrationId === r.id && res.success))
+        .map((r) => r.fullNameSnapshot)
+        .slice(0, 5); // Limit to first 5 names
+
+      createActivityLog(auth, {
+        action: ACTIVITY_ACTIONS.BULK.BULK_ACTION,
+        entityType: "registration",
+        entityId: "bulk",
+        entityLabel: `${successful} registration${successful > 1 ? "s" : ""}`,
+        eventId,
+        metadata: {
+          actionId,
+          total: registrations.length,
+          successful,
+          failed,
+          affectedNames: successfulNames.join(", ") + (successful > 5 ? ` and ${successful - 5} more` : ""),
+        },
+      }).catch((err) => console.error("Failed to log bulk activity:", err));
+    }
 
     return NextResponse.json(bulkResult);
   } catch (error) {

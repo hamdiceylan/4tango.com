@@ -22,6 +22,8 @@ interface Registration {
     slug: string;
   };
   createdAt: string;
+  dancerId?: string;
+  dancerProfilePictureUrl?: string | null;
 }
 
 interface RegistrationTableProps {
@@ -344,9 +346,34 @@ export default function RegistrationTable({
     switch (columnId) {
       case "fullName":
         return (
-          <div>
-            <p className="text-gray-900 font-medium">{reg.fullName}</p>
-            <p className="text-gray-500 text-sm">{reg.email}</p>
+          <div className="flex items-center gap-3">
+            {/* Profile picture */}
+            {reg.dancerProfilePictureUrl ? (
+              <img
+                src={reg.dancerProfilePictureUrl}
+                alt={reg.fullName}
+                className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                <span className="text-sm font-medium text-gray-500">
+                  {reg.fullName.charAt(0).toUpperCase()}
+                </span>
+              </div>
+            )}
+            <div>
+              {reg.dancerId ? (
+                <Link
+                  href={`/registrations/dancer/${reg.dancerId}`}
+                  className="text-gray-900 font-medium hover:text-rose-500 hover:underline"
+                >
+                  {reg.fullName}
+                </Link>
+              ) : (
+                <p className="text-gray-900 font-medium">{reg.fullName}</p>
+              )}
+              <p className="text-gray-500 text-sm">{reg.email}</p>
+            </div>
           </div>
         );
       case "email":

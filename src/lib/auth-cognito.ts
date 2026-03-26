@@ -116,7 +116,8 @@ export async function authenticateWithCognitoTokens(
   if (isOrganizerLogin) {
     return authenticateOrganizer(cognitoUserId, email, name, organizationName);
   } else {
-    return authenticateDancer(cognitoUserId, email, name, provider);
+    const pictureUrl = payload.picture; // Profile picture from OAuth provider
+    return authenticateDancer(cognitoUserId, email, name, provider, pictureUrl);
   }
 }
 
@@ -182,7 +183,7 @@ async function authenticateOrganizer(
         create: {
           email,
           fullName,
-          role: 'admin',
+          role: 'ADMIN',
           cognitoUserId,
         },
       },
@@ -209,7 +210,8 @@ async function authenticateDancer(
   cognitoUserId: string,
   email: string,
   name?: string,
-  provider?: string | null
+  provider?: string | null,
+  pictureUrl?: string | null
 ): Promise<CognitoAuthResult> {
   // Check if dancer auth exists with this Cognito ID
   const existingAuth = await prisma.dancerAuth.findUnique({
@@ -218,11 +220,22 @@ async function authenticateDancer(
   });
 
   if (existingAuth) {
-    // Update last login
+    // Update last login and provider picture if available
     await prisma.dancerAuth.update({
       where: { id: existingAuth.id },
-      data: { lastLoginAt: new Date() },
+      data: {
+        lastLoginAt: new Date(),
+        providerPictureUrl: pictureUrl || existingAuth.providerPictureUrl,
+      },
     });
+
+    // Update dancer's profile picture if they don't have one and we have a provider picture
+    if (pictureUrl && !existingAuth.dancer.profilePictureUrl) {
+      await prisma.dancer.update({
+        where: { id: existingAuth.dancerId },
+        data: { profilePictureUrl: pictureUrl },
+      });
+    }
 
     return {
       userType: 'dancer',
@@ -254,9 +267,18 @@ async function authenticateDancer(
         dancerId: existingDancer.id,
         cognitoUserId,
         provider: provider || undefined,
+        providerPictureUrl: pictureUrl || undefined,
         lastLoginAt: new Date(),
       },
     });
+
+    // Update dancer's profile picture if they don't have one and we have a provider picture
+    if (pictureUrl && !existingDancer.profilePictureUrl) {
+      await prisma.dancer.update({
+        where: { id: existingDancer.id },
+        data: { profilePictureUrl: pictureUrl },
+      });
+    }
 
     return {
       userType: 'dancer',
@@ -276,10 +298,12 @@ async function authenticateDancer(
     data: {
       email,
       fullName,
+      profilePictureUrl: pictureUrl || undefined, // Set profile picture from OAuth if available
       auth: {
         create: {
           cognitoUserId,
           provider: provider || undefined,
+          providerPictureUrl: pictureUrl || undefined,
           lastLoginAt: new Date(),
         },
       },

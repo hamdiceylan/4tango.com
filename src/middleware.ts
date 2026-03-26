@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE, isValidLanguage, parseAcceptLanguage } from '@/lib/i18n';
+import { isValidLanguage, parseAcceptLanguage } from '@/lib/i18n';
 
 // Paths that should skip language prefix
 const SKIP_LANGUAGE_PATHS = [

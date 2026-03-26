@@ -44,7 +44,7 @@ export default function AcceptInvitePage({
         }
 
         setInvitation(data);
-      } catch (err) {
+      } catch {
         setError("Failed to load invitation");
       } finally {
         setLoading(false);

@@ -3,7 +3,6 @@
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import type { Language } from "@/lib/i18n";
 
 interface DancerProfile {
   id: string;
@@ -455,7 +454,7 @@ export default function ProfilePage({
           <div className="space-y-4">
             {registrations.length === 0 ? (
               <div className="bg-white rounded-xl p-8 border border-gray-200 shadow-sm text-center">
-                <p className="text-gray-500">You haven't registered for any events yet.</p>
+                <p className="text-gray-500">You haven&apos;t registered for any events yet.</p>
                 <Link
                   href={`/${lang}`}
                   className="mt-4 inline-block px-4 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition"

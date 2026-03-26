@@ -5,8 +5,6 @@ import { getAction } from "@/lib/registration-actions/registry";
 import { ActionContext, ActionInput, BulkActionResult } from "@/lib/registration-actions/types";
 import {
   createActivityLog,
-  computeChanges,
-  mapActionIdToActivityAction,
   ACTIVITY_ACTIONS,
 } from "@/lib/activity-log";
 

@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
-import type { Language } from "@/lib/i18n";
 
 interface FormField {
   id: string;

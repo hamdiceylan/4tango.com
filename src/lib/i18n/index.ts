@@ -47,7 +47,7 @@ export async function loadTranslations(
     const translations = await import(`@/locales/${lang}/${namespace}.json`);
     translationCache[cacheKey] = translations.default || translations;
     return translationCache[cacheKey];
-  } catch (error) {
+  } catch {
     console.warn(`Failed to load translations for ${lang}/${namespace}, falling back to English`);
 
     if (lang !== DEFAULT_LANGUAGE) {

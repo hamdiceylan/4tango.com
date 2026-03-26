@@ -124,9 +124,6 @@ function generateJsonLd(event: Awaited<ReturnType<typeof getEvent>>, lang: strin
 
   const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://4tango.com';
 
-  // Get venue address
-  const addressParts = [event.address, event.city, event.country].filter(Boolean);
-
   return {
     '@context': 'https://schema.org',
     '@type': 'DanceEvent',

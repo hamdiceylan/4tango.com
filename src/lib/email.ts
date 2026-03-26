@@ -150,3 +150,53 @@ export function getRegistrationConfirmationEmailHtml(params: {
 </html>
 `;
 }
+
+// Template variable types
+export interface TemplateVariables {
+  dancerName?: string;
+  dancerEmail?: string;
+  eventTitle?: string;
+  eventDates?: string;
+  eventLocation?: string;
+  registrationStatus?: string;
+  paymentStatus?: string;
+  paymentAmount?: string;
+  paymentLink?: string;
+  organizerName?: string;
+  organizerEmail?: string;
+  [key: string]: string | undefined;
+}
+
+// Replace template variables in content
+export function replaceTemplateVariables(
+  content: string,
+  variables: TemplateVariables
+): string {
+  let result = content;
+  for (const [key, value] of Object.entries(variables)) {
+    if (value !== undefined) {
+      result = result.replace(new RegExp(`{{${key}}}`, "g"), value);
+    }
+  }
+  return result;
+}
+
+// Send email using a template
+export async function sendTemplatedEmail(params: {
+  to: string;
+  subject: string;
+  htmlContent: string;
+  variables: TemplateVariables;
+}): Promise<{ success: boolean; messageId?: string }> {
+  const { to, subject, htmlContent, variables } = params;
+
+  // Replace variables in subject and content
+  const processedSubject = replaceTemplateVariables(subject, variables);
+  const processedHtml = replaceTemplateVariables(htmlContent, variables);
+
+  return sendEmail({
+    to,
+    subject: processedSubject,
+    html: processedHtml,
+  });
+}

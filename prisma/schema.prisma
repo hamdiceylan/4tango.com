@@ -9,28 +9,33 @@ datasource db {
 
 // Organizer - The paying customer who creates events
 model Organizer {
-  id               String   @id @default(cuid())
-  name             String
-  email            String   @unique
-  logoUrl          String?
-  stripeAccountId  String?
-  defaultCurrency  String   @default("EUR")
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id                    String    @id @default(cuid())
+  name                  String
+  email                 String    @unique
+  logoUrl               String?
+  stripeAccountId       String?
+  defaultCurrency       String    @default("EUR")
+  onboardingCompletedAt DateTime? // When organizer completed onboarding wizard
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
-  users  OrganizerUser[]
-  events Event[]
+  users          OrganizerUser[]
+  events         Event[]
+  preferences    OrganizerPreferences?
+  emailTemplates EmailTemplate[]
 }
 
 // Organizer Users - For future multi-admin support
 model OrganizerUser {
-  id          String   @id @default(cuid())
-  organizerId String
-  email       String   @unique
-  fullName    String
-  role        String   @default("admin") // admin, editor, viewer
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String   @id @default(cuid())
+  organizerId   String
+  email         String   @unique
+  fullName      String
+  role          String   @default("admin") // admin, editor, viewer
+  cognitoUserId String?  @unique // AWS Cognito user ID for password auth
+  passwordHash  String?  // For email/password auth (hashed)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   organizer Organizer @relation(fields: [organizerId], references: [id], onDelete: Cascade)
 }
@@ -84,11 +89,12 @@ model Event {
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
-  organizer     Organizer          @relation(fields: [organizerId], references: [id], onDelete: Cascade)
-  registrations Registration[]
-  pageSections  EventPageSection[]
-  formFields    EventFormField[]
-  packages      EventPackage[]
+  organizer      Organizer          @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  registrations  Registration[]
+  pageSections   EventPageSection[]
+  formFields     EventFormField[]
+  packages       EventPackage[]
+  emailTemplates EmailTemplate[]
 }
 
 enum EventStatus {
@@ -110,6 +116,20 @@ model Dancer {
   updatedAt DateTime @updatedAt
 
   registrations Registration[]
+  auth          DancerAuth?
+}
+
+// DancerAuth - Authentication data for dancers (social login)
+model DancerAuth {
+  id            String    @id @default(cuid())
+  dancerId      String    @unique
+  cognitoUserId String    @unique // AWS Cognito user ID from social provider
+  provider      String?   // "google", "apple", "facebook"
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  dancer Dancer @relation(fields: [dancerId], references: [id], onDelete: Cascade)
 }
 
 enum DancerRole {
@@ -163,18 +183,24 @@ model Registration {
 }
 
 enum RegistrationStatus {
-  REGISTERED
-  CONFIRMED
-  CANCELLED
-  WAITLIST
+  REGISTERED      // Initial registration
+  PENDING_REVIEW  // Awaiting organizer review
+  APPROVED        // Accepted, awaiting payment
+  CONFIRMED       // Fully confirmed
+  WAITLIST        // On waiting list
+  REJECTED        // Declined by organizer
+  CANCELLED       // Registration cancelled
+  CHECKED_IN      // Checked in at event
 }
 
 enum PaymentStatus {
-  UNPAID
-  PENDING
-  PAID
-  REFUNDED
-  FAILED
+  UNPAID          // No payment yet
+  PENDING         // Payment in progress
+  PAID            // Fully paid
+  PARTIALLY_PAID  // Partial payment received
+  PAYMENT_FAILED  // Payment attempt failed
+  REFUNDED        // Fully refunded
+  REFUND_PENDING  // Refund in progress
 }
 
 // Email Events - Track email delivery status from SES
@@ -300,4 +326,44 @@ model EventPackage {
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@index([eventId, order])
+}
+
+// ==========================================
+// ORGANIZER PREFERENCES
+// ==========================================
+
+// Organizer preferences for customizable table views and settings
+model OrganizerPreferences {
+  id                  String   @id @default(cuid())
+  organizerId         String   @unique
+  registrationColumns Json?    // Column visibility and order for registration table
+  defaultEventId      String?  // Last selected event for single-event dashboard view
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  organizer Organizer @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+}
+
+// ==========================================
+// EMAIL TEMPLATES
+// ==========================================
+
+// Custom email templates for organizers
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  organizerId String
+  eventId     String?  // null = organization-wide template
+  name        String   // e.g., "Confirmation", "Reminder", "Payment Request"
+  subject     String
+  htmlContent String   @db.Text
+  variables   Json     // Available variables: [{name: "dancerName", description: "Full name of dancer"}]
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  organizer Organizer @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  event     Event?    @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  @@index([organizerId])
+  @@index([eventId])
 }

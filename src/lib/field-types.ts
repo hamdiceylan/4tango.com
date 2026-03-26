@@ -167,12 +167,42 @@ export function getFieldTypeInfo(type: FieldType): FieldTypeInfo | undefined {
   return FIELD_TYPES.find((f) => f.type === type);
 }
 
+// Mandatory fields that feed the centralized dancer database
+// These cannot be deleted or made optional
+export interface MandatoryField {
+  name: string;
+  label: string;
+  type: FieldType;
+  isRequired: true;
+  isMandatory: true; // Cannot be deleted or made optional
+  feedsDancerDB: boolean; // Used to populate the Dancer table
+  options?: FieldOption[];
+}
+
+export const MANDATORY_FIELDS: MandatoryField[] = [
+  { name: 'firstName', label: 'First Name', type: 'TEXT', isRequired: true, isMandatory: true, feedsDancerDB: true },
+  { name: 'lastName', label: 'Last Name', type: 'TEXT', isRequired: true, isMandatory: true, feedsDancerDB: true },
+  { name: 'email', label: 'Email', type: 'EMAIL', isRequired: true, isMandatory: true, feedsDancerDB: true },
+  { name: 'role', label: 'Dance Role', type: 'RADIO', isRequired: true, isMandatory: true, feedsDancerDB: false, options: [
+    { value: 'LEADER', label: 'Leader' },
+    { value: 'FOLLOWER', label: 'Follower' },
+  ]},
+  { name: 'country', label: 'Country', type: 'SELECT', isRequired: true, isMandatory: true, feedsDancerDB: true },
+];
+
+// Check if a field name is mandatory
+export function isMandatoryField(fieldName: string): boolean {
+  return MANDATORY_FIELDS.some(f => f.name === fieldName);
+}
+
 // Default fields that are always present in the registration form
+// @deprecated - use MANDATORY_FIELDS instead
 export const DEFAULT_REGISTRATION_FIELDS = [
   { name: 'firstName', label: 'First Name', type: 'TEXT' as FieldType, isRequired: true },
   { name: 'lastName', label: 'Last Name', type: 'TEXT' as FieldType, isRequired: true },
   { name: 'email', label: 'Email', type: 'EMAIL' as FieldType, isRequired: true },
   { name: 'role', label: 'Dance Role', type: 'RADIO' as FieldType, isRequired: true },
+  { name: 'country', label: 'Country', type: 'SELECT' as FieldType, isRequired: true },
 ];
 
 // Generate a URL-friendly field name from a label

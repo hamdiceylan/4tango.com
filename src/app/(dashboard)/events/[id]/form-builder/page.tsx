@@ -2,15 +2,22 @@
 
 import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
-import { FIELD_TYPES, FieldType, FieldTypeInfo, generateFieldName } from "@/lib/field-types";
+import { FIELD_TYPES, FieldType, FieldTypeInfo, generateFieldName, MANDATORY_FIELDS, FieldValidation, ConditionalRule } from "@/lib/field-types";
+import FieldEditorPanel from "@/components/form-builder/FieldEditorPanel";
+import FormPreview from "@/components/form-builder/FormPreview";
 
-// Default fields that are always present
-const defaultFields = [
-  { id: "default_1", name: "firstName", label: "First Name", fieldType: "TEXT" as FieldType, isRequired: true, isDefault: true, order: -4 },
-  { id: "default_2", name: "lastName", label: "Last Name", fieldType: "TEXT" as FieldType, isRequired: true, isDefault: true, order: -3 },
-  { id: "default_3", name: "email", label: "Email", fieldType: "EMAIL" as FieldType, isRequired: true, isDefault: true, order: -2 },
-  { id: "default_4", name: "role", label: "Dance Role", fieldType: "RADIO" as FieldType, isRequired: true, isDefault: true, order: -1 },
-];
+// Default fields that are always present (mandatory fields from centralized dancer DB)
+const defaultFields = MANDATORY_FIELDS.map((f, i) => ({
+  id: `default_${i + 1}`,
+  name: f.name,
+  label: f.label,
+  fieldType: f.type,
+  isRequired: f.isRequired,
+  isDefault: true,
+  isMandatory: f.isMandatory,
+  order: -(MANDATORY_FIELDS.length - i),
+  options: f.options || null,
+}));
 
 interface FormField {
   id: string;
@@ -22,7 +29,10 @@ interface FormField {
   isRequired: boolean;
   order: number;
   options?: { value: string; label: string }[] | null;
+  validation?: FieldValidation | null;
+  conditionalOn?: ConditionalRule | null;
   isDefault?: boolean;
+  isMandatory?: boolean;
 }
 
 interface Event {
@@ -36,6 +46,7 @@ export default function FormBuilderPage({ params }: { params: { id: string } }) 
   const [customFields, setCustomFields] = useState<FormField[]>([]);
   const [selectedField, setSelectedField] = useState<FormField | null>(null);
   const [showAddPanel, setShowAddPanel] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -135,7 +146,7 @@ export default function FormBuilderPage({ params }: { params: { id: string } }) 
 
   const handleDeleteField = async (fieldId: string) => {
     const field = customFields.find(f => f.id === fieldId);
-    if (field?.isDefault) return;
+    if (field?.isDefault || field?.isMandatory) return;
 
     if (!confirm("Are you sure you want to delete this field?")) return;
 
@@ -157,7 +168,7 @@ export default function FormBuilderPage({ params }: { params: { id: string } }) 
 
   const handleToggleRequired = async (fieldId: string) => {
     const field = customFields.find(f => f.id === fieldId);
-    if (!field || field.isDefault) return;
+    if (!field || field.isDefault || field.isMandatory) return;
 
     try {
       const res = await fetch(`/api/events/${params.id}/form-fields/${fieldId}`, {
@@ -201,6 +212,8 @@ export default function FormBuilderPage({ params }: { params: { id: string } }) 
             helpText: selectedField.helpText,
             isRequired: selectedField.isRequired,
             options: selectedField.options,
+            validation: selectedField.validation,
+            conditionalOn: selectedField.conditionalOn,
           }),
         });
       }
@@ -214,10 +227,21 @@ export default function FormBuilderPage({ params }: { params: { id: string } }) 
   };
 
   const updateSelectedField = useCallback((updates: Partial<FormField>) => {
-    if (!selectedField || selectedField.isDefault) return;
+    if (!selectedField) return;
+
+    // Don't allow editing mandatory fields' required status
+    if (selectedField.isMandatory && updates.isRequired !== undefined) {
+      updates.isRequired = true;
+    }
+
     const updated = { ...selectedField, ...updates };
     setSelectedField(updated);
-    setCustomFields(customFields.map(f => f.id === updated.id ? updated : f));
+
+    // Update in custom fields if it's a custom field
+    if (!selectedField.isDefault) {
+      setCustomFields(customFields.map(f => f.id === updated.id ? updated : f));
+    }
+
     setHasChanges(true);
   }, [selectedField, customFields]);
 
@@ -315,7 +339,7 @@ export default function FormBuilderPage({ params }: { params: { id: string } }) 
             {allFields.map((field, index) => (
               <div
                 key={field.id}
-                draggable={!field.isDefault}
+                draggable={!field.isDefault && !field.isMandatory}
                 onDragStart={() => handleDragStart(index)}
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDragEnd={handleDragEnd}
@@ -323,21 +347,28 @@ export default function FormBuilderPage({ params }: { params: { id: string } }) 
                 className={`p-3 rounded-lg border cursor-pointer transition ${
                   selectedField?.id === field.id
                     ? "border-rose-500 ring-2 ring-rose-500/20 bg-white"
-                    : field.isDefault
+                    : field.isDefault || field.isMandatory
                     ? "border-gray-200 bg-gray-50"
                     : "border-gray-200 hover:border-gray-300 bg-white"
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  {!field.isDefault && (
+                  {!field.isDefault && !field.isMandatory && (
                     <div className="cursor-grab text-gray-400 hover:text-gray-600">
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
                       </svg>
                     </div>
                   )}
-                  <div className={`w-8 h-8 rounded flex items-center justify-center flex-shrink-0 ${field.isDefault ? "bg-gray-200" : "bg-rose-100"}`}>
-                    <svg className={`w-4 h-4 ${field.isDefault ? "text-gray-500" : "text-rose-600"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  {(field.isDefault || field.isMandatory) && (
+                    <div className="text-amber-500">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    </div>
+                  )}
+                  <div className={`w-8 h-8 rounded flex items-center justify-center flex-shrink-0 ${field.isDefault || field.isMandatory ? "bg-amber-100" : "bg-rose-100"}`}>
+                    <svg className={`w-4 h-4 ${field.isDefault || field.isMandatory ? "text-amber-600" : "text-rose-600"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={getFieldIcon(field.fieldType)} />
                     </svg>
                   </div>
@@ -346,10 +377,10 @@ export default function FormBuilderPage({ params }: { params: { id: string } }) 
                     <p className="text-xs text-gray-500 flex items-center gap-1">
                       {field.fieldType}
                       {field.isRequired && <span className="text-rose-500">*</span>}
-                      {field.isDefault && <span className="bg-gray-200 px-1 rounded text-gray-600">Default</span>}
+                      {(field.isDefault || field.isMandatory) && <span className="bg-amber-100 text-amber-700 px-1 rounded text-xs">Mandatory</span>}
                     </p>
                   </div>
-                  {!field.isDefault && (
+                  {!field.isDefault && !field.isMandatory && (
                     <div className="flex items-center gap-1">
                       <button
                         onClick={(e) => { e.stopPropagation(); handleToggleRequired(field.id); }}
@@ -375,6 +406,20 @@ export default function FormBuilderPage({ params }: { params: { id: string } }) 
         </div>
 
         <div className="p-4 border-t border-gray-200 space-y-2">
+          <button
+            onClick={() => setShowPreview(!showPreview)}
+            className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition ${
+              showPreview
+                ? "bg-rose-100 text-rose-700"
+                : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            {showPreview ? "Hide Preview" : "Live Preview"}
+          </button>
           <Link
             href={`/${event.slug}/register`}
             target="_blank"
@@ -383,7 +428,7 @@ export default function FormBuilderPage({ params }: { params: { id: string } }) 
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
             </svg>
-            Preview Form
+            Open Form
           </Link>
           <button
             onClick={handleSaveChanges}
@@ -399,114 +444,34 @@ export default function FormBuilderPage({ params }: { params: { id: string } }) 
         </div>
       </div>
 
-      {/* Right Panel - Field Editor */}
-      <div className="flex-1 flex flex-col">
-        {selectedField ? (
-          <>
-            <div className="bg-white border-b border-gray-200 px-6 py-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Edit {selectedField.label}
-                  </h2>
-                  <p className="text-gray-500 text-sm">
-                    {FIELD_TYPES.find(t => t.type === selectedField.fieldType)?.description}
-                  </p>
-                </div>
-                <button onClick={() => setSelectedField(null)} className="text-gray-400 hover:text-gray-600">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+      {/* Main Content */}
+      <div className="flex-1 flex">
+        {/* Editor Panel or Placeholder */}
+        <div className={`flex-1 flex flex-col ${showPreview ? "w-1/2" : ""}`}>
+          {selectedField ? (
+            <FieldEditorPanel
+              field={selectedField}
+              allFields={allFields}
+              onUpdate={updateSelectedField}
+              onClose={() => setSelectedField(null)}
+            />
+          ) : (
+            <div className="flex-1 flex items-center justify-center bg-gray-50">
+              <div className="text-center">
+                <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <p className="text-gray-500">Select a field to edit</p>
+                <p className="text-gray-400 text-sm mt-1">or add a new field from the sidebar</p>
               </div>
             </div>
+          )}
+        </div>
 
-            <div className="flex-1 overflow-y-auto p-6">
-              <div className="max-w-2xl space-y-6">
-                {selectedField.isDefault ? (
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                    <p className="text-gray-500 text-sm">
-                      This is a default field and cannot be edited. Default fields include First Name, Last Name, Email, and Dance Role.
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Field Label</label>
-                      <input
-                        type="text"
-                        value={selectedField.label}
-                        onChange={(e) => updateSelectedField({ label: e.target.value })}
-                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Placeholder</label>
-                      <input
-                        type="text"
-                        value={selectedField.placeholder || ""}
-                        onChange={(e) => updateSelectedField({ placeholder: e.target.value || null })}
-                        placeholder="Enter placeholder text..."
-                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Help Text</label>
-                      <input
-                        type="text"
-                        value={selectedField.helpText || ""}
-                        onChange={(e) => updateSelectedField({ helpText: e.target.value || null })}
-                        placeholder="Additional help text shown below the field..."
-                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-500"
-                      />
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="required"
-                        checked={selectedField.isRequired}
-                        onChange={(e) => updateSelectedField({ isRequired: e.target.checked })}
-                        className="w-4 h-4 text-rose-500 rounded focus:ring-rose-500"
-                      />
-                      <label htmlFor="required" className="text-sm font-medium text-gray-700">
-                        Required field
-                      </label>
-                    </div>
-
-                    {selectedField.options && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Options (JSON)</label>
-                        <textarea
-                          value={JSON.stringify(selectedField.options, null, 2)}
-                          onChange={(e) => {
-                            try {
-                              const options = JSON.parse(e.target.value);
-                              updateSelectedField({ options });
-                            } catch {
-                              // Invalid JSON
-                            }
-                          }}
-                          className="w-full h-32 px-4 py-3 bg-gray-900 text-green-400 font-mono text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
-                        />
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center bg-gray-50">
-            <div className="text-center">
-              <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <p className="text-gray-500">Select a field to edit</p>
-              <p className="text-gray-400 text-sm mt-1">or add a new field from the sidebar</p>
-            </div>
+        {/* Live Preview Panel */}
+        {showPreview && (
+          <div className="w-1/2 border-l border-gray-200">
+            <FormPreview fields={allFields} eventTitle={event.title} />
           </div>
         )}
       </div>

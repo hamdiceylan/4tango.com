@@ -1,17 +1,65 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
 
-export default function LoginPage() {
+type LoginMode = "organizer" | "dancer";
+
+function LoginForm() {
+  const [mode, setMode] = useState<LoginMode>("organizer");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showMagicLink, setShowMagicLink] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Check for error from Cognito callback
+  useEffect(() => {
+    const errorParam = searchParams.get("error");
+    if (errorParam) {
+      setError(decodeURIComponent(errorParam));
+    }
+  }, [searchParams]);
+
+  // Handle organizer email/password login
+  const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/auth/cognito/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "signin",
+          email,
+          password,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Login failed");
+      }
+
+      router.push(data.redirect || "/dashboard");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Login failed");
+      setIsLoading(false);
+    }
+  };
+
+  // Handle magic link login (fallback)
+  const handleMagicLinkLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
 
     try {
       const res = await fetch("/api/auth/magic-link", {
@@ -26,8 +74,8 @@ export default function LoginPage() {
       }
 
       router.push(`/check-email?email=${encodeURIComponent(email)}`);
-    } catch (error) {
-      console.error("Login error:", error);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to send magic link");
       setIsLoading(false);
     }
   };
@@ -35,6 +83,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-rose-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
+        {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2">
             <div className="w-10 h-10 bg-gradient-to-br from-rose-500 to-rose-600 rounded-xl flex items-center justify-center">
@@ -45,54 +94,219 @@ export default function LoginPage() {
         </div>
 
         <div className="bg-white rounded-2xl p-8 shadow-xl shadow-gray-200/50 border border-gray-100">
-          <h1 className="text-2xl font-bold text-gray-900 text-center mb-2">Welcome back</h1>
-          <p className="text-gray-500 text-center mb-8">Sign in to manage your tango events</p>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">Email address</label>
-              <input
-                type="email"
-                id="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition"
-              />
-            </div>
-
+          {/* Mode Tabs */}
+          <div className="flex rounded-xl bg-gray-100 p-1 mb-6">
             <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white py-3 rounded-xl font-semibold transition flex items-center justify-center gap-2 shadow-lg shadow-rose-500/25"
+              type="button"
+              onClick={() => setMode("organizer")}
+              className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition ${
+                mode === "organizer"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
             >
-              {isLoading ? (
-                <>
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  Sending magic link...
-                </>
-              ) : (
-                "Continue with Email"
-              )}
+              Organizer
             </button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-gray-500 text-sm">We will send you a magic link to sign in. No password needed.</p>
+            <button
+              type="button"
+              onClick={() => setMode("dancer")}
+              className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition ${
+                mode === "dancer"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Dancer
+            </button>
           </div>
+
+          <h1 className="text-2xl font-bold text-gray-900 text-center mb-2">
+            {mode === "organizer" ? "Welcome back" : "Sign in as Dancer"}
+          </h1>
+          <p className="text-gray-500 text-center mb-6">
+            {mode === "organizer"
+              ? "Sign in to manage your tango events"
+              : "Sign in to register for events and track your registrations"}
+          </p>
+
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+              <p className="text-red-600 text-sm">{error}</p>
+            </div>
+          )}
+
+          {mode === "dancer" ? (
+            /* Dancer Mode - Social Login */
+            <SocialLoginButtons mode="dancer" disabled={isLoading} />
+          ) : (
+            /* Organizer Mode - Email/Password */
+            <>
+              {!showMagicLink ? (
+                <form onSubmit={handlePasswordLogin} className="space-y-4">
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                      Email address
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      required
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                      Password
+                    </label>
+                    <input
+                      type="password"
+                      id="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Enter your password"
+                      required
+                      minLength={8}
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between text-sm">
+                    <button
+                      type="button"
+                      onClick={() => setShowMagicLink(true)}
+                      className="text-rose-500 hover:text-rose-600 font-medium transition"
+                    >
+                      Use magic link instead
+                    </button>
+                    <Link href="/forgot-password" className="text-gray-500 hover:text-gray-700 transition">
+                      Forgot password?
+                    </Link>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white py-3 rounded-xl font-semibold transition flex items-center justify-center gap-2 shadow-lg shadow-rose-500/25"
+                  >
+                    {isLoading ? (
+                      <>
+                        <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        Signing in...
+                      </>
+                    ) : (
+                      "Sign In"
+                    )}
+                  </button>
+                </form>
+              ) : (
+                /* Magic Link Mode (Fallback) */
+                <form onSubmit={handleMagicLinkLogin} className="space-y-4">
+                  <div>
+                    <label htmlFor="email-magic" className="block text-sm font-medium text-gray-700 mb-2">
+                      Email address
+                    </label>
+                    <input
+                      type="email"
+                      id="email-magic"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      required
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowMagicLink(false)}
+                    className="text-rose-500 hover:text-rose-600 text-sm font-medium transition"
+                  >
+                    Use password instead
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white py-3 rounded-xl font-semibold transition flex items-center justify-center gap-2 shadow-lg shadow-rose-500/25"
+                  >
+                    {isLoading ? (
+                      <>
+                        <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        Sending magic link...
+                      </>
+                    ) : (
+                      "Send Magic Link"
+                    )}
+                  </button>
+
+                  <p className="text-gray-500 text-sm text-center">
+                    We will send you a magic link to sign in. No password needed.
+                  </p>
+                </form>
+              )}
+
+              {/* Divider */}
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-4 bg-white text-gray-500">Or continue with</span>
+                </div>
+              </div>
+
+              {/* Social Login for Organizers too */}
+              <SocialLoginButtons mode="organizer" disabled={isLoading} />
+            </>
+          )}
         </div>
 
         <div className="mt-8 text-center">
           <p className="text-gray-500 text-sm">
-            Do not have an account?{" "}
-            <Link href="/signup" className="text-rose-500 hover:text-rose-600 font-medium transition">Sign up for free</Link>
+            {mode === "organizer" ? (
+              <>
+                Do not have an account?{" "}
+                <Link href="/signup" className="text-rose-500 hover:text-rose-600 font-medium transition">
+                  Sign up for free
+                </Link>
+              </>
+            ) : (
+              <>
+                Want to create events?{" "}
+                <button
+                  onClick={() => setMode("organizer")}
+                  className="text-rose-500 hover:text-rose-600 font-medium transition"
+                >
+                  Sign in as Organizer
+                </button>
+              </>
+            )}
           </p>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-rose-50 flex items-center justify-center">
+        <div className="animate-spin h-8 w-8 border-4 border-rose-500 border-t-transparent rounded-full"></div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }

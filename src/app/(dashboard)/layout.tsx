@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { getSession } from "@/lib/auth";
+import prisma from "@/lib/prisma";
 import DashboardNav from "./DashboardNav";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -8,6 +10,24 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   if (!user) {
     redirect("/login");
+  }
+
+  // Check if organizer needs onboarding
+  // Skip if already on onboarding page
+  const headersList = await headers();
+  const pathname = headersList.get("x-pathname") || "";
+  const isOnboardingPage = pathname.includes("/onboarding");
+
+  if (!isOnboardingPage && !user.onboardingCompleted) {
+    // Check if organizer has any events
+    const eventCount = await prisma.event.count({
+      where: { organizerId: user.organizerId },
+    });
+
+    // If no events and onboarding not completed, redirect to onboarding
+    if (eventCount === 0) {
+      redirect("/onboarding");
+    }
   }
 
   const initials = user.fullName

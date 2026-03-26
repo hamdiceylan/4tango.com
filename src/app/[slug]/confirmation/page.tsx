@@ -1,37 +1,50 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import prisma from "@/lib/prisma";
 
-// Mock event data
-const mockEvent = {
-  title: "Spring Tango Marathon",
-  slug: "spring-tango-marathon-2026",
-  startDate: "April 15, 2026",
-  endDate: "April 17, 2026",
-  city: "Barcelona",
-  country: "Spain",
-  venueName: "Sala Apolo",
-  address: "Carrer Nou de la Rambla, 113",
-  organizer: {
-    name: "Tango Barcelona",
-    email: "info@tangobarcelona.com",
-  },
-};
+interface ConfirmationPageProps {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ token?: string }>;
+}
 
-const mockRegistration = {
-  confirmationNumber: "4T-2026-001234",
-  firstName: "John",
-  lastName: "Doe",
-  email: "john@example.com",
-  role: "Leader",
-  price: 95,
-  currency: "EUR",
-  status: "confirmed",
-};
+export default async function ConfirmationPage({ params, searchParams }: ConfirmationPageProps) {
+  const resolvedParams = await params;
+  const resolvedSearchParams = await searchParams;
+  const { slug } = resolvedParams;
+  const { token } = resolvedSearchParams;
 
-export default function ConfirmationPage({ params }: { params: { slug: string } }) {
-  // In production, fetch registration by params.slug and confirmation ID
-  const event = mockEvent;
-  const registration = mockRegistration;
-  void params; // Used for routing
+  if (!token) {
+    notFound();
+  }
+
+  // Find the registration by access token
+  const registration = await prisma.registration.findUnique({
+    where: { accessToken: token },
+    include: {
+      event: {
+        include: {
+          organizer: true,
+        },
+      },
+    },
+  });
+
+  if (!registration || registration.event.slug !== slug) {
+    notFound();
+  }
+
+  const event = registration.event;
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
+  // Generate confirmation number
+  const confirmationNumber = `4T-${registration.createdAt.getFullYear()}-${registration.id.slice(-6).toUpperCase()}`;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-rose-50">
@@ -57,7 +70,7 @@ export default function ConfirmationPage({ params }: { params: { slug: string } 
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Registration Confirmed!</h1>
           <p className="text-gray-600">
-            Thank you for registering. We have sent a confirmation email to <span className="font-medium text-gray-900">{registration.email}</span>
+            Thank you for registering. We have sent a confirmation email to <span className="font-medium text-gray-900">{registration.emailSnapshot}</span>
           </p>
         </div>
 
@@ -65,7 +78,7 @@ export default function ConfirmationPage({ params }: { params: { slug: string } 
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-8">
           <div className="bg-rose-500 text-white p-6">
             <p className="text-rose-100 text-sm mb-1">Confirmation Number</p>
-            <p className="text-2xl font-bold font-mono">{registration.confirmationNumber}</p>
+            <p className="text-2xl font-bold font-mono">{confirmationNumber}</p>
           </div>
 
           <div className="p-6 space-y-6">
@@ -77,7 +90,7 @@ export default function ConfirmationPage({ params }: { params: { slug: string } 
                   <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
-                  <span>{event.startDate} - {event.endDate}</span>
+                  <span>{formatDate(event.startAt)} - {formatDate(event.endAt)}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -85,8 +98,8 @@ export default function ConfirmationPage({ params }: { params: { slug: string } 
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                   <div>
-                    <span>{event.venueName}</span>
-                    <span className="text-gray-400 mx-1">·</span>
+                    {event.venueName && <span>{event.venueName}</span>}
+                    {event.venueName && <span className="text-gray-400 mx-1">·</span>}
                     <span>{event.city}, {event.country}</span>
                   </div>
                 </div>
@@ -101,35 +114,43 @@ export default function ConfirmationPage({ params }: { params: { slug: string } 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-gray-500 text-sm">Name</p>
-                  <p className="text-gray-900 font-medium">{registration.firstName} {registration.lastName}</p>
+                  <p className="text-gray-900 font-medium">{registration.fullNameSnapshot}</p>
                 </div>
                 <div>
                   <p className="text-gray-500 text-sm">Role</p>
-                  <p className="text-gray-900 font-medium">{registration.role}</p>
+                  <p className="text-gray-900 font-medium">{registration.roleSnapshot}</p>
                 </div>
                 <div>
                   <p className="text-gray-500 text-sm">Email</p>
-                  <p className="text-gray-900 font-medium">{registration.email}</p>
+                  <p className="text-gray-900 font-medium">{registration.emailSnapshot}</p>
                 </div>
                 <div>
                   <p className="text-gray-500 text-sm">Status</p>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    Confirmed
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    registration.registrationStatus === "CONFIRMED" ? "bg-green-100 text-green-800" :
+                    registration.registrationStatus === "REGISTERED" ? "bg-yellow-100 text-yellow-800" :
+                    "bg-gray-100 text-gray-800"
+                  }`}>
+                    {registration.registrationStatus === "REGISTERED" ? "Pending" : registration.registrationStatus}
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="border-t border-gray-200" />
+            {event.priceAmount > 0 && (
+              <>
+                <div className="border-t border-gray-200" />
 
-            {/* Payment Summary */}
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-4">Payment Summary</h3>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600">Registration Fee</span>
-                <span className="text-gray-900 font-semibold">{registration.price} {registration.currency}</span>
-              </div>
-            </div>
+                {/* Payment Summary */}
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-4">Payment Summary</h3>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Registration Fee</span>
+                    <span className="text-gray-900 font-semibold">{(event.priceAmount / 100).toFixed(2)} {event.currency}</span>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 

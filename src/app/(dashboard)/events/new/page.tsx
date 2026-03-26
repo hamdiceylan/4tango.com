@@ -4,9 +4,19 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+function generateSlug(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .trim();
+}
+
 export default function NewEventPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     shortDescription: "",
@@ -26,24 +36,61 @@ export default function NewEventPage() {
     currency: "EUR",
     price: "",
     capacity: "",
-    status: "draft",
+    status: "DRAFT",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError(null);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      // Combine date and time
+      const startAt = formData.startTime
+        ? `${formData.startDate}T${formData.startTime}:00`
+        : `${formData.startDate}T00:00:00`;
+      const endAt = formData.endTime
+        ? `${formData.endDate}T${formData.endTime}:00`
+        : `${formData.endDate}T23:59:59`;
 
-    // In production, this would save to database
-    console.log("Event data:", formData);
+      const response = await fetch("/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: formData.title,
+          slug: generateSlug(formData.title),
+          shortDescription: formData.shortDescription || null,
+          description: formData.description || null,
+          city: formData.city,
+          country: formData.country,
+          venueName: formData.venueName || null,
+          address: formData.address || null,
+          startAt,
+          endAt,
+          priceAmount: formData.price ? Math.round(parseFloat(formData.price) * 100) : 0,
+          currency: formData.currency,
+          capacityLimit: formData.capacity ? parseInt(formData.capacity) : null,
+          djs: formData.djs ? formData.djs.split(",").map(dj => dj.trim()).filter(Boolean) : [],
+          coverImageUrl: formData.coverImage || null,
+        }),
+      });
 
-    router.push("/events");
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create event");
+      }
+
+      router.push(`/events/${data.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create event");
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -58,6 +105,12 @@ export default function NewEventPage() {
         </Link>
         <h1 className="text-3xl font-bold text-gray-900">Create New Event</h1>
       </div>
+
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
+          {error}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Basic Info */}
@@ -327,6 +380,7 @@ export default function NewEventPage() {
                 onChange={handleChange}
                 placeholder="0 for free event"
                 min="0"
+                step="0.01"
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
               />
             </div>
@@ -345,42 +399,6 @@ export default function NewEventPage() {
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
               />
             </div>
-          </div>
-        </div>
-
-        {/* Status */}
-        <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Publish Status</h2>
-          <div className="flex gap-6">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="radio"
-                name="status"
-                value="draft"
-                checked={formData.status === "draft"}
-                onChange={handleChange}
-                className="w-5 h-5 text-rose-500 bg-gray-50 border-gray-300 focus:ring-rose-500"
-              />
-              <div>
-                <p className="text-gray-900 font-medium">Draft</p>
-                <p className="text-gray-500 text-sm">Save and edit later</p>
-              </div>
-            </label>
-
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="radio"
-                name="status"
-                value="published"
-                checked={formData.status === "published"}
-                onChange={handleChange}
-                className="w-5 h-5 text-rose-500 bg-gray-50 border-gray-300 focus:ring-rose-500"
-              />
-              <div>
-                <p className="text-gray-900 font-medium">Publish</p>
-                <p className="text-gray-500 text-sm">Make visible and accept registrations</p>
-              </div>
-            </label>
           </div>
         </div>
 

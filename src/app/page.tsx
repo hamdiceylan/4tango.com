@@ -34,10 +34,6 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 bg-rose-100 text-rose-700 px-4 py-2 rounded-full text-sm font-medium mb-6">
-                <span className="w-2 h-2 bg-rose-500 rounded-full animate-pulse"></span>
-                Now accepting early access signups
-              </div>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
                 Run your tango events with{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-rose-600">
@@ -51,8 +47,8 @@ export default function Home() {
                 <Link href="/signup" className="bg-rose-500 hover:bg-rose-600 text-white px-8 py-4 rounded-xl font-semibold text-lg transition shadow-lg shadow-rose-500/25 text-center">
                   Create your first event
                 </Link>
-                <Link href="/demo" className="border border-gray-300 hover:border-gray-400 text-gray-700 px-8 py-4 rounded-xl font-semibold text-lg transition text-center bg-white">
-                  Book a demo
+                <Link href="/contact" className="border border-gray-300 hover:border-gray-400 text-gray-700 px-8 py-4 rounded-xl font-semibold text-lg transition text-center bg-white">
+                  Contact us
                 </Link>
               </div>
               <p className="text-gray-500 mt-4 text-sm">Free trial - No credit card required</p>
@@ -256,8 +252,8 @@ export default function Home() {
             <Link href="/signup" className="bg-white text-rose-600 hover:bg-rose-50 px-8 py-4 rounded-xl font-semibold text-lg transition shadow-lg">
               Create your first event
             </Link>
-            <Link href="/demo" className="border-2 border-white/50 hover:border-white text-white px-8 py-4 rounded-xl font-semibold text-lg transition">
-              Book a demo
+            <Link href="/contact" className="border-2 border-white/50 hover:border-white text-white px-8 py-4 rounded-xl font-semibold text-lg transition">
+              Contact us
             </Link>
           </div>
         </div>

@@ -1,55 +1,107 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect, use } from "react";
 
-// Mock event data
-const mockEvent = {
-  id: "1",
-  title: "Spring Tango Marathon",
-  slug: "spring-tango-marathon-2026",
-  shortDescription: "Three days of non-stop tango in the heart of Barcelona",
-  description: "Join us for an unforgettable tango experience in beautiful Barcelona!",
-  startDate: "2026-04-15",
-  endDate: "2026-04-17",
-  startTime: "18:00",
-  endTime: "06:00",
-  city: "Barcelona",
-  country: "Spain",
-  venueName: "Sala Apolo",
-  address: "Carrer Nou de la Rambla, 113",
-  price: 95,
-  currency: "EUR",
-  capacity: 150,
-  status: "published",
-  djs: ["DJ Pablo", "DJ Maria", "DJ Carlos"],
-};
+interface Registration {
+  id: string;
+  fullName: string;
+  email: string;
+  role: string;
+  city: string | null;
+  country: string | null;
+  experience: string | null;
+  registrationStatus: string;
+  paymentStatus: string;
+  paymentAmount: number | null;
+  createdAt: string;
+}
 
-const mockRegistrations = [
-  { id: "1", name: "Anna Schmidt", email: "anna@example.com", role: "Follower", city: "Berlin", country: "Germany", status: "confirmed", paidAt: "2026-01-15", registeredAt: "2026-01-14", notes: "", experience: "Advanced" },
-  { id: "2", name: "Marco Rossi", email: "marco@example.com", role: "Leader", city: "Rome", country: "Italy", status: "confirmed", paidAt: "2026-01-16", registeredAt: "2026-01-15", notes: "First marathon", experience: "Intermediate" },
-  { id: "3", name: "Sofia Martinez", email: "sofia@example.com", role: "Follower", city: "Madrid", country: "Spain", status: "pending", paidAt: null, registeredAt: "2026-01-20", notes: "", experience: "Advanced" },
-  { id: "4", name: "Hans Weber", email: "hans@example.com", role: "Leader", city: "Vienna", country: "Austria", status: "confirmed", paidAt: "2026-01-18", registeredAt: "2026-01-17", notes: "Vegetarian", experience: "Advanced" },
-  { id: "5", name: "Elena Popov", email: "elena@example.com", role: "Follower", city: "Moscow", country: "Russia", status: "waitlist", paidAt: null, registeredAt: "2026-01-25", notes: "", experience: "Intermediate" },
-];
+interface Event {
+  id: string;
+  title: string;
+  slug: string;
+  shortDescription: string | null;
+  description: string | null;
+  city: string;
+  country: string;
+  venueName: string | null;
+  address: string | null;
+  startAt: string;
+  endAt: string;
+  currency: string;
+  priceAmount: number;
+  capacityLimit: number | null;
+  status: string;
+  djs: string[];
+  registrations: Registration[];
+}
 
-type Registration = typeof mockRegistrations[0];
-
-export default function EventDetailPage({ params }: { params: { id: string } }) {
+export default function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params);
   const [activeTab, setActiveTab] = useState<"overview" | "registrations" | "settings">("overview");
   const [selectedRegistration, setSelectedRegistration] = useState<Registration | null>(null);
   const [copied, setCopied] = useState(false);
-  const event = mockEvent;
-  void params;
+  const [event, setEvent] = useState<Event | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    async function fetchEvent() {
+      try {
+        const response = await fetch(`/api/events/${resolvedParams.id}`);
+        if (!response.ok) {
+          throw new Error("Event not found");
+        }
+        const data = await response.json();
+        setEvent(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load event");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchEvent();
+  }, [resolvedParams.id]);
+
+  if (loading) {
+    return (
+      <div className="p-8">
+        <div className="animate-pulse">
+          <div className="h-4 w-24 bg-gray-200 rounded mb-4"></div>
+          <div className="h-8 w-64 bg-gray-200 rounded mb-8"></div>
+          <div className="grid grid-cols-4 gap-4 mb-8">
+            {[1,2,3,4].map(i => (
+              <div key={i} className="h-20 bg-gray-100 rounded-xl"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !event) {
+    return (
+      <div className="p-8">
+        <div className="text-center py-12">
+          <p className="text-gray-500">{error || "Event not found"}</p>
+          <Link href="/events" className="text-rose-500 hover:underline mt-4 inline-block">
+            Back to Events
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const registrations = event.registrations || [];
   const stats = {
-    total: mockRegistrations.length,
-    confirmed: mockRegistrations.filter(r => r.status === "confirmed").length,
-    pending: mockRegistrations.filter(r => r.status === "pending").length,
-    waitlist: mockRegistrations.filter(r => r.status === "waitlist").length,
-    leaders: mockRegistrations.filter(r => r.role === "Leader").length,
-    followers: mockRegistrations.filter(r => r.role === "Follower").length,
-    revenue: mockRegistrations.filter(r => r.status === "confirmed").length * event.price,
+    total: registrations.length,
+    confirmed: registrations.filter(r => r.registrationStatus === "CONFIRMED").length,
+    pending: registrations.filter(r => r.registrationStatus === "REGISTERED").length,
+    waitlist: registrations.filter(r => r.registrationStatus === "WAITLIST").length,
+    leaders: registrations.filter(r => r.role === "LEADER").length,
+    followers: registrations.filter(r => r.role === "FOLLOWER").length,
+    revenue: registrations.filter(r => r.paymentStatus === "PAID").reduce((sum, r) => sum + (r.paymentAmount || 0), 0) / 100,
   };
 
   const copyLink = () => {
@@ -59,9 +111,9 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
   };
 
   const exportCSV = () => {
-    const headers = ["Name", "Email", "Role", "City", "Country", "Status", "Paid At", "Registered At", "Experience", "Notes"];
-    const rows = mockRegistrations.map(r => [
-      r.name, r.email, r.role, r.city, r.country, r.status, r.paidAt || "", r.registeredAt, r.experience, r.notes
+    const headers = ["Name", "Email", "Role", "City", "Country", "Status", "Payment", "Registered", "Experience"];
+    const rows = registrations.map(r => [
+      r.fullName, r.email, r.role, r.city || "", r.country || "", r.registrationStatus, r.paymentStatus, r.createdAt, r.experience || ""
     ]);
     const csv = [headers, ...rows].map(row => row.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -70,6 +122,21 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
     a.href = url;
     a.download = `${event.slug}-registrations.csv`;
     a.click();
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric"
+    });
+  };
+
+  const formatTime = (dateStr: string) => {
+    return new Date(dateStr).toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit"
+    });
   };
 
   return (
@@ -90,11 +157,11 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center">
                   <span className="text-rose-600 font-bold text-xl">
-                    {selectedRegistration.name.split(' ').map(n => n[0]).join('')}
+                    {selectedRegistration.fullName.split(' ').map(n => n[0]).join('')}
                   </span>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">{selectedRegistration.name}</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">{selectedRegistration.fullName}</h3>
                   <p className="text-gray-500">{selectedRegistration.email}</p>
                 </div>
               </div>
@@ -103,50 +170,47 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
                 <div>
                   <p className="text-gray-500 text-sm">Role</p>
                   <span className={`inline-block mt-1 px-2 py-1 rounded text-xs font-medium ${
-                    selectedRegistration.role === "Leader" ? "bg-blue-100 text-blue-700" : "bg-pink-100 text-pink-700"
+                    selectedRegistration.role === "LEADER" ? "bg-blue-100 text-blue-700" : "bg-pink-100 text-pink-700"
                   }`}>
                     {selectedRegistration.role}
                   </span>
                 </div>
                 <div>
                   <p className="text-gray-500 text-sm">Experience</p>
-                  <p className="text-gray-900 font-medium">{selectedRegistration.experience}</p>
+                  <p className="text-gray-900 font-medium">{selectedRegistration.experience || "-"}</p>
                 </div>
                 <div>
                   <p className="text-gray-500 text-sm">Location</p>
-                  <p className="text-gray-900 font-medium">{selectedRegistration.city}, {selectedRegistration.country}</p>
+                  <p className="text-gray-900 font-medium">
+                    {selectedRegistration.city && selectedRegistration.country
+                      ? `${selectedRegistration.city}, ${selectedRegistration.country}`
+                      : selectedRegistration.country || "-"}
+                  </p>
                 </div>
                 <div>
                   <p className="text-gray-500 text-sm">Status</p>
                   <span className={`inline-block mt-1 px-2 py-1 rounded text-xs font-medium ${
-                    selectedRegistration.status === "confirmed" ? "bg-green-100 text-green-700" :
-                    selectedRegistration.status === "pending" ? "bg-yellow-100 text-yellow-700" :
+                    selectedRegistration.registrationStatus === "CONFIRMED" ? "bg-green-100 text-green-700" :
+                    selectedRegistration.registrationStatus === "REGISTERED" ? "bg-yellow-100 text-yellow-700" :
                     "bg-gray-100 text-gray-700"
                   }`}>
-                    {selectedRegistration.status}
+                    {selectedRegistration.registrationStatus}
                   </span>
                 </div>
                 <div>
                   <p className="text-gray-500 text-sm">Registered</p>
-                  <p className="text-gray-900 font-medium">{selectedRegistration.registeredAt}</p>
+                  <p className="text-gray-900 font-medium">{formatDate(selectedRegistration.createdAt)}</p>
                 </div>
                 <div>
-                  <p className="text-gray-500 text-sm">Paid</p>
-                  <p className="text-gray-900 font-medium">{selectedRegistration.paidAt || "Not paid"}</p>
+                  <p className="text-gray-500 text-sm">Payment</p>
+                  <p className="text-gray-900 font-medium">{selectedRegistration.paymentStatus}</p>
                 </div>
               </div>
-
-              {selectedRegistration.notes && (
-                <div>
-                  <p className="text-gray-500 text-sm">Notes</p>
-                  <p className="text-gray-900">{selectedRegistration.notes}</p>
-                </div>
-              )}
 
               <div className="border-t border-gray-200 pt-4">
                 <p className="text-gray-500 text-sm mb-3">Actions</p>
                 <div className="flex flex-wrap gap-2">
-                  {selectedRegistration.status === "pending" && (
+                  {selectedRegistration.registrationStatus === "REGISTERED" && (
                     <button className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200">
                       Mark as Paid
                     </button>
@@ -157,7 +221,7 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
                   <button className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">
                     Add Note
                   </button>
-                  {selectedRegistration.status !== "cancelled" && (
+                  {selectedRegistration.registrationStatus !== "CANCELLED" && (
                     <button className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200">
                       Cancel
                     </button>
@@ -182,12 +246,12 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
             <div className="flex items-center gap-3 mb-2">
               <h1 className="text-3xl font-bold text-gray-900">{event.title}</h1>
               <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                event.status === "published" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
+                event.status === "PUBLISHED" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
               }`}>
-                {event.status}
+                {event.status.toLowerCase()}
               </span>
             </div>
-            <p className="text-gray-500">{event.city}, {event.country} · {event.startDate} to {event.endDate}</p>
+            <p className="text-gray-500">{event.city}, {event.country} · {formatDate(event.startAt)} to {formatDate(event.endAt)}</p>
           </div>
           <div className="flex items-center gap-3">
             <Link
@@ -232,7 +296,7 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
           <p className="text-gray-500 text-sm">Total Registrations</p>
-          <p className="text-2xl font-bold text-gray-900">{stats.total} <span className="text-gray-400 text-sm font-normal">/ {event.capacity}</span></p>
+          <p className="text-2xl font-bold text-gray-900">{stats.total} <span className="text-gray-400 text-sm font-normal">/ {event.capacityLimit || "∞"}</span></p>
         </div>
         <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
           <p className="text-gray-500 text-sm">Confirmed</p>
@@ -283,40 +347,42 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
             <dl className="space-y-4">
               <div>
                 <dt className="text-gray-500 text-sm">Description</dt>
-                <dd className="text-gray-900">{event.shortDescription}</dd>
+                <dd className="text-gray-900">{event.shortDescription || "-"}</dd>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <dt className="text-gray-500 text-sm">Start</dt>
-                  <dd className="text-gray-900">{event.startDate} at {event.startTime}</dd>
+                  <dd className="text-gray-900">{formatDate(event.startAt)} at {formatTime(event.startAt)}</dd>
                 </div>
                 <div>
                   <dt className="text-gray-500 text-sm">End</dt>
-                  <dd className="text-gray-900">{event.endDate} at {event.endTime}</dd>
+                  <dd className="text-gray-900">{formatDate(event.endAt)} at {formatTime(event.endAt)}</dd>
                 </div>
               </div>
               <div>
                 <dt className="text-gray-500 text-sm">Venue</dt>
-                <dd className="text-gray-900">{event.venueName}, {event.address}</dd>
+                <dd className="text-gray-900">{event.venueName || "-"}{event.address ? `, ${event.address}` : ""}</dd>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <dt className="text-gray-500 text-sm">Price</dt>
-                  <dd className="text-gray-900">{event.price} {event.currency}</dd>
+                  <dd className="text-gray-900">{(event.priceAmount / 100).toFixed(2)} {event.currency}</dd>
                 </div>
                 <div>
                   <dt className="text-gray-500 text-sm">Capacity</dt>
-                  <dd className="text-gray-900">{event.capacity} dancers</dd>
+                  <dd className="text-gray-900">{event.capacityLimit || "Unlimited"} dancers</dd>
                 </div>
               </div>
-              <div>
-                <dt className="text-gray-500 text-sm">DJs</dt>
-                <dd className="flex flex-wrap gap-2 mt-1">
-                  {event.djs.map((dj, i) => (
-                    <span key={i} className="bg-rose-100 text-rose-700 px-3 py-1 rounded-full text-sm">{dj}</span>
-                  ))}
-                </dd>
-              </div>
+              {event.djs && event.djs.length > 0 && (
+                <div>
+                  <dt className="text-gray-500 text-sm">DJs</dt>
+                  <dd className="flex flex-wrap gap-2 mt-1">
+                    {event.djs.map((dj, i) => (
+                      <span key={i} className="bg-rose-100 text-rose-700 px-3 py-1 rounded-full text-sm">{dj}</span>
+                    ))}
+                  </dd>
+                </div>
+              )}
             </dl>
           </div>
 
@@ -420,32 +486,34 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
               </tr>
             </thead>
             <tbody>
-              {mockRegistrations.map((reg) => (
+              {registrations.map((reg) => (
                 <tr
                   key={reg.id}
                   className="border-b border-gray-100 hover:bg-gray-50 transition cursor-pointer"
                   onClick={() => setSelectedRegistration(reg)}
                 >
-                  <td className="px-6 py-4 text-gray-900 font-medium">{reg.name}</td>
+                  <td className="px-6 py-4 text-gray-900 font-medium">{reg.fullName}</td>
                   <td className="px-6 py-4 text-gray-600">{reg.email}</td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      reg.role === "Leader" ? "bg-blue-100 text-blue-700" : "bg-pink-100 text-pink-700"
+                      reg.role === "LEADER" ? "bg-blue-100 text-blue-700" : "bg-pink-100 text-pink-700"
                     }`}>
                       {reg.role}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-gray-600">{reg.city}, {reg.country}</td>
+                  <td className="px-6 py-4 text-gray-600">
+                    {reg.city && reg.country ? `${reg.city}, ${reg.country}` : reg.country || "-"}
+                  </td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      reg.status === "confirmed" ? "bg-green-100 text-green-700" :
-                      reg.status === "pending" ? "bg-yellow-100 text-yellow-700" :
+                      reg.registrationStatus === "CONFIRMED" ? "bg-green-100 text-green-700" :
+                      reg.registrationStatus === "REGISTERED" ? "bg-yellow-100 text-yellow-700" :
                       "bg-gray-100 text-gray-700"
                     }`}>
-                      {reg.status}
+                      {reg.registrationStatus}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-gray-600">{reg.registeredAt}</td>
+                  <td className="px-6 py-4 text-gray-600">{formatDate(reg.createdAt)}</td>
                   <td className="px-6 py-4 text-right">
                     <button
                       className="text-gray-400 hover:text-gray-600 transition"
@@ -461,6 +529,11 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
               ))}
             </tbody>
           </table>
+          {registrations.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No registrations yet</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -470,14 +543,14 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Event Status</h2>
             <div className="flex items-center gap-4">
               <button className={`px-4 py-2 rounded-lg font-medium transition ${
-                event.status === "published"
+                event.status === "PUBLISHED"
                   ? "bg-green-100 text-green-700 border-2 border-green-500"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}>
                 Published
               </button>
               <button className={`px-4 py-2 rounded-lg font-medium transition ${
-                event.status === "draft"
+                event.status === "DRAFT"
                   ? "bg-yellow-100 text-yellow-700 border-2 border-yellow-500"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}>

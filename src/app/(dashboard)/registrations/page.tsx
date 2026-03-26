@@ -1,43 +1,83 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-// Mock data - all registrations across events
-const mockRegistrations = [
-  { id: "1", name: "Anna Schmidt", email: "anna@example.com", role: "Follower", event: "Spring Tango Marathon", eventSlug: "spring-tango-marathon-2026", status: "confirmed", paidAt: "2026-01-15", country: "Germany" },
-  { id: "2", name: "Marco Rossi", email: "marco@example.com", role: "Leader", event: "Spring Tango Marathon", eventSlug: "spring-tango-marathon-2026", status: "confirmed", paidAt: "2026-01-16", country: "Italy" },
-  { id: "3", name: "Sofia Martinez", email: "sofia@example.com", role: "Follower", event: "Spring Tango Marathon", eventSlug: "spring-tango-marathon-2026", status: "pending", paidAt: null, country: "Spain" },
-  { id: "4", name: "Hans Weber", email: "hans@example.com", role: "Leader", event: "Spring Tango Marathon", eventSlug: "spring-tango-marathon-2026", status: "confirmed", paidAt: "2026-01-18", country: "Austria" },
-  { id: "5", name: "Elena Popov", email: "elena@example.com", role: "Follower", event: "Autumn Tango Festival", eventSlug: "autumn-tango-festival-2026", status: "confirmed", paidAt: "2026-02-01", country: "Russia" },
-  { id: "6", name: "Pierre Dubois", email: "pierre@example.com", role: "Leader", event: "Autumn Tango Festival", eventSlug: "autumn-tango-festival-2026", status: "confirmed", paidAt: "2026-02-02", country: "France" },
-  { id: "7", name: "Yuki Tanaka", email: "yuki@example.com", role: "Follower", event: "Autumn Tango Festival", eventSlug: "autumn-tango-festival-2026", status: "pending", paidAt: null, country: "Japan" },
-  { id: "8", name: "Carlos Garcia", email: "carlos@example.com", role: "Leader", event: "Spring Tango Marathon", eventSlug: "spring-tango-marathon-2026", status: "waitlist", paidAt: null, country: "Argentina" },
-];
+interface Registration {
+  id: string;
+  fullName: string;
+  email: string;
+  role: string;
+  city: string | null;
+  country: string | null;
+  registrationStatus: string;
+  paymentStatus: string;
+  event: {
+    id: string;
+    title: string;
+    slug: string;
+  };
+  createdAt: string;
+}
 
 export default function RegistrationsPage() {
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [roleFilter, setRoleFilter] = useState("all");
 
-  const filteredRegistrations = mockRegistrations.filter((reg) => {
-    if (statusFilter !== "all" && reg.status !== statusFilter) return false;
+  useEffect(() => {
+    async function fetchRegistrations() {
+      try {
+        const response = await fetch("/api/registrations");
+        if (response.ok) {
+          const data = await response.json();
+          setRegistrations(data);
+        }
+      } catch (error) {
+        console.error("Error fetching registrations:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchRegistrations();
+  }, []);
+
+  const filteredRegistrations = registrations.filter((reg) => {
+    if (statusFilter !== "all" && reg.registrationStatus.toLowerCase() !== statusFilter) return false;
     if (roleFilter !== "all" && reg.role.toLowerCase() !== roleFilter) return false;
     if (search) {
       const searchLower = search.toLowerCase();
-      if (!reg.name.toLowerCase().includes(searchLower) &&
+      if (!reg.fullName.toLowerCase().includes(searchLower) &&
           !reg.email.toLowerCase().includes(searchLower) &&
-          !reg.event.toLowerCase().includes(searchLower)) return false;
+          !reg.event.title.toLowerCase().includes(searchLower)) return false;
     }
     return true;
   });
 
   const stats = {
-    total: mockRegistrations.length,
-    confirmed: mockRegistrations.filter(r => r.status === "confirmed").length,
-    pending: mockRegistrations.filter(r => r.status === "pending").length,
-    waitlist: mockRegistrations.filter(r => r.status === "waitlist").length,
+    total: registrations.length,
+    confirmed: registrations.filter(r => r.registrationStatus === "CONFIRMED").length,
+    pending: registrations.filter(r => r.registrationStatus === "REGISTERED").length,
+    waitlist: registrations.filter(r => r.registrationStatus === "WAITLIST").length,
   };
+
+  if (loading) {
+    return (
+      <div className="p-8">
+        <div className="animate-pulse">
+          <div className="h-8 w-48 bg-gray-200 rounded mb-8"></div>
+          <div className="grid grid-cols-4 gap-4 mb-8">
+            {[1,2,3,4].map(i => (
+              <div key={i} className="h-20 bg-gray-100 rounded-xl"></div>
+            ))}
+          </div>
+          <div className="h-64 bg-gray-100 rounded-xl"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8">
@@ -85,7 +125,7 @@ export default function RegistrationsPage() {
             >
               <option value="all">All Status</option>
               <option value="confirmed">Confirmed</option>
-              <option value="pending">Pending</option>
+              <option value="registered">Pending</option>
               <option value="waitlist">Waitlist</option>
             </select>
             <select
@@ -114,7 +154,7 @@ export default function RegistrationsPage() {
               <th className="text-left text-gray-600 font-medium px-6 py-3">Role</th>
               <th className="text-left text-gray-600 font-medium px-6 py-3">Country</th>
               <th className="text-left text-gray-600 font-medium px-6 py-3">Status</th>
-              <th className="text-left text-gray-600 font-medium px-6 py-3">Paid</th>
+              <th className="text-left text-gray-600 font-medium px-6 py-3">Registered</th>
               <th className="text-right text-gray-600 font-medium px-6 py-3">Actions</th>
             </tr>
           </thead>
@@ -123,33 +163,35 @@ export default function RegistrationsPage() {
               <tr key={reg.id} className="border-b border-gray-100 hover:bg-gray-50 transition">
                 <td className="px-6 py-4">
                   <div>
-                    <p className="text-gray-900 font-medium">{reg.name}</p>
+                    <p className="text-gray-900 font-medium">{reg.fullName}</p>
                     <p className="text-gray-500 text-sm">{reg.email}</p>
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <Link href={`/events/1`} className="text-rose-500 hover:text-rose-600 hover:underline">
-                    {reg.event}
+                  <Link href={`/events/${reg.event.id}`} className="text-rose-500 hover:text-rose-600 hover:underline">
+                    {reg.event.title}
                   </Link>
                 </td>
                 <td className="px-6 py-4">
                   <span className={`px-2 py-1 rounded text-xs font-medium ${
-                    reg.role === "Leader" ? "bg-blue-100 text-blue-700" : "bg-pink-100 text-pink-700"
+                    reg.role === "LEADER" ? "bg-blue-100 text-blue-700" : "bg-pink-100 text-pink-700"
                   }`}>
                     {reg.role}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-gray-600">{reg.country}</td>
+                <td className="px-6 py-4 text-gray-600">{reg.country || "-"}</td>
                 <td className="px-6 py-4">
                   <span className={`px-2 py-1 rounded text-xs font-medium ${
-                    reg.status === "confirmed" ? "bg-green-100 text-green-700" :
-                    reg.status === "pending" ? "bg-yellow-100 text-yellow-700" :
+                    reg.registrationStatus === "CONFIRMED" ? "bg-green-100 text-green-700" :
+                    reg.registrationStatus === "REGISTERED" ? "bg-yellow-100 text-yellow-700" :
                     "bg-gray-100 text-gray-700"
                   }`}>
-                    {reg.status}
+                    {reg.registrationStatus === "REGISTERED" ? "Pending" : reg.registrationStatus.toLowerCase()}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-gray-600">{reg.paidAt || "-"}</td>
+                <td className="px-6 py-4 text-gray-600">
+                  {new Date(reg.createdAt).toLocaleDateString()}
+                </td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex items-center justify-end gap-2">
                     <button className="p-1.5 text-gray-400 hover:text-gray-600 transition" title="Send email">
@@ -171,7 +213,9 @@ export default function RegistrationsPage() {
 
         {filteredRegistrations.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-500">No registrations found</p>
+            <p className="text-gray-500">
+              {registrations.length === 0 ? "No registrations yet" : "No registrations found"}
+            </p>
           </div>
         )}
       </div>

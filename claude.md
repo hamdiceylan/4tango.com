@@ -137,14 +137,28 @@ Supported languages: en, es, de, fr, it, pl, tr.
 - privacy, terms, contact
 - registration, api
 
-### 6. Testing Checklist
+### 6. Testing & Test Scenarios
 
-Before deploying to production:
+**Test Scenarios Document**: `docs/TEST_SCENARIOS.md`
+
+This file contains comprehensive test scenarios for all features. **Keep it updated**:
+- When adding a new feature → Add test scenarios
+- When modifying a feature → Update affected scenarios
+- When removing a feature → Remove obsolete scenarios
+
+**Before deploying to production**:
+- [ ] Run through critical path scenarios from TEST_SCENARIOS.md
 - [ ] Test registration flow end-to-end
 - [ ] Verify emails are sent (check SES metrics)
 - [ ] Test on both mobile and desktop
 - [ ] Verify database records are created correctly
 - [ ] Check health endpoint: `/api/health`
+
+**Quick health check**:
+```bash
+npm run status:health    # Check all endpoints
+npm run db:status        # Check database record counts
+```
 
 ### 7. Deployment Process
 
@@ -202,8 +216,11 @@ aws amplify list-jobs --app-id <APP_ID> --branch-name <BRANCH> --region eu-west-
 | File | Purpose |
 |------|---------|
 | `prisma/schema.prisma` | Database schema |
+| `docs/TEST_SCENARIOS.md` | Test scenarios - **update when features change** |
 | `src/lib/email.ts` | SES email client |
 | `src/lib/prisma.ts` | Prisma client singleton |
+| `src/lib/registration-actions/` | Registration action system |
+| `src/lib/permissions.ts` | Role-based permissions |
 | `src/app/api/public/events/[slug]/register/route.ts` | Registration API |
 | `src/app/[lang]/[slug]/page.tsx` | Public event page (i18n) |
 

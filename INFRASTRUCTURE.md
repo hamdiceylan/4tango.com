@@ -9,7 +9,7 @@
 |---------|-----|------|--------|
 | Amplify | d35qopwzo3l31w | d3jwiy3qjkzx5q | - |
 | RDS PostgreSQL | tango-dev | tango-prod | - |
-| Cognito | 4tango-dev | ⚠️ **MISSING** | - |
+| Cognito | eu-west-1_xf1rFIxFp | eu-west-1_rsb53q7Ks | - |
 | S3 | 4tango-dev-uploads | 4tango-prod-uploads | - |
 | SES | - | - | 4tango.com |
 
@@ -41,11 +41,11 @@
 | SES_FROM_EMAIL | ✅ | ✅ | noreply@4tango.com |
 | SES_ACCESS_KEY_ID | ✅ | ✅ | Same IAM user |
 | SES_SECRET_ACCESS_KEY | ✅ | ✅ | Same IAM user |
-| COGNITO_CLIENT_ID | ✅ | ❌ | **Missing in prod** |
-| COGNITO_REGION | ✅ | ❌ | **Missing in prod** |
-| COGNITO_USER_POOL_ID | ✅ | ❌ | **Missing in prod** |
-| NEXT_PUBLIC_COGNITO_DOMAIN | ? | ❌ | Needed for social login |
-| NEXT_PUBLIC_COGNITO_CLIENT_ID | ? | ❌ | Needed for social login |
+| COGNITO_CLIENT_ID | ✅ | ✅ | Different values (dev/prod pool) |
+| COGNITO_REGION | ✅ | ✅ | eu-west-1 |
+| COGNITO_USER_POOL_ID | ✅ | ✅ | Different values (dev/prod pool) |
+| NEXT_PUBLIC_COGNITO_DOMAIN | ✅ | ✅ | Different domains (dev/prod) |
+| NEXT_PUBLIC_COGNITO_CLIENT_ID | ✅ | ✅ | Different values (dev/prod) |
 
 ---
 
@@ -86,11 +86,19 @@ postgresql://tangoadmin:PASSWORD@tango-prod.cbucqu4yajzz.eu-west-1.rds.amazonaws
 - **Pool ID**: `eu-west-1_xf1rFIxFp`
 - **Pool Name**: `4tango-dev`
 - **Client ID**: `btpfeakg10l0vjl34vufr1v91`
+- **Domain**: `https://4tango-dev.auth.eu-west-1.amazoncognito.com`
 
 ### Prod User Pool
-⚠️ **DOES NOT EXIST** - Social login (Google/Apple) will NOT work in production!
+- **Pool ID**: `eu-west-1_rsb53q7Ks`
+- **Pool Name**: `4tango-prod`
+- **Client ID**: `31089qf4mefcl9etj9mv99hvgm`
+- **Domain**: `https://4tango-prod.auth.eu-west-1.amazoncognito.com`
 
-**To fix**: Either create a prod Cognito user pool, or use the same dev pool for both environments (not recommended for production).
+### Social Login (Google/Apple)
+To enable social login, you need to:
+1. Create OAuth credentials in Google Cloud Console / Apple Developer
+2. Add identity providers to Cognito: `aws cognito-idp create-identity-provider`
+3. Update the app client to support the identity providers
 
 ---
 
@@ -126,19 +134,20 @@ postgresql://tangoadmin:PASSWORD@tango-prod.cbucqu4yajzz.eu-west-1.rds.amazonaws
 
 ---
 
-## Known Issues & Gaps
+## Infrastructure Status
 
-### 🔴 Critical
-1. **No Cognito for Prod** - Social login (Google/Apple) won't work
+### 🟢 All Systems Aligned
+1. ✅ RDS prod has Multi-AZ (high availability)
+2. ✅ RDS prod is larger instance (handles more load)
+3. ✅ Separate S3 buckets prevent dev/prod file mixing
+4. ✅ SES is properly configured
+5. ✅ Cognito user pools exist for both environments
+6. ✅ All environment variables are synced
 
-### 🟡 Warning
-1. **Cognito env vars missing in prod** - Even if we create prod Cognito, vars need to be added
-
-### 🟢 Good
-1. RDS prod has Multi-AZ (high availability)
-2. RDS prod is larger instance (handles more load)
-3. Separate S3 buckets prevent dev/prod file mixing
-4. SES is properly configured
+### 🟡 Optional Enhancements
+1. **Social Login** - Google/Apple identity providers not yet configured in Cognito
+   - Email/password auth works fine without this
+   - Add when social login is needed for dancers
 
 ---
 
@@ -147,7 +156,7 @@ postgresql://tangoadmin:PASSWORD@tango-prod.cbucqu4yajzz.eu-west-1.rds.amazonaws
 ### After making infrastructure changes in dev:
 
 1. **Document the change** in this file
-2. **Run the drift check**: `npm run infra:check`
+2. **Run the drift check**: `npm run infra`
 3. **Apply same change to prod** using AWS CLI or Console
 4. **Update environment variables** if needed:
    ```bash

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import RegistrationTable from "@/components/registrations/RegistrationTable";
 
 interface Registration {
@@ -22,13 +23,28 @@ interface Registration {
 }
 
 export default function RegistrationsPage() {
+  const searchParams = useSearchParams();
+  const eventIdFromUrl = searchParams.get("eventId");
+
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [paymentFilter, setPaymentFilter] = useState("all");
   const [roleFilter, setRoleFilter] = useState("all");
-  const [eventFilter, setEventFilter] = useState("all");
+  const [eventFilter, setEventFilter] = useState(eventIdFromUrl || "all");
+
+  // Check if we're in single-event mode (filtered by URL param)
+  const isSingleEventMode = !!eventIdFromUrl;
+
+  // Update eventFilter when URL param changes
+  useEffect(() => {
+    if (eventIdFromUrl) {
+      setEventFilter(eventIdFromUrl);
+    } else {
+      setEventFilter("all");
+    }
+  }, [eventIdFromUrl]);
 
   const fetchRegistrations = useCallback(async () => {
     try {
@@ -57,12 +73,11 @@ export default function RegistrationsPage() {
     if (eventFilter !== "all" && reg.event.id !== eventFilter) return false;
     if (search) {
       const searchLower = search.toLowerCase();
-      if (
-        !reg.fullName.toLowerCase().includes(searchLower) &&
-        !reg.email.toLowerCase().includes(searchLower) &&
-        !reg.event.title.toLowerCase().includes(searchLower)
-      )
-        return false;
+      const matchesName = reg.fullName.toLowerCase().includes(searchLower);
+      const matchesEmail = reg.email.toLowerCase().includes(searchLower);
+      // Only search by event name when not in single-event mode
+      const matchesEvent = !isSingleEventMode && reg.event.title.toLowerCase().includes(searchLower);
+      if (!matchesName && !matchesEmail && !matchesEvent) return false;
     }
     return true;
   });
@@ -72,19 +87,27 @@ export default function RegistrationsPage() {
     new Map(registrations.map((r) => [r.event.id, r.event])).values()
   );
 
+  // Get current event name when in single-event mode
+  const currentEventName = isSingleEventMode
+    ? events.find(e => e.id === eventIdFromUrl)?.title
+    : null;
+
+  // Use filtered registrations for stats when in single-event mode
+  const statsSource = isSingleEventMode ? filteredRegistrations : registrations;
+
   const stats = {
-    total: registrations.length,
-    confirmed: registrations.filter((r) => r.registrationStatus === "CONFIRMED")
+    total: statsSource.length,
+    confirmed: statsSource.filter((r) => r.registrationStatus === "CONFIRMED")
       .length,
-    pending: registrations.filter(
+    pending: statsSource.filter(
       (r) =>
         r.registrationStatus === "REGISTERED" ||
         r.registrationStatus === "PENDING_REVIEW"
     ).length,
-    waitlist: registrations.filter((r) => r.registrationStatus === "WAITLIST")
+    waitlist: statsSource.filter((r) => r.registrationStatus === "WAITLIST")
       .length,
-    paid: registrations.filter((r) => r.paymentStatus === "PAID").length,
-    unpaid: registrations.filter(
+    paid: statsSource.filter((r) => r.paymentStatus === "PAID").length,
+    unpaid: statsSource.filter(
       (r) =>
         r.paymentStatus === "UNPAID" ||
         r.paymentStatus === "PENDING" ||
@@ -113,10 +136,12 @@ export default function RegistrationsPage() {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          All Registrations
+          {isSingleEventMode ? "Registrations" : "All Registrations"}
         </h1>
         <p className="text-gray-500">
-          Manage registrations across all your events
+          {isSingleEventMode && currentEventName
+            ? `Manage registrations for ${currentEventName}`
+            : "Manage registrations across all your events"}
         </p>
       </div>
 
@@ -153,24 +178,27 @@ export default function RegistrationsPage() {
         <div className="flex flex-wrap items-center gap-4">
           <input
             type="text"
-            placeholder="Search by name, email, or event..."
+            placeholder={isSingleEventMode ? "Search by name or email..." : "Search by name, email, or event..."}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="flex-1 min-w-[200px] px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
           />
 
-          <select
-            value={eventFilter}
-            onChange={(e) => setEventFilter(e.target.value)}
-            className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-rose-500"
-          >
-            <option value="all">All Events</option>
-            {events.map((event) => (
-              <option key={event.id} value={event.id}>
-                {event.title}
-              </option>
-            ))}
-          </select>
+          {/* Only show event filter when not in single-event mode */}
+          {!isSingleEventMode && (
+            <select
+              value={eventFilter}
+              onChange={(e) => setEventFilter(e.target.value)}
+              className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-rose-500"
+            >
+              <option value="all">All Events</option>
+              {events.map((event) => (
+                <option key={event.id} value={event.id}>
+                  {event.title}
+                </option>
+              ))}
+            </select>
+          )}
 
           <select
             value={statusFilter}
@@ -219,7 +247,10 @@ export default function RegistrationsPage() {
               setStatusFilter("all");
               setPaymentFilter("all");
               setRoleFilter("all");
-              setEventFilter("all");
+              // Don't reset eventFilter when in single-event mode
+              if (!isSingleEventMode) {
+                setEventFilter("all");
+              }
             }}
             className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
           >

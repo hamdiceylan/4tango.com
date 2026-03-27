@@ -40,8 +40,7 @@ interface Event {
 
 export default function EventDetailPage() {
   const params = useParams<{ id: string }>();
-  const [activeTab, setActiveTab] = useState<"overview" | "registrations" | "settings">("overview");
-  const [selectedRegistration, setSelectedRegistration] = useState<Registration | null>(null);
+  const [activeTab, setActiveTab] = useState<"overview" | "settings">("overview");
   const [copied, setCopied] = useState(false);
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
@@ -163,98 +162,6 @@ export default function EventDetailPage() {
 
   return (
     <div className="p-8">
-      {/* Registration Detail Modal */}
-      {selectedRegistration && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setSelectedRegistration(null)}>
-          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900">Registration Details</h2>
-              <button onClick={() => setSelectedRegistration(null)} className="text-gray-400 hover:text-gray-600">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="p-6 space-y-6">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center">
-                  <span className="text-rose-600 font-bold text-xl">
-                    {selectedRegistration.fullName.split(' ').map(n => n[0]).join('')}
-                  </span>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">{selectedRegistration.fullName}</h3>
-                  <p className="text-gray-500">{selectedRegistration.email}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-gray-500 text-sm">Role</p>
-                  <span className={`inline-block mt-1 px-2 py-1 rounded text-xs font-medium ${
-                    selectedRegistration.role === "LEADER" ? "bg-blue-100 text-blue-700" : "bg-pink-100 text-pink-700"
-                  }`}>
-                    {selectedRegistration.role}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-gray-500 text-sm">Experience</p>
-                  <p className="text-gray-900 font-medium">{selectedRegistration.experience || "-"}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500 text-sm">Location</p>
-                  <p className="text-gray-900 font-medium">
-                    {selectedRegistration.city && selectedRegistration.country
-                      ? `${selectedRegistration.city}, ${selectedRegistration.country}`
-                      : selectedRegistration.country || "-"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-500 text-sm">Status</p>
-                  <span className={`inline-block mt-1 px-2 py-1 rounded text-xs font-medium ${
-                    selectedRegistration.registrationStatus === "CONFIRMED" ? "bg-green-100 text-green-700" :
-                    selectedRegistration.registrationStatus === "REGISTERED" ? "bg-yellow-100 text-yellow-700" :
-                    "bg-gray-100 text-gray-700"
-                  }`}>
-                    {selectedRegistration.registrationStatus}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-gray-500 text-sm">Registered</p>
-                  <p className="text-gray-900 font-medium">{formatDate(selectedRegistration.createdAt)}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500 text-sm">Payment</p>
-                  <p className="text-gray-900 font-medium">{selectedRegistration.paymentStatus}</p>
-                </div>
-              </div>
-
-              <div className="border-t border-gray-200 pt-4">
-                <p className="text-gray-500 text-sm mb-3">Actions</p>
-                <div className="flex flex-wrap gap-2">
-                  {selectedRegistration.registrationStatus === "REGISTERED" && (
-                    <button className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200">
-                      Mark as Paid
-                    </button>
-                  )}
-                  <button className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200">
-                    Resend Email
-                  </button>
-                  <button className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">
-                    Add Note
-                  </button>
-                  {selectedRegistration.registrationStatus !== "CANCELLED" && (
-                    <button className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200">
-                      Cancel
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <div className="mb-8">
         <Link href="/events" className="text-gray-500 hover:text-gray-900 transition flex items-center gap-2 mb-4">
@@ -263,54 +170,16 @@ export default function EventDetailPage() {
           </svg>
           Back to Events
         </Link>
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl font-bold text-gray-900">{event.title}</h1>
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                event.status === "PUBLISHED" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
-              }`}>
-                {event.status.toLowerCase()}
-              </span>
-            </div>
-            <p className="text-gray-500">{event.city}, {event.country} · {formatDate(event.startAt)} to {formatDate(event.endAt)}</p>
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-3xl font-bold text-gray-900">{event.title}</h1>
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+              event.status === "PUBLISHED" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
+            }`}>
+              {event.status.toLowerCase()}
+            </span>
           </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href={`/events/${event.id}/page-builder`}
-              className="px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg transition font-medium flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-              </svg>
-              Page Builder
-            </Link>
-            <Link
-              href={`/events/${event.id}/form-builder`}
-              className="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition font-medium flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Form Builder
-            </Link>
-            <Link
-              href={`/${event.slug}`}
-              target="_blank"
-              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition font-medium flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-              Preview
-            </Link>
-            <Link
-              href={`/events/${event.id}/edit`}
-              className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-lg transition font-medium shadow-lg shadow-rose-500/25"
-            >
-              Edit Event
-            </Link>
-          </div>
+          <p className="text-gray-500">{event.city}, {event.country} · {formatDate(event.startAt)} to {formatDate(event.endAt)}</p>
         </div>
       </div>
 
@@ -339,7 +208,6 @@ export default function EventDetailPage() {
         <nav className="flex gap-8">
           {[
             { id: "overview", label: "Overview" },
-            { id: "registrations", label: "Registrations" },
             { id: "settings", label: "Settings" },
           ].map((tab) => (
             <button
@@ -464,98 +332,6 @@ export default function EventDetailPage() {
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {activeTab === "registrations" && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-            <input
-              type="text"
-              placeholder="Search registrations..."
-              className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent w-64"
-            />
-            <div className="flex gap-2">
-              <select className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-rose-500">
-                <option>All Status</option>
-                <option>Confirmed</option>
-                <option>Pending</option>
-                <option>Waitlist</option>
-              </select>
-              <select className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-rose-500">
-                <option>All Roles</option>
-                <option>Leaders</option>
-                <option>Followers</option>
-              </select>
-              <button onClick={exportCSV} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition font-medium flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Export
-              </button>
-            </div>
-          </div>
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left text-gray-600 font-medium px-6 py-3">Name</th>
-                <th className="text-left text-gray-600 font-medium px-6 py-3">Email</th>
-                <th className="text-left text-gray-600 font-medium px-6 py-3">Role</th>
-                <th className="text-left text-gray-600 font-medium px-6 py-3">Location</th>
-                <th className="text-left text-gray-600 font-medium px-6 py-3">Status</th>
-                <th className="text-left text-gray-600 font-medium px-6 py-3">Registered</th>
-                <th className="text-right text-gray-600 font-medium px-6 py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {registrations.map((reg) => (
-                <tr
-                  key={reg.id}
-                  className="border-b border-gray-100 hover:bg-gray-50 transition cursor-pointer"
-                  onClick={() => setSelectedRegistration(reg)}
-                >
-                  <td className="px-6 py-4 text-gray-900 font-medium">{reg.fullName}</td>
-                  <td className="px-6 py-4 text-gray-600">{reg.email}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      reg.role === "LEADER" ? "bg-blue-100 text-blue-700" : "bg-pink-100 text-pink-700"
-                    }`}>
-                      {reg.role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-gray-600">
-                    {reg.city && reg.country ? `${reg.city}, ${reg.country}` : reg.country || "-"}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      reg.registrationStatus === "CONFIRMED" ? "bg-green-100 text-green-700" :
-                      reg.registrationStatus === "REGISTERED" ? "bg-yellow-100 text-yellow-700" :
-                      "bg-gray-100 text-gray-700"
-                    }`}>
-                      {reg.registrationStatus}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-gray-600">{formatDate(reg.createdAt)}</td>
-                  <td className="px-6 py-4 text-right">
-                    <button
-                      className="text-gray-400 hover:text-gray-600 transition"
-                      onClick={(e) => { e.stopPropagation(); setSelectedRegistration(reg); }}
-                    >
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {registrations.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-500">No registrations yet</p>
-            </div>
-          )}
         </div>
       )}
 

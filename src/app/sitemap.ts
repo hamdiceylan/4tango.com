@@ -2,6 +2,9 @@ import { MetadataRoute } from 'next';
 import prisma from '@/lib/prisma';
 import { SUPPORTED_LANGUAGES } from '@/lib/i18n';
 
+// Force dynamic generation at runtime (not build time) since we fetch from database
+export const dynamic = 'force-dynamic';
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://4tango.com';
 

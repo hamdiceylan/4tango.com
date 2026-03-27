@@ -2,6 +2,7 @@
   "hero.title": "{{eventTitle}}",
   "hero.dates": "{{startDate}} - {{endDate}}",
   "hero.location": "{{city}}, {{country}}",
+  "section.about": "Über uns",
   "section.program": "Programm",
   "section.accommodation": "Unterkunft",
   "section.djTeam": "DJ Team",

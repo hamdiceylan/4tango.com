@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import type { Language } from "@/lib/i18n";
+import { localizeContent } from "@/lib/i18n/localize-content";
+import LanguageSelector from "@/components/ui/LanguageSelector";
 
 // Types
 interface EventData {
@@ -37,7 +39,7 @@ interface PageSection {
   id: string;
   type: string;
   order: number;
-  title: string | null;
+  title: string | Record<string, string> | null;
   content: Record<string, unknown>;
   isVisible: boolean;
 }
@@ -74,6 +76,36 @@ const countryFlags: Record<string, string> = {
   Argentina: "",
 };
 
+// Default section labels (fallback if no custom title set)
+const defaultSectionLabels: Record<Language, Record<string, string>> = {
+  en: { about: "ABOUT", program: "PROGRAM", accommodation: "ACCOMMODATION", djTeam: "DJ TEAM", photographers: "PHOTOGRAPHERS", prices: "PRICES", register: "REGISTRATION" },
+  es: { about: "ACERCA DE", program: "PROGRAMA", accommodation: "ALOJAMIENTO", djTeam: "DJS", photographers: "FOTÓGRAFOS", prices: "PRECIOS", register: "INSCRIPCIÓN" },
+  de: { about: "ÜBER UNS", program: "PROGRAMM", accommodation: "UNTERKUNFT", djTeam: "DJ TEAM", photographers: "FOTOGRAFEN", prices: "PREISE", register: "ANMELDUNG" },
+  fr: { about: "À PROPOS", program: "PROGRAMME", accommodation: "HÉBERGEMENT", djTeam: "ÉQUIPE DJ", photographers: "PHOTOGRAPHES", prices: "TARIFS", register: "INSCRIPTION" },
+  it: { about: "CHI SIAMO", program: "PROGRAMMA", accommodation: "ALLOGGIO", djTeam: "DJ TEAM", photographers: "FOTOGRAFI", prices: "PREZZI", register: "ISCRIZIONE" },
+  pl: { about: "O NAS", program: "PROGRAM", accommodation: "ZAKWATEROWANIE", djTeam: "ZESPÓŁ DJ", photographers: "FOTOGRAFOWIE", prices: "CENY", register: "REJESTRACJA" },
+  tr: { about: "HAKKINDA", program: "PROGRAM", accommodation: "KONAKLAMA", djTeam: "DJ EKİBİ", photographers: "FOTOĞRAFÇILAR", prices: "FİYATLAR", register: "KAYIT" },
+};
+
+// Helper to get localized section title
+function getLocalizedSectionTitle(
+  section: PageSection | undefined,
+  key: string,
+  lang: Language
+): string {
+  if (!section) return defaultSectionLabels[lang]?.[key] || defaultSectionLabels.en[key] || key.toUpperCase();
+
+  const title = section.title;
+  if (!title) return defaultSectionLabels[lang]?.[key] || defaultSectionLabels.en[key] || key.toUpperCase();
+
+  // If title is a string, return it
+  if (typeof title === "string") return title.toUpperCase();
+
+  // If title is localized object, get the right language
+  const localizedTitle = title[lang] || title["en"] || Object.values(title)[0];
+  return localizedTitle ? localizedTitle.toUpperCase() : defaultSectionLabels[lang]?.[key] || key.toUpperCase();
+}
+
 // Default hero images
 const defaultHeroImages = [
   "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1920&q=80",
@@ -85,12 +117,21 @@ export default function EventPageClient({ event, lang, isPreview }: EventPageCli
   const [activeTab, setActiveTab] = useState(0);
   const [hotelSlide, setHotelSlide] = useState(0);
 
-  // Extract section data helpers
+  // Extract section data helpers - apply localization to content
   const getSection = (type: string): PageSection | undefined => {
-    return event.pageSections.find((s) => s.type === type);
+    const section = event.pageSections.find((s) => s.type === type);
+    if (section) {
+      // Localize the content based on current language
+      return {
+        ...section,
+        content: localizeContent(section.content, lang, (event.defaultLanguage || "en") as Language),
+      };
+    }
+    return section;
   };
 
   const heroSection = getSection("HERO");
+  const aboutSection = getSection("ABOUT");
   const scheduleSection = getSection("SCHEDULE");
   const accommodationSection = getSection("ACCOMMODATION");
   const djSection = getSection("DJ_TEAM");
@@ -98,7 +139,17 @@ export default function EventPageClient({ event, lang, isPreview }: EventPageCli
   const pricingSection = getSection("PRICING");
 
   // Get hero images from section or use defaults
-  const heroImages = (heroSection?.content?.backgroundImages as string[]) || defaultHeroImages;
+  // Support both backgroundImages (array) and backgroundImage (single string)
+  const heroImages = (() => {
+    const content = heroSection?.content;
+    if (content?.backgroundImages && Array.isArray(content.backgroundImages)) {
+      return content.backgroundImages as string[];
+    }
+    if (content?.backgroundImage && typeof content.backgroundImage === "string") {
+      return [content.backgroundImage];
+    }
+    return defaultHeroImages;
+  })();
   const heroLogo = (heroSection?.content?.logoUrl as string) || event.logoUrl;
 
   // Auto-advance hero slider
@@ -144,13 +195,39 @@ export default function EventPageClient({ event, lang, isPreview }: EventPageCli
       }
     | undefined;
 
-  // Get DJ team
-  const djTeam =
-    (djSection?.content?.members as Array<{
-      name: string;
-      country: string;
-      photo: string;
-    }>) || [];
+  // Get DJ team - support both new 'members' format and old 'djs' format
+  const djTeam = (() => {
+    const content = djSection?.content;
+    // First try new format (members)
+    if (content?.members && Array.isArray(content.members) && content.members.length > 0) {
+      return content.members as Array<{ name: string; country: string; photo: string }>;
+    }
+    // Fall back to old format (djs)
+    if (content?.djs && Array.isArray(content.djs)) {
+      return (content.djs as Array<{ name: string; bio?: string; imageUrl?: string | null }>).map(
+        (dj) => ({
+          name: dj.name,
+          country: "", // old format didn't have country
+          photo: dj.imageUrl || "",
+        })
+      );
+    }
+    return [];
+  })();
+
+  // Get about content
+  const aboutContent = (() => {
+    const content = aboutSection?.content;
+    // Support new 'content' field (localized) or old 'text' field
+    if (content?.content && typeof content.content === "string") {
+      return content.content;
+    }
+    if (content?.text && typeof content.text === "string") {
+      return content.text;
+    }
+    return null;
+  })();
+  const aboutImages = (aboutSection?.content?.images as string[]) || [];
 
   // Get photographers
   const photographers =
@@ -167,13 +244,14 @@ export default function EventPageClient({ event, lang, isPreview }: EventPageCli
   // Primary color
   const primaryColor = event.primaryColor || "#e85a2c";
 
-  // Navigation links based on available sections
+  // Navigation links based on available sections - using localized titles
   const navLinks = [
-    ...(scheduleSection ? [{ href: "#program", label: "PROGRAM" }] : []),
-    ...(accommodationSection ? [{ href: "#accommodation", label: "ACCOMMODATION" }] : []),
-    ...(djSection ? [{ href: "#djs", label: "DJ TEAM" }] : []),
-    ...(event.packages.length > 0 ? [{ href: "#prices", label: "PRICES" }] : []),
-    { href: "#register", label: "REGISTRATION" },
+    ...(aboutSection && aboutContent ? [{ href: "#about", label: getLocalizedSectionTitle(aboutSection, "about", lang) }] : []),
+    ...(scheduleSection ? [{ href: "#program", label: getLocalizedSectionTitle(scheduleSection, "program", lang) }] : []),
+    ...(accommodationSection ? [{ href: "#accommodation", label: getLocalizedSectionTitle(accommodationSection, "accommodation", lang) }] : []),
+    ...(djSection && djTeam.length > 0 ? [{ href: "#djs", label: getLocalizedSectionTitle(djSection, "djTeam", lang) }] : []),
+    ...(event.packages.length > 0 ? [{ href: "#prices", label: getLocalizedSectionTitle(pricingSection, "prices", lang) }] : []),
+    { href: "#register", label: defaultSectionLabels[lang]?.register || "REGISTRATION" },
   ];
 
   // Register URL with language prefix
@@ -218,16 +296,25 @@ export default function EventPageClient({ event, lang, isPreview }: EventPageCli
               ))}
             </nav>
 
-            <button className="lg:hidden text-white p-2">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              </svg>
-            </button>
+            <div className="flex items-center gap-4">
+              {/* Language Selector */}
+              <LanguageSelector
+                currentLang={lang}
+                availableLanguages={(event.availableLanguages || [lang]) as Language[]}
+                slug={event.slug}
+              />
+
+              <button className="lg:hidden text-white p-2">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -303,13 +390,47 @@ export default function EventPageClient({ event, lang, isPreview }: EventPageCli
         </div>
       </section>
 
+      {/* About Section */}
+      {aboutSection && aboutContent && (
+        <section id="about" className="py-16 px-4 bg-gray-50 scroll-mt-16">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-10">
+              <h2 className="text-2xl md:text-3xl font-normal text-[#1a1a2e] mb-3 tracking-wide">
+                {getLocalizedSectionTitle(aboutSection, "about", lang)}
+              </h2>
+              <div className="w-12 h-0.5 mx-auto" style={{ backgroundColor: primaryColor }}></div>
+            </div>
+
+            <div className="prose prose-gray max-w-none text-center">
+              <div
+                className="text-gray-600 leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: aboutContent }}
+              />
+            </div>
+
+            {aboutImages.length > 0 && (
+              <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-4">
+                {aboutImages.map((img, index) => (
+                  <img
+                    key={index}
+                    src={img}
+                    alt={`About image ${index + 1}`}
+                    className="w-full h-64 object-cover rounded-lg"
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Program Section */}
       {scheduleSection && schedule.length > 0 && (
         <section id="program" className="py-16 px-4 bg-white scroll-mt-16">
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-10">
               <h2 className="text-2xl md:text-3xl font-normal text-[#1a1a2e] mb-3 tracking-wide">
-                {scheduleSection.title || "PROGRAM"}
+                {getLocalizedSectionTitle(scheduleSection, "program", lang)}
               </h2>
               <div className="w-12 h-0.5 mx-auto" style={{ backgroundColor: primaryColor }}></div>
             </div>
@@ -366,7 +487,7 @@ export default function EventPageClient({ event, lang, isPreview }: EventPageCli
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-10">
               <h2 className="text-2xl md:text-3xl font-normal text-[#1a1a2e] mb-3 tracking-wide">
-                {accommodationSection.title || "ACCOMMODATION"}
+                {getLocalizedSectionTitle(accommodationSection, "accommodation", lang)}
               </h2>
               {accommodation.rating && (
                 <>
@@ -535,7 +656,7 @@ export default function EventPageClient({ event, lang, isPreview }: EventPageCli
           <div className="relative max-w-6xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-2xl md:text-3xl font-normal text-white mb-3 tracking-wide">
-                {djSection.title || "DJ TEAM"}
+                {getLocalizedSectionTitle(djSection, "djTeam", lang)}
               </h2>
               <div className="w-12 h-0.5 bg-[#d4a853] mx-auto"></div>
             </div>
@@ -581,7 +702,7 @@ export default function EventPageClient({ event, lang, isPreview }: EventPageCli
           <div className="relative max-w-5xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-2xl md:text-3xl font-normal text-white mb-3 tracking-wide">
-                {photographersSection.title || "PHOTOGRAPHERS"}
+                {getLocalizedSectionTitle(photographersSection, "photographers", lang)}
               </h2>
               <div className="w-12 h-0.5 bg-[#d4a853] mx-auto"></div>
             </div>
@@ -618,7 +739,7 @@ export default function EventPageClient({ event, lang, isPreview }: EventPageCli
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-10">
               <h2 className="text-2xl md:text-3xl font-normal text-[#1a1a2e] mb-3 tracking-wide">
-                {pricingSection?.title || "PRICES"}
+                {getLocalizedSectionTitle(pricingSection, "prices", lang)}
               </h2>
               <div className="w-12 h-0.5 mx-auto" style={{ backgroundColor: primaryColor }}></div>
             </div>

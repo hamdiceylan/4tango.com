@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { SECTION_TYPES, SectionType, SectionTypeInfo, getDefaultContent } from "@/lib/section-types";
+import { Language, DEFAULT_LANGUAGE, LANGUAGE_FLAGS } from "@/lib/i18n";
+import { LocalizedInput } from "./LanguageTabs";
 import HeroEditor from "./editors/HeroEditor";
 import AboutEditor from "./editors/AboutEditor";
 import ScheduleEditor from "./editors/ScheduleEditor";
@@ -13,14 +15,25 @@ import ContactEditor from "./editors/ContactEditor";
 import CustomTextEditor from "./editors/CustomTextEditor";
 import PricingEditor from "./editors/PricingEditor";
 import LivePreview from "./LivePreview";
+import LanguageSettings from "./LanguageSettings";
 
 interface Section {
   id: string;
   type: SectionType;
   order: number;
-  title: string | null;
+  title: string | Record<string, string> | null;
   content: Record<string, unknown>;
   isVisible: boolean;
+}
+
+// Helper to get localized string from title
+function getLocalizedTitle(
+  title: string | Record<string, string> | null | undefined,
+  lang: Language
+): string {
+  if (!title) return "";
+  if (typeof title === "string") return title;
+  return title[lang] || title["en"] || Object.values(title)[0] || "";
 }
 
 interface Event {
@@ -28,6 +41,8 @@ interface Event {
   title: string;
   slug: string;
   primaryColor: string | null;
+  availableLanguages: Language[];
+  defaultLanguage: Language;
 }
 
 interface PageBuilderLayoutProps {
@@ -44,6 +59,8 @@ export default function PageBuilderLayout({ eventId }: PageBuilderLayoutProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [showLanguageSettings, setShowLanguageSettings] = useState(false);
+  const [titleEditLang, setTitleEditLang] = useState<Language>(DEFAULT_LANGUAGE);
 
   // Fetch event and sections
   useEffect(() => {
@@ -61,6 +78,8 @@ export default function PageBuilderLayout({ eventId }: PageBuilderLayoutProps) {
             title: eventData.title,
             slug: eventData.slug,
             primaryColor: eventData.primaryColor,
+            availableLanguages: (eventData.availableLanguages || [DEFAULT_LANGUAGE]) as Language[],
+            defaultLanguage: (eventData.defaultLanguage || DEFAULT_LANGUAGE) as Language,
           });
         }
 
@@ -235,6 +254,7 @@ export default function PageBuilderLayout({ eventId }: PageBuilderLayoutProps) {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const content = selectedSection.content as any;
+    const availableLanguages = event?.availableLanguages || [DEFAULT_LANGUAGE];
 
     switch (selectedSection.type) {
       case "HERO":
@@ -242,6 +262,7 @@ export default function PageBuilderLayout({ eventId }: PageBuilderLayoutProps) {
           <HeroEditor
             content={content as Parameters<typeof HeroEditor>[0]["content"]}
             onChange={(c) => updateSelectedSection({ content: c as unknown as Record<string, unknown> })}
+            availableLanguages={availableLanguages}
           />
         );
       case "ABOUT":
@@ -249,6 +270,7 @@ export default function PageBuilderLayout({ eventId }: PageBuilderLayoutProps) {
           <AboutEditor
             content={content as Parameters<typeof AboutEditor>[0]["content"]}
             onChange={(c) => updateSelectedSection({ content: c as unknown as Record<string, unknown> })}
+            availableLanguages={availableLanguages}
           />
         );
       case "SCHEDULE":
@@ -256,6 +278,7 @@ export default function PageBuilderLayout({ eventId }: PageBuilderLayoutProps) {
           <ScheduleEditor
             content={content as Parameters<typeof ScheduleEditor>[0]["content"]}
             onChange={(c) => updateSelectedSection({ content: c as unknown as Record<string, unknown> })}
+            availableLanguages={availableLanguages}
           />
         );
       case "DJ_TEAM":
@@ -263,6 +286,7 @@ export default function PageBuilderLayout({ eventId }: PageBuilderLayoutProps) {
           <DjTeamEditor
             content={content as Parameters<typeof DjTeamEditor>[0]["content"]}
             onChange={(c) => updateSelectedSection({ content: c as unknown as Record<string, unknown> })}
+            availableLanguages={availableLanguages}
           />
         );
       case "PHOTOGRAPHERS":
@@ -270,6 +294,7 @@ export default function PageBuilderLayout({ eventId }: PageBuilderLayoutProps) {
           <DjTeamEditor
             content={content as Parameters<typeof DjTeamEditor>[0]["content"]}
             onChange={(c) => updateSelectedSection({ content: c as unknown as Record<string, unknown> })}
+            availableLanguages={availableLanguages}
           />
         );
       case "ACCOMMODATION":
@@ -277,6 +302,7 @@ export default function PageBuilderLayout({ eventId }: PageBuilderLayoutProps) {
           <AccommodationEditor
             content={content as Parameters<typeof AccommodationEditor>[0]["content"]}
             onChange={(c) => updateSelectedSection({ content: c as unknown as Record<string, unknown> })}
+            availableLanguages={availableLanguages}
           />
         );
       case "PRICING":
@@ -284,6 +310,7 @@ export default function PageBuilderLayout({ eventId }: PageBuilderLayoutProps) {
           <PricingEditor
             content={content as Parameters<typeof PricingEditor>[0]["content"]}
             onChange={(c) => updateSelectedSection({ content: c as unknown as Record<string, unknown> })}
+            availableLanguages={availableLanguages}
           />
         );
       case "GALLERY":
@@ -463,7 +490,7 @@ export default function PageBuilderLayout({ eventId }: PageBuilderLayoutProps) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">
-                      {section.title || SECTION_TYPES.find((t) => t.type === section.type)?.name}
+                      {getLocalizedTitle(section.title, event?.defaultLanguage || DEFAULT_LANGUAGE) || SECTION_TYPES.find((t) => t.type === section.type)?.name}
                     </p>
                     <p className="text-xs text-gray-500">{section.type}</p>
                   </div>
@@ -538,6 +565,21 @@ export default function PageBuilderLayout({ eventId }: PageBuilderLayoutProps) {
 
         {/* Footer Actions */}
         <div className="p-4 border-t border-gray-200 space-y-2">
+          {/* Languages Button */}
+          <button
+            onClick={() => setShowLanguageSettings(true)}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg font-medium transition"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+            </svg>
+            Languages
+            {event && event.availableLanguages.length > 1 && (
+              <span className="ml-1 text-xs bg-blue-200 px-1.5 py-0.5 rounded">
+                {event.availableLanguages.map(l => LANGUAGE_FLAGS[l]).join(' ')}
+              </span>
+            )}
+          </button>
           <button
             onClick={() => setShowPreview(!showPreview)}
             className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition ${
@@ -617,15 +659,18 @@ export default function PageBuilderLayout({ eventId }: PageBuilderLayoutProps) {
 
               <div className="flex-1 overflow-y-auto p-6">
                 <div className="max-w-2xl">
-                  {/* Section Title */}
+                  {/* Section Title - Localizable */}
                   <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Section Title</label>
-                    <input
-                      type="text"
-                      value={selectedSection.title || ""}
-                      onChange={(e) => updateSelectedSection({ title: e.target.value })}
+                    <LocalizedInput
+                      label="Section Title (shown in navigation)"
+                      languages={event?.availableLanguages || [DEFAULT_LANGUAGE]}
+                      currentLang={titleEditLang}
+                      onLangChange={setTitleEditLang}
+                      value={selectedSection.title || undefined}
+                      onChange={(newTitle) => updateSelectedSection({ title: newTitle as unknown as string })}
                       placeholder="Enter section title..."
-                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                      required={true}
+                      helpText="This title appears in the navigation menu and section header"
                     />
                   </div>
 
@@ -664,6 +709,36 @@ export default function PageBuilderLayout({ eventId }: PageBuilderLayoutProps) {
           </div>
         )}
       </div>
+
+      {/* Language Settings Modal */}
+      {showLanguageSettings && event && (
+        <LanguageSettings
+          availableLanguages={event.availableLanguages}
+          defaultLanguage={event.defaultLanguage}
+          onUpdate={async (newAvailableLanguages, newDefaultLanguage) => {
+            try {
+              const res = await fetch(`/api/events/${eventId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  availableLanguages: newAvailableLanguages,
+                  defaultLanguage: newDefaultLanguage,
+                }),
+              });
+              if (res.ok) {
+                setEvent({
+                  ...event,
+                  availableLanguages: newAvailableLanguages,
+                  defaultLanguage: newDefaultLanguage,
+                });
+              }
+            } catch (error) {
+              console.error("Error updating language settings:", error);
+            }
+          }}
+          onClose={() => setShowLanguageSettings(false)}
+        />
+      )}
     </div>
   );
 }

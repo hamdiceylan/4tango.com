@@ -1,14 +1,22 @@
 "use client";
 
+import { useState } from "react";
 import { HeroContent } from "@/lib/section-types";
+import { Language, DEFAULT_LANGUAGE } from "@/lib/i18n";
 import ImageUploader from "../common/ImageUploader";
+import { LocalizedInput } from "../LanguageTabs";
 
 interface HeroEditorProps {
   content: HeroContent;
   onChange: (content: HeroContent) => void;
+  availableLanguages?: Language[];
 }
 
-export default function HeroEditor({ content, onChange }: HeroEditorProps) {
+export default function HeroEditor({ content, onChange, availableLanguages = [DEFAULT_LANGUAGE] }: HeroEditorProps) {
+  // Ensure we have at least one language
+  const langs = availableLanguages.length > 0 ? availableLanguages : [DEFAULT_LANGUAGE];
+  const [editLang, setEditLang] = useState<Language>(langs[0]);
+
   const updateContent = (updates: Partial<HeroContent>) => {
     onChange({ ...content, ...updates });
   };
@@ -21,7 +29,7 @@ export default function HeroEditor({ content, onChange }: HeroEditorProps) {
           Background Image
         </label>
         <ImageUploader
-          value={content.backgroundImage}
+          value={content?.backgroundImage}
           onChange={(url) => updateContent({ backgroundImage: url })}
           category="event"
           aspectRatio="video"
@@ -29,47 +37,38 @@ export default function HeroEditor({ content, onChange }: HeroEditorProps) {
         />
       </div>
 
-      {/* Title */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Title
-        </label>
-        <input
-          type="text"
-          value={content.title || ""}
-          onChange={(e) => updateContent({ title: e.target.value })}
-          placeholder="Your event title"
-          className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition"
-        />
-      </div>
+      {/* Title - Localized */}
+      <LocalizedInput
+        label="Title"
+        languages={langs}
+        currentLang={editLang}
+        onLangChange={setEditLang}
+        value={content?.title}
+        onChange={(title) => updateContent({ title: title as unknown as string })}
+        placeholder="Your event title"
+      />
 
-      {/* Subtitle */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Subtitle
-        </label>
-        <input
-          type="text"
-          value={content.subtitle || ""}
-          onChange={(e) => updateContent({ subtitle: e.target.value })}
-          placeholder="A tagline or date for your event"
-          className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition"
-        />
-      </div>
+      {/* Subtitle - Localized */}
+      <LocalizedInput
+        label="Subtitle"
+        languages={langs}
+        currentLang={editLang}
+        onLangChange={setEditLang}
+        value={content?.subtitle}
+        onChange={(subtitle) => updateContent({ subtitle: subtitle as unknown as string })}
+        placeholder="A tagline or date for your event"
+      />
 
-      {/* CTA Text */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Button Text
-        </label>
-        <input
-          type="text"
-          value={content.ctaText || ""}
-          onChange={(e) => updateContent({ ctaText: e.target.value })}
-          placeholder="Register Now"
-          className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition"
-        />
-      </div>
+      {/* CTA Text - Localized */}
+      <LocalizedInput
+        label="Button Text"
+        languages={langs}
+        currentLang={editLang}
+        onLangChange={setEditLang}
+        value={content?.ctaText}
+        onChange={(ctaText) => updateContent({ ctaText: ctaText as unknown as string })}
+        placeholder="Register Now"
+      />
 
       {/* Overlay */}
       <div>
@@ -83,7 +82,7 @@ export default function HeroEditor({ content, onChange }: HeroEditorProps) {
               type="button"
               onClick={() => updateContent({ overlay: style })}
               className={`py-2 px-4 rounded-lg text-sm font-medium transition ${
-                content.overlay === style
+                content?.overlay === style
                   ? "bg-rose-500 text-white"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               }`}

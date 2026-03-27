@@ -1,14 +1,53 @@
 "use client";
 
+import { useState } from "react";
 import { DjTeamContent, TeamMember } from "@/lib/section-types";
+import { Language, DEFAULT_LANGUAGE, LANGUAGE_FLAGS } from "@/lib/i18n";
 import ImageUploader from "../common/ImageUploader";
 
 interface DjTeamEditorProps {
   content: DjTeamContent;
   onChange: (content: DjTeamContent) => void;
+  availableLanguages?: Language[];
 }
 
-export default function DjTeamEditor({ content, onChange }: DjTeamEditorProps) {
+// Helper to get localized string value
+function getLocalizedValue(
+  value: string | Record<string, string> | undefined,
+  lang: Language
+): string {
+  if (value === undefined || value === null) return "";
+  if (typeof value === "string") return value;
+  // It's an object with language keys
+  return value[lang] || value["en"] || Object.values(value)[0] || "";
+}
+
+// Helper to set localized string value
+function setLocalizedValue(
+  currentValue: string | Record<string, string> | undefined,
+  newText: string,
+  lang: Language
+): Record<string, string> {
+  if (typeof currentValue === "string") {
+    // Convert plain string to localized object
+    return { en: currentValue, [lang]: newText };
+  }
+  const current = currentValue || {};
+  return { ...current, [lang]: newText };
+}
+
+export default function DjTeamEditor({
+  content,
+  onChange,
+  availableLanguages = [DEFAULT_LANGUAGE],
+}: DjTeamEditorProps) {
+  // Ensure we have at least one language
+  const langs = availableLanguages.length > 0 ? availableLanguages : [DEFAULT_LANGUAGE];
+  const [editLang, setEditLang] = useState<Language>(langs[0]);
+
+  // Ensure members array exists
+  const members = content?.members || [];
+
   const addMember = () => {
     const newMember: TeamMember = {
       name: "",
@@ -16,31 +55,59 @@ export default function DjTeamEditor({ content, onChange }: DjTeamEditorProps) {
       bio: "",
       country: "",
     };
-    onChange({ ...content, members: [...content.members, newMember] });
+    onChange({ ...content, members: [...members, newMember] });
   };
 
   const updateMember = (index: number, updates: Partial<TeamMember>) => {
-    const newMembers = content.members.map((member, i) =>
+    const newMembers = members.map((member, i) =>
       i === index ? { ...member, ...updates } : member
     );
     onChange({ ...content, members: newMembers });
   };
 
   const removeMember = (index: number) => {
-    onChange({ ...content, members: content.members.filter((_, i) => i !== index) });
+    onChange({ ...content, members: members.filter((_, i) => i !== index) });
   };
 
   const moveMember = (index: number, direction: "up" | "down") => {
     const newIndex = direction === "up" ? index - 1 : index + 1;
-    if (newIndex < 0 || newIndex >= content.members.length) return;
+    if (newIndex < 0 || newIndex >= members.length) return;
 
-    const newMembers = [...content.members];
+    const newMembers = [...members];
     [newMembers[index], newMembers[newIndex]] = [newMembers[newIndex], newMembers[index]];
     onChange({ ...content, members: newMembers });
   };
 
   return (
     <div className="space-y-6">
+      {/* Language Tabs - only show if multiple languages */}
+      {langs.length > 1 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <svg className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+            </svg>
+            <span className="text-sm font-medium text-blue-800">Editing language (for bio):</span>
+          </div>
+          <div className="flex items-center gap-1">
+            {langs.map((lang) => (
+              <button
+                key={lang}
+                type="button"
+                onClick={() => setEditLang(lang)}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition ${
+                  lang === editLang
+                    ? "bg-blue-500 text-white"
+                    : "bg-white text-gray-600 hover:bg-blue-100"
+                }`}
+              >
+                <span className="text-base">{LANGUAGE_FLAGS[lang]}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <label className="text-sm font-medium text-gray-700">DJs</label>
         <button
@@ -55,7 +122,7 @@ export default function DjTeamEditor({ content, onChange }: DjTeamEditorProps) {
         </button>
       </div>
 
-      {content.members.length === 0 ? (
+      {members.length === 0 ? (
         <div className="p-6 bg-gray-50 rounded-lg border border-gray-200 text-center">
           <svg className="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
@@ -64,7 +131,7 @@ export default function DjTeamEditor({ content, onChange }: DjTeamEditorProps) {
         </div>
       ) : (
         <div className="space-y-4">
-          {content.members.map((member, index) => (
+          {members.map((member, index) => (
             <div
               key={index}
               className="p-4 bg-gray-50 rounded-lg border border-gray-200"
@@ -73,7 +140,7 @@ export default function DjTeamEditor({ content, onChange }: DjTeamEditorProps) {
                 {/* Photo */}
                 <div className="w-24 flex-shrink-0">
                   <ImageUploader
-                    value={member.photo}
+                    value={member.photo || ""}
                     onChange={(url) => updateMember(index, { photo: url })}
                     category="team"
                     aspectRatio="square"
@@ -85,10 +152,12 @@ export default function DjTeamEditor({ content, onChange }: DjTeamEditorProps) {
                 <div className="flex-1 space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">Name</label>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">
+                        Name
+                      </label>
                       <input
                         type="text"
-                        value={member.name}
+                        value={typeof member.name === "string" ? member.name : ""}
                         onChange={(e) => updateMember(index, { name: e.target.value })}
                         placeholder="DJ Name"
                         className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
@@ -106,10 +175,21 @@ export default function DjTeamEditor({ content, onChange }: DjTeamEditorProps) {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Bio</label>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">
+                      Bio
+                      {langs.length > 1 && (
+                        <span className="ml-1 text-blue-500">({LANGUAGE_FLAGS[editLang]})</span>
+                      )}
+                    </label>
                     <textarea
-                      value={member.bio || ""}
-                      onChange={(e) => updateMember(index, { bio: e.target.value })}
+                      value={getLocalizedValue(member.bio, editLang)}
+                      onChange={(e) =>
+                        updateMember(index, {
+                          bio: langs.length > 1
+                            ? setLocalizedValue(member.bio, e.target.value, editLang) as unknown as string
+                            : e.target.value,
+                        })
+                      }
                       placeholder="Short bio..."
                       rows={2}
                       className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 resize-none"
@@ -132,7 +212,7 @@ export default function DjTeamEditor({ content, onChange }: DjTeamEditorProps) {
                   <button
                     type="button"
                     onClick={() => moveMember(index, "down")}
-                    disabled={index === content.members.length - 1}
+                    disabled={index === members.length - 1}
                     className="p-1.5 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

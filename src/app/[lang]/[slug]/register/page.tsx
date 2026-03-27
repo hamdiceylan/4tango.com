@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
+import type { Language } from "@/lib/i18n";
+import LanguageSelector from "@/components/ui/LanguageSelector";
 
 interface FormField {
   id: string;
@@ -39,6 +41,8 @@ interface EventData {
   organizer: {
     name: string;
   };
+  availableLanguages?: string[];
+  defaultLanguage?: string;
 }
 
 interface DancerSession {
@@ -262,13 +266,19 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-200">
-        <div className="max-w-2xl mx-auto px-4 py-4">
+        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href={`/${lang}/${event.slug}`} className="text-gray-500 hover:text-rose-500 transition flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             Back to event
           </Link>
+          <LanguageSelector
+            currentLang={lang as Language}
+            availableLanguages={(event.availableLanguages || [lang]) as Language[]}
+            slug={`${event.slug}/register`}
+            className="[&_a]:bg-gray-100 [&_a]:hover:bg-gray-200 [&_a.ring-2]:bg-rose-100 [&_a.ring-2]:ring-rose-400"
+          />
         </div>
       </header>
 

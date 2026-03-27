@@ -16,13 +16,13 @@ export const LANGUAGE_NAMES: Record<Language, string> = {
 };
 
 export const LANGUAGE_FLAGS: Record<Language, string> = {
-  en: '',
-  es: '',
-  de: '',
-  fr: '',
-  it: '',
-  pl: '',
-  tr: '',
+  en: '🇬🇧',
+  es: '🇪🇸',
+  de: '🇩🇪',
+  fr: '🇫🇷',
+  it: '🇮🇹',
+  pl: '🇵🇱',
+  tr: '🇹🇷',
 };
 
 // Namespace types

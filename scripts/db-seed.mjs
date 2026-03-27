@@ -103,11 +103,11 @@ Three days of workshops, milongas, and unforgettable moments with world-renowned
       djs: ['DJ Tango Master', 'El Pulpo', 'La Milonguera'],
       primaryColor: '#dc2626',
       defaultLanguage: 'en',
-      availableLanguages: ['en', 'es', 'de'],
+      availableLanguages: ['en', 'es', 'de', 'fr'],
     },
   });
 
-  // 4. Create Page Sections
+  // 4. Create Page Sections with multi-language content
   console.log('Creating page sections...');
   await prisma.eventPageSection.createMany({
     data: [
@@ -117,8 +117,24 @@ Three days of workshops, milongas, and unforgettable moments with world-renowned
         order: 1,
         title: 'Summer Tango Festival 2024',
         content: {
-          subtitle: 'Vienna, Austria • May 15-18, 2024',
-          buttonText: 'Register Now',
+          title: {
+            en: 'Summer Tango Festival 2024',
+            es: 'Festival de Tango de Verano 2024',
+            de: 'Sommer Tango Festival 2024',
+            fr: 'Festival de Tango d\'Été 2024',
+          },
+          subtitle: {
+            en: 'Vienna, Austria • May 15-18, 2024',
+            es: 'Viena, Austria • 15-18 de Mayo, 2024',
+            de: 'Wien, Österreich • 15.-18. Mai 2024',
+            fr: 'Vienne, Autriche • 15-18 Mai 2024',
+          },
+          ctaText: {
+            en: 'Register Now',
+            es: 'Inscríbete Ahora',
+            de: 'Jetzt Anmelden',
+            fr: 'Inscrivez-vous',
+          },
           backgroundImage: 'https://images.unsplash.com/photo-1504609813442-a8924e83f76e?w=1920',
         },
         isVisible: true,
@@ -129,7 +145,12 @@ Three days of workshops, milongas, and unforgettable moments with world-renowned
         order: 2,
         title: 'About the Festival',
         content: {
-          text: 'Join us for three days of pure tango magic in the heart of Europe. Experience workshops with world-renowned maestros, unforgettable milongas, and connections that last a lifetime.',
+          content: {
+            en: 'Join us for three days of pure tango magic in the heart of Europe. Experience workshops with world-renowned maestros, unforgettable milongas, and connections that last a lifetime.',
+            es: 'Únete a nosotros para tres días de pura magia del tango en el corazón de Europa. Experimenta talleres con maestros de renombre mundial, milongas inolvidables y conexiones que duran toda la vida.',
+            de: 'Erleben Sie drei Tage purer Tango-Magie im Herzen Europas. Workshops mit weltbekannten Maestros, unvergessliche Milongas und Verbindungen, die ein Leben lang halten.',
+            fr: 'Rejoignez-nous pour trois jours de pure magie du tango au cœur de l\'Europe. Vivez des ateliers avec des maestros de renommée mondiale, des milongas inoubliables et des liens qui durent toute une vie.',
+          },
         },
         isVisible: true,
       },
@@ -142,25 +163,115 @@ Three days of workshops, milongas, and unforgettable moments with world-renowned
           days: [
             {
               date: 'Friday, May 15',
+              label: {
+                en: 'Friday',
+                es: 'Viernes',
+                de: 'Freitag',
+                fr: 'Vendredi',
+              },
               items: [
-                { time: '18:00', title: 'Registration Opens', location: 'Lobby' },
-                { time: '19:00', title: 'Welcome Milonga', location: 'Grand Ballroom' },
+                {
+                  time: '18:00',
+                  title: {
+                    en: 'Registration Opens',
+                    es: 'Apertura de Inscripciones',
+                    de: 'Registrierung öffnet',
+                    fr: 'Ouverture des inscriptions',
+                  },
+                  location: 'Lobby',
+                },
+                {
+                  time: '19:00',
+                  title: {
+                    en: 'Welcome Milonga',
+                    es: 'Milonga de Bienvenida',
+                    de: 'Willkommens-Milonga',
+                    fr: 'Milonga de Bienvenue',
+                  },
+                  location: 'Grand Ballroom',
+                },
               ],
             },
             {
               date: 'Saturday, May 16',
+              label: {
+                en: 'Saturday',
+                es: 'Sábado',
+                de: 'Samstag',
+                fr: 'Samedi',
+              },
               items: [
-                { time: '10:00', title: 'Workshop: Musicality', teacher: 'Carlos & Maria' },
-                { time: '14:00', title: 'Workshop: Vals', teacher: 'Jean & Sofia' },
-                { time: '21:00', title: 'Grand Milonga', location: 'Grand Ballroom' },
+                {
+                  time: '10:00',
+                  title: {
+                    en: 'Workshop: Musicality',
+                    es: 'Taller: Musicalidad',
+                    de: 'Workshop: Musikalität',
+                    fr: 'Atelier: Musicalité',
+                  },
+                  teacher: 'Carlos & Maria',
+                },
+                {
+                  time: '14:00',
+                  title: {
+                    en: 'Workshop: Vals',
+                    es: 'Taller: Vals',
+                    de: 'Workshop: Vals',
+                    fr: 'Atelier: Vals',
+                  },
+                  teacher: 'Jean & Sofia',
+                },
+                {
+                  time: '21:00',
+                  title: {
+                    en: 'Grand Milonga',
+                    es: 'Gran Milonga',
+                    de: 'Große Milonga',
+                    fr: 'Grande Milonga',
+                  },
+                  location: 'Grand Ballroom',
+                },
               ],
             },
             {
               date: 'Sunday, May 17',
+              label: {
+                en: 'Sunday',
+                es: 'Domingo',
+                de: 'Sonntag',
+                fr: 'Dimanche',
+              },
               items: [
-                { time: '11:00', title: 'Workshop: Milonga Rhythm', teacher: 'Carlos & Maria' },
-                { time: '15:00', title: 'Workshop: Stage Tango', teacher: 'Special Guests' },
-                { time: '21:00', title: 'Farewell Milonga', location: 'Grand Ballroom' },
+                {
+                  time: '11:00',
+                  title: {
+                    en: 'Workshop: Milonga Rhythm',
+                    es: 'Taller: Ritmo de Milonga',
+                    de: 'Workshop: Milonga-Rhythmus',
+                    fr: 'Atelier: Rythme de Milonga',
+                  },
+                  teacher: 'Carlos & Maria',
+                },
+                {
+                  time: '15:00',
+                  title: {
+                    en: 'Workshop: Stage Tango',
+                    es: 'Taller: Tango Escenario',
+                    de: 'Workshop: Bühnentango',
+                    fr: 'Atelier: Tango de Scène',
+                  },
+                  teacher: 'Special Guests',
+                },
+                {
+                  time: '21:00',
+                  title: {
+                    en: 'Farewell Milonga',
+                    es: 'Milonga de Despedida',
+                    de: 'Abschiedsmilonga',
+                    fr: 'Milonga d\'Au Revoir',
+                  },
+                  location: 'Grand Ballroom',
+                },
               ],
             },
           ],
@@ -173,10 +284,40 @@ Three days of workshops, milongas, and unforgettable moments with world-renowned
         order: 4,
         title: 'Our DJs',
         content: {
-          djs: [
-            { name: 'DJ Tango Master', bio: '20 years of experience', imageUrl: null },
-            { name: 'El Pulpo', bio: 'Traditional and nuevo', imageUrl: null },
-            { name: 'La Milonguera', bio: 'Golden age specialist', imageUrl: null },
+          members: [
+            {
+              name: 'DJ Tango Master',
+              bio: {
+                en: '20 years of experience',
+                es: '20 años de experiencia',
+                de: '20 Jahre Erfahrung',
+                fr: '20 ans d\'expérience',
+              },
+              photo: '',
+              country: 'Argentina',
+            },
+            {
+              name: 'El Pulpo',
+              bio: {
+                en: 'Traditional and nuevo specialist',
+                es: 'Especialista en tradicional y nuevo',
+                de: 'Traditionell und Nuevo Spezialist',
+                fr: 'Spécialiste traditionnel et nuevo',
+              },
+              photo: '',
+              country: 'Spain',
+            },
+            {
+              name: 'La Milonguera',
+              bio: {
+                en: 'Golden age specialist',
+                es: 'Especialista en la época dorada',
+                de: 'Goldenes Zeitalter Spezialistin',
+                fr: 'Spécialiste de l\'âge d\'or',
+              },
+              photo: '',
+              country: 'Italy',
+            },
           ],
         },
         isVisible: true,
@@ -187,7 +328,13 @@ Three days of workshops, milongas, and unforgettable moments with world-renowned
         order: 5,
         title: 'Packages',
         content: {
-          description: 'Choose the package that suits you best',
+          showPackages: true,
+          customContent: {
+            en: 'Choose the package that suits you best. Early bird discounts available until March 31st!',
+            es: '¡Elige el paquete que mejor te convenga! Descuentos de reserva anticipada disponibles hasta el 31 de marzo.',
+            de: 'Wählen Sie das Paket, das am besten zu Ihnen passt. Frühbucherrabatte bis zum 31. März verfügbar!',
+            fr: 'Choisissez le forfait qui vous convient le mieux. Réductions early bird disponibles jusqu\'au 31 mars !',
+          },
         },
         isVisible: true,
       },
@@ -199,7 +346,9 @@ Three days of workshops, milongas, and unforgettable moments with world-renowned
         content: {
           email: 'info@summertango.com',
           phone: '+43 1 234 5678',
-          instagram: '@summertangofestival',
+          socialLinks: {
+            instagram: 'https://instagram.com/summertangofestival',
+          },
         },
         isVisible: true,
       },

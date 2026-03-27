@@ -2,37 +2,78 @@
 
 import { useState } from "react";
 import { ScheduleContent, ScheduleDay, ScheduleItem } from "@/lib/section-types";
+import { Language, DEFAULT_LANGUAGE, LANGUAGE_FLAGS } from "@/lib/i18n";
 
 interface ScheduleEditorProps {
   content: ScheduleContent;
   onChange: (content: ScheduleContent) => void;
+  availableLanguages?: Language[];
 }
 
-export default function ScheduleEditor({ content, onChange }: ScheduleEditorProps) {
+// Helper to get localized string value
+function getLocalizedValue(
+  value: string | Record<string, string> | undefined,
+  lang: Language
+): string {
+  if (value === undefined || value === null) return "";
+  if (typeof value === "string") return value;
+  return value[lang] || value["en"] || Object.values(value)[0] || "";
+}
+
+// Helper to set localized string value
+function setLocalizedValue(
+  currentValue: string | Record<string, string> | undefined,
+  newText: string,
+  lang: Language,
+  multiLang: boolean
+): string | Record<string, string> {
+  if (!multiLang) {
+    // Single language mode - just return the string
+    return newText;
+  }
+  // Multi-language mode - return localized object
+  if (typeof currentValue === "string") {
+    return { en: currentValue, [lang]: newText };
+  }
+  const current = currentValue || {};
+  return { ...current, [lang]: newText };
+}
+
+export default function ScheduleEditor({
+  content,
+  onChange,
+  availableLanguages = [DEFAULT_LANGUAGE],
+}: ScheduleEditorProps) {
+  // Ensure we have at least one language and days array exists
+  const langs = availableLanguages.length > 0 ? availableLanguages : [DEFAULT_LANGUAGE];
+  const days = content?.days || [];
+  const multiLang = langs.length > 1;
+
   const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(
-    content.days.length > 0 ? 0 : null
+    days.length > 0 ? 0 : null
   );
+  const [editLang, setEditLang] = useState<Language>(langs[0]);
 
   const addDay = () => {
     const newDay: ScheduleDay = {
       date: new Date().toISOString().split("T")[0],
-      label: `Day ${content.days.length + 1}`,
+      label: `Day ${days.length + 1}`,
       items: [],
     };
-    const newDays = [...content.days, newDay];
+    const newDays = [...days, newDay];
     onChange({ ...content, days: newDays });
     setSelectedDayIndex(newDays.length - 1);
   };
 
   const updateDay = (index: number, updates: Partial<ScheduleDay>) => {
-    const newDays = content.days.map((day, i) =>
+    const newDays = days.map((day, i) =>
       i === index ? { ...day, ...updates } : day
     );
     onChange({ ...content, days: newDays });
   };
 
   const removeDay = (index: number) => {
-    const newDays = content.days.filter((_, i) => i !== index);
+    const newDays = days.filter((_, i) => i !== index);
     onChange({ ...content, days: newDays });
     if (selectedDayIndex === index) {
       setSelectedDayIndex(newDays.length > 0 ? 0 : null);
@@ -47,18 +88,18 @@ export default function ScheduleEditor({ content, onChange }: ScheduleEditorProp
       title: "New Activity",
       description: "",
     };
-    const newDays = content.days.map((day, i) =>
-      i === dayIndex ? { ...day, items: [...day.items, newItem] } : day
+    const newDays = days.map((day, i) =>
+      i === dayIndex ? { ...day, items: [...(day.items || []), newItem] } : day
     );
     onChange({ ...content, days: newDays });
   };
 
   const updateItem = (dayIndex: number, itemIndex: number, updates: Partial<ScheduleItem>) => {
-    const newDays = content.days.map((day, i) =>
+    const newDays = days.map((day, i) =>
       i === dayIndex
         ? {
             ...day,
-            items: day.items.map((item, j) =>
+            items: (day.items || []).map((item, j) =>
               j === itemIndex ? { ...item, ...updates } : item
             ),
           }
@@ -68,18 +109,47 @@ export default function ScheduleEditor({ content, onChange }: ScheduleEditorProp
   };
 
   const removeItem = (dayIndex: number, itemIndex: number) => {
-    const newDays = content.days.map((day, i) =>
+    const newDays = days.map((day, i) =>
       i === dayIndex
-        ? { ...day, items: day.items.filter((_, j) => j !== itemIndex) }
+        ? { ...day, items: (day.items || []).filter((_, j) => j !== itemIndex) }
         : day
     );
     onChange({ ...content, days: newDays });
   };
 
-  const selectedDay = selectedDayIndex !== null ? content.days[selectedDayIndex] : null;
+  const selectedDay = selectedDayIndex !== null ? days[selectedDayIndex] : null;
+  const selectedDayItems = selectedDay?.items || [];
 
   return (
     <div className="space-y-6">
+      {/* Language Tabs for text fields - only show if multiple languages */}
+      {multiLang && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <svg className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+            </svg>
+            <span className="text-sm font-medium text-blue-800">Editing language:</span>
+          </div>
+          <div className="flex items-center gap-1">
+            {langs.map((lang) => (
+              <button
+                key={lang}
+                type="button"
+                onClick={() => setEditLang(lang)}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition ${
+                  lang === editLang
+                    ? "bg-blue-500 text-white"
+                    : "bg-white text-gray-600 hover:bg-blue-100"
+                }`}
+              >
+                <span className="text-base">{LANGUAGE_FLAGS[lang]}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Days List */}
       <div>
         <div className="flex items-center justify-between mb-3">
@@ -96,13 +166,13 @@ export default function ScheduleEditor({ content, onChange }: ScheduleEditorProp
           </button>
         </div>
 
-        {content.days.length === 0 ? (
+        {days.length === 0 ? (
           <div className="p-6 bg-gray-50 rounded-lg border border-gray-200 text-center">
             <p className="text-gray-500 text-sm">No days added yet. Click &quot;Add Day&quot; to create your schedule.</p>
           </div>
         ) : (
           <div className="flex gap-2 flex-wrap">
-            {content.days.map((day, index) => (
+            {days.map((day, index) => (
               <button
                 key={index}
                 type="button"
@@ -113,8 +183,8 @@ export default function ScheduleEditor({ content, onChange }: ScheduleEditorProp
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
-                <span>{day.label || `Day ${index + 1}`}</span>
-                <span className="text-xs opacity-75">({day.items.length})</span>
+                <span>{getLocalizedValue(day.label, editLang) || `Day ${index + 1}`}</span>
+                <span className="text-xs opacity-75">({(day.items || []).length})</span>
               </button>
             ))}
           </div>
@@ -127,11 +197,20 @@ export default function ScheduleEditor({ content, onChange }: ScheduleEditorProp
           <div className="p-4 bg-gray-50 border-b border-gray-200">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Label</label>
+                <label className="block text-xs font-medium text-gray-500 mb-1">
+                  Label
+                  {multiLang && (
+                    <span className="ml-1 text-blue-500">({LANGUAGE_FLAGS[editLang]})</span>
+                  )}
+                </label>
                 <input
                   type="text"
-                  value={selectedDay.label}
-                  onChange={(e) => updateDay(selectedDayIndex, { label: e.target.value })}
+                  value={getLocalizedValue(selectedDay.label, editLang)}
+                  onChange={(e) =>
+                    updateDay(selectedDayIndex, {
+                      label: setLocalizedValue(selectedDay.label, e.target.value, editLang, multiLang) as string,
+                    })
+                  }
                   placeholder="e.g., Thursday"
                   className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
                 />
@@ -140,7 +219,7 @@ export default function ScheduleEditor({ content, onChange }: ScheduleEditorProp
                 <label className="block text-xs font-medium text-gray-500 mb-1">Date</label>
                 <input
                   type="date"
-                  value={selectedDay.date}
+                  value={selectedDay.date || ""}
                   onChange={(e) => updateDay(selectedDayIndex, { date: e.target.value })}
                   className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
                 />
@@ -160,7 +239,7 @@ export default function ScheduleEditor({ content, onChange }: ScheduleEditorProp
 
           {/* Schedule Items */}
           <div className="p-4 space-y-3">
-            {selectedDay.items.map((item, itemIndex) => (
+            {selectedDayItems.map((item, itemIndex) => (
               <div
                 key={itemIndex}
                 className="p-3 bg-gray-50 rounded-lg border border-gray-200"
@@ -170,18 +249,27 @@ export default function ScheduleEditor({ content, onChange }: ScheduleEditorProp
                     <label className="block text-xs font-medium text-gray-500 mb-1">Time</label>
                     <input
                       type="text"
-                      value={item.time}
+                      value={item.time || ""}
                       onChange={(e) => updateItem(selectedDayIndex, itemIndex, { time: e.target.value })}
                       placeholder="18:00 - 06:00"
                       className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
                     />
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Title</label>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">
+                      Title
+                      {multiLang && (
+                        <span className="ml-1 text-blue-500">({LANGUAGE_FLAGS[editLang]})</span>
+                      )}
+                    </label>
                     <input
                       type="text"
-                      value={item.title}
-                      onChange={(e) => updateItem(selectedDayIndex, itemIndex, { title: e.target.value })}
+                      value={getLocalizedValue(item.title, editLang)}
+                      onChange={(e) =>
+                        updateItem(selectedDayIndex, itemIndex, {
+                          title: setLocalizedValue(item.title, e.target.value, editLang, multiLang) as string,
+                        })
+                      }
                       placeholder="Milonga"
                       className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
                     />
@@ -189,11 +277,20 @@ export default function ScheduleEditor({ content, onChange }: ScheduleEditorProp
                 </div>
                 <div className="flex gap-3 items-start">
                   <div className="flex-1">
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Description</label>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">
+                      Description
+                      {multiLang && (
+                        <span className="ml-1 text-blue-500">({LANGUAGE_FLAGS[editLang]})</span>
+                      )}
+                    </label>
                     <input
                       type="text"
-                      value={item.description || ""}
-                      onChange={(e) => updateItem(selectedDayIndex, itemIndex, { description: e.target.value })}
+                      value={getLocalizedValue(item.description, editLang)}
+                      onChange={(e) =>
+                        updateItem(selectedDayIndex, itemIndex, {
+                          description: setLocalizedValue(item.description, e.target.value, editLang, multiLang) as string,
+                        })
+                      }
                       placeholder="Optional description"
                       className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
                     />

@@ -13,8 +13,14 @@
     "status:deploy": "bash scripts/status.sh deploy",
     "status:git": "bash scripts/status.sh git",
     "db:push": "npx prisma db push",
+    "db:push:prod": "bash scripts/sync-to-prod.sh db",
     "db:studio": "npx prisma studio",
-    "db:status": "npx prisma migrate status"
+    "db:status": "npx prisma migrate status",
+    "infra": "bash scripts/infra-check.sh",
+    "infra:sync": "bash scripts/sync-to-prod.sh all",
+    "infra:sync:env": "bash scripts/sync-to-prod.sh env",
+    "infra:sync:db": "bash scripts/sync-to-prod.sh db",
+    "predeploy:prod": "npm run infra && npm run status"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1017.0",

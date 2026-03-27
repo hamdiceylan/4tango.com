@@ -91,7 +91,7 @@ PROD_PLATFORM=$(aws amplify get-app --app-id $PROD_APP_ID --region $AWS_REGION \
 check_match "Platform" "$DEV_PLATFORM" "$PROD_PLATFORM"
 
 # ============================================
-# 2. Environment Variables
+# 2. Environment Variables (Exact Name Comparison)
 # ============================================
 print_header "ENVIRONMENT VARIABLES"
 
@@ -103,16 +103,34 @@ PROD_VARS=$(aws amplify get-app --app-id $PROD_APP_ID --region $AWS_REGION \
 DEV_COUNT=$(echo "$DEV_VARS" | wc -l | tr -d ' ')
 PROD_COUNT=$(echo "$PROD_VARS" | wc -l | tr -d ' ')
 
-echo -e "  Dev has $DEV_COUNT variables, Prod has $PROD_COUNT variables"
+# Check each variable by name
+echo -e "  Comparing $DEV_COUNT dev variables with $PROD_COUNT prod variables:"
+echo ""
 
+# Variables that should exist in both (check by name)
+COMMON_VARS=$(comm -12 <(echo "$DEV_VARS") <(echo "$PROD_VARS"))
 MISSING_IN_PROD=$(comm -23 <(echo "$DEV_VARS") <(echo "$PROD_VARS"))
 MISSING_IN_DEV=$(comm -13 <(echo "$DEV_VARS") <(echo "$PROD_VARS"))
 
-if [ -z "$MISSING_IN_PROD" ]; then
-    echo -e "  ${GREEN}✓${NC} All dev variables exist in prod"
-else
-    echo -e "  ${RED}✗${NC} Missing in prod: $MISSING_IN_PROD"
-    ISSUES=$((ISSUES + 1))
+# Show all variables and their status
+for var in $DEV_VARS; do
+    if echo "$PROD_VARS" | grep -q "^${var}$"; then
+        echo -e "  ${GREEN}✓${NC} $var"
+    else
+        echo -e "  ${RED}✗${NC} $var ${RED}(missing in prod!)${NC}"
+        ISSUES=$((ISSUES + 1))
+    fi
+done
+
+# Show variables only in prod (might be intentional or leftover)
+for var in $MISSING_IN_DEV; do
+    echo -e "  ${YELLOW}⚠${NC} $var ${YELLOW}(only in prod)${NC}"
+    WARNINGS=$((WARNINGS + 1))
+done
+
+echo ""
+if [ -z "$MISSING_IN_PROD" ] && [ -z "$MISSING_IN_DEV" ]; then
+    echo -e "  ${GREEN}✓${NC} All environment variables are aligned"
 fi
 
 # ============================================
@@ -206,6 +224,88 @@ DEV_S3_VER=$(aws s3api get-bucket-versioning --bucket 4tango-dev-uploads --regio
 PROD_S3_VER=$(aws s3api get-bucket-versioning --bucket 4tango-prod-uploads --region $AWS_REGION \
     --query 'Status' --output text 2>/dev/null || echo "Disabled")
 check_match "Versioning" "$DEV_S3_VER" "$PROD_S3_VER" "yes"
+
+# ============================================
+# 6. Database Schema Comparison
+# ============================================
+print_header "DATABASE SCHEMA (Prisma)"
+
+# Get connection strings from Amplify env vars
+DEV_DB_URL=$(aws amplify get-app --app-id $DEV_APP_ID --region $AWS_REGION \
+    --query 'app.environmentVariables.DATABASE_URL' --output text 2>/dev/null)
+PROD_DB_URL=$(aws amplify get-app --app-id $PROD_APP_ID --region $AWS_REGION \
+    --query 'app.environmentVariables.DATABASE_URL' --output text 2>/dev/null)
+
+if [ -z "$DEV_DB_URL" ] || [ "$DEV_DB_URL" == "None" ]; then
+    echo -e "  ${YELLOW}⚠${NC} Could not retrieve dev DATABASE_URL"
+    WARNINGS=$((WARNINGS + 1))
+elif [ -z "$PROD_DB_URL" ] || [ "$PROD_DB_URL" == "None" ]; then
+    echo -e "  ${YELLOW}⚠${NC} Could not retrieve prod DATABASE_URL"
+    WARNINGS=$((WARNINGS + 1))
+else
+    # Create temp directory for schema comparison
+    TEMP_DIR=$(mktemp -d)
+
+    # Pull schemas (suppress prisma warnings)
+    echo "  Pulling dev schema..."
+    DATABASE_URL="$DEV_DB_URL" npx prisma db pull --print 2>/dev/null | grep -v "^Prisma" > "$TEMP_DIR/dev_schema.prisma" 2>/dev/null
+
+    echo "  Pulling prod schema..."
+    DATABASE_URL="$PROD_DB_URL" npx prisma db pull --print 2>/dev/null | grep -v "^Prisma" > "$TEMP_DIR/prod_schema.prisma" 2>/dev/null
+
+    # Compare schemas
+    if [ ! -s "$TEMP_DIR/dev_schema.prisma" ]; then
+        echo -e "  ${YELLOW}⚠${NC} Could not pull dev schema (connection issue or empty DB)"
+        WARNINGS=$((WARNINGS + 1))
+    elif [ ! -s "$TEMP_DIR/prod_schema.prisma" ]; then
+        echo -e "  ${YELLOW}⚠${NC} Could not pull prod schema (connection issue or empty DB)"
+        WARNINGS=$((WARNINGS + 1))
+    else
+        # Extract table names from both schemas
+        DEV_TABLES=$(grep -E "^model " "$TEMP_DIR/dev_schema.prisma" | awk '{print $2}' | sort)
+        PROD_TABLES=$(grep -E "^model " "$TEMP_DIR/prod_schema.prisma" | awk '{print $2}' | sort)
+
+        DEV_TABLE_COUNT=$(echo "$DEV_TABLES" | wc -l | tr -d ' ')
+        PROD_TABLE_COUNT=$(echo "$PROD_TABLES" | wc -l | tr -d ' ')
+
+        echo ""
+        echo "  Tables: Dev=$DEV_TABLE_COUNT, Prod=$PROD_TABLE_COUNT"
+        echo ""
+
+        # Check for missing tables
+        MISSING_IN_PROD=$(comm -23 <(echo "$DEV_TABLES") <(echo "$PROD_TABLES"))
+        MISSING_IN_DEV=$(comm -13 <(echo "$DEV_TABLES") <(echo "$PROD_TABLES"))
+
+        if [ -n "$MISSING_IN_PROD" ]; then
+            for table in $MISSING_IN_PROD; do
+                echo -e "  ${RED}✗${NC} Table '$table' ${RED}(missing in prod!)${NC}"
+                ISSUES=$((ISSUES + 1))
+            done
+        fi
+
+        if [ -n "$MISSING_IN_DEV" ]; then
+            for table in $MISSING_IN_DEV; do
+                echo -e "  ${YELLOW}⚠${NC} Table '$table' ${YELLOW}(only in prod)${NC}"
+                WARNINGS=$((WARNINGS + 1))
+            done
+        fi
+
+        # Compare full schema hashes
+        DEV_HASH=$(md5 -q "$TEMP_DIR/dev_schema.prisma" 2>/dev/null || md5sum "$TEMP_DIR/dev_schema.prisma" | cut -d' ' -f1)
+        PROD_HASH=$(md5 -q "$TEMP_DIR/prod_schema.prisma" 2>/dev/null || md5sum "$TEMP_DIR/prod_schema.prisma" | cut -d' ' -f1)
+
+        if [ "$DEV_HASH" == "$PROD_HASH" ]; then
+            echo -e "  ${GREEN}✓${NC} Database schemas are identical"
+        elif [ -z "$MISSING_IN_PROD" ] && [ -z "$MISSING_IN_DEV" ]; then
+            echo -e "  ${YELLOW}⚠${NC} Schemas have same tables but differ in columns/indexes"
+            echo "      Run 'npx prisma migrate status' on each environment to check"
+            WARNINGS=$((WARNINGS + 1))
+        fi
+    fi
+
+    # Cleanup
+    rm -rf "$TEMP_DIR"
+fi
 
 # ============================================
 # Summary

@@ -21,7 +21,10 @@
     "infra:sync": "bash scripts/sync-to-prod.sh all",
     "infra:sync:env": "bash scripts/sync-to-prod.sh env",
     "infra:sync:db": "bash scripts/sync-to-prod.sh db",
-    "predeploy:prod": "npm run infra && npm run status"
+    "predeploy": "npm run infra:deep && npm run status:health && npm run build",
+    "deploy:prod": "bash scripts/deploy-prod.sh",
+    "deploy:prod:watch": "bash scripts/deploy-prod.sh --watch",
+    "postdeploy": "sleep 30 && npm run status:health"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1017.0",

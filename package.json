@@ -6,7 +6,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "status": "bash scripts/status.sh",
+    "status:full": "bash scripts/status.sh full",
+    "status:health": "node scripts/check-health.mjs",
+    "status:deploy": "bash scripts/status.sh deploy",
+    "status:git": "bash scripts/status.sh git",
+    "db:push": "npx prisma db push",
+    "db:studio": "npx prisma studio",
+    "db:status": "npx prisma migrate status"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1017.0",

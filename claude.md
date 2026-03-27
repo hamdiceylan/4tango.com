@@ -21,7 +21,28 @@
 
 ## Development Rules
 
-### 0. Local Development
+### 0. Non-Breaking Development Philosophy
+
+**CRITICAL: Dev will be merged to main (prod). Always develop with this in mind.**
+
+- **Never use destructive patterns** - Avoid drop/recreate, reset, or wipe operations
+- **Always use migrations** - Use `prisma migrate dev` for schema changes, never `db push` in production workflow
+- **Additive changes first** - Add new columns as nullable or with defaults before making them required
+- **Keep dev and prod in sync** - Any change in dev infrastructure must be synced to prod before deploying code
+- **Test the merge path** - If a change can't be safely merged to main and deployed to prod, don't make it
+
+**Why this matters:**
+- Production has real customer data that cannot be wiped
+- Schema changes must be backwards-compatible during deployment
+- Infrastructure drift between dev and prod causes deployment failures
+- The git hook will block pushes to main if infrastructure differs
+
+**Before ANY schema change, ask:**
+1. Can this be applied to a database with existing data?
+2. Does this require a data migration?
+3. Will old code work with the new schema during deployment?
+
+### 1. Local Development
 
 **Always run the dev server on port 3000**:
 ```bash
@@ -72,14 +93,30 @@ Terraform manages all AWS infrastructure in `/infra/terraform/`.
 - Always add appropriate indexes for foreign keys
 - Use enums for status fields
 
-**Migrations**:
+**Migrations** (Production-Safe Workflow):
 ```bash
-# Create migration (dev)
+# 1. Create migration on dev
 npx prisma migrate dev --name <migration_name>
 
-# Deploy migration (prod)
-DATABASE_URL="<prod_url>" npx prisma migrate deploy
+# 2. Test thoroughly on dev.4tango.com
+
+# 3. Deploy migration to prod
+npm run db:push:prod
 ```
+
+**Database Commands**:
+```bash
+npm run db:status        # Check migration status
+npm run db:studio        # Open Prisma Studio
+npm run db:push          # Push schema to dev (use sparingly)
+npm run db:push:prod     # Push schema to prod (requires confirmation)
+```
+
+**Schema Change Rules**:
+- Adding a column: Make it nullable OR provide a default value
+- Removing a column: Deploy code that doesn't use it first, then remove in next release
+- Renaming: Add new column → migrate data → deploy code using new column → remove old column
+- Never drop tables with data without explicit data migration plan
 
 ### 4. API Route Patterns
 
@@ -111,14 +148,31 @@ Before deploying to production:
 
 ### 7. Deployment Process
 
+**Git Hook Protection**:
+A pre-push hook automatically runs infrastructure checks before pushing to main.
+- Blocks push if dev/prod infrastructure differs
+- Prompts to sync infrastructure first
+- Install with: `./scripts/install-hooks.sh`
+
+**Deployment Commands**:
+```bash
+npm run predeploy        # Run all checks before deploying
+npm run deploy:prod      # Full deployment workflow with checks
+npm run deploy:prod:watch # Same + monitor build status
+npm run infra            # Quick infrastructure check
+npm run infra:deep       # Deep comparison (configs + schema)
+npm run infra:sync       # Sync infrastructure to prod
+```
+
+**Deployment Workflow**:
+1. Develop on `develop` branch, test on dev.4tango.com
+2. When ready: `git checkout main && git merge develop`
+3. Push: `git push origin main` (hook runs checks automatically)
+4. If infra differs: run `npm run infra:sync` first, then push again
+
 **Automatic Deployments**:
 - Push to `main` → Deploys to production (4tango.com)
 - Push to `develop` → Deploys to dev (dev.4tango.com)
-
-**Manual Deployment**:
-```bash
-aws amplify start-job --app-id <APP_ID> --branch-name <BRANCH> --job-type RELEASE --region eu-west-1
-```
 
 **Check build status**:
 ```bash

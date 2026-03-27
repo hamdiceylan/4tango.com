@@ -81,21 +81,19 @@ async function wipeDatabase(label, url) {
 // Main
 const target = process.argv[2];
 
-if (!target || !['dev', 'prod', 'all'].includes(target)) {
-  console.log('Usage: node scripts/db-wipe.mjs [dev|prod|all]');
+if (!target || target !== 'dev') {
+  console.log('Usage: npm run db:wipe dev');
+  console.log('');
+  console.log('Note: Only dev database can be wiped.');
+  console.log('      Production database wipe is disabled for safety.');
   process.exit(1);
 }
 
-// Get URLs from env or fetch from AWS
+// Get dev URL from env or fetch from AWS
 const devUrl = process.env.DEV_URL || getDbUrl('d35qopwzo3l31w');
-const prodUrl = process.env.PROD_URL || getDbUrl('d3jwiy3qjkzx5q');
 
-if ((target === 'dev' || target === 'all') && !devUrl) {
+if (!devUrl) {
   console.log('Error: Could not get DEV database URL.');
-  process.exit(1);
-}
-if ((target === 'prod' || target === 'all') && !prodUrl) {
-  console.log('Error: Could not get PROD database URL.');
   process.exit(1);
 }
 
@@ -103,22 +101,15 @@ console.log(`\n${RED}╔══════════════════�
 console.log(`${RED}║            ⚠️  DATABASE WIPE WARNING ⚠️                     ║${NC}`);
 console.log(`${RED}╚═══════════════════════════════════════════════════════════╝${NC}`);
 console.log(`\nThis will ${RED}PERMANENTLY DELETE ALL DATA${NC} from:`);
-if (target === 'dev' || target === 'all') console.log(`  - DEV database`);
-if (target === 'prod' || target === 'all') console.log(`  - PROD database`);
+console.log(`  - DEV database`);
 
-const answer = await ask(`\nType "WIPE ${target.toUpperCase()}" to confirm: `);
+const answer = await ask(`\nType "WIPE DEV" to confirm: `);
 
-if (answer !== `WIPE ${target.toUpperCase()}`) {
+if (answer !== 'WIPE DEV') {
   console.log('\nAborted.');
   process.exit(0);
 }
 
-if (target === 'dev' || target === 'all') {
-  await wipeDatabase('DEV DATABASE', devUrl);
-}
-
-if (target === 'prod' || target === 'all') {
-  await wipeDatabase('PROD DATABASE', prodUrl);
-}
+await wipeDatabase('DEV DATABASE', devUrl);
 
 console.log(`\n${GREEN}Done. Databases have been wiped.${NC}\n`);

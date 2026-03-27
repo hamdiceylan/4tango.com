@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { isValidLanguage, parseAcceptLanguage } from '@/lib/i18n';
 
-// Paths that should skip language prefix
+// Paths that should skip language prefix (main website pages)
 const SKIP_LANGUAGE_PATHS = [
   '/api',
   '/_next',
@@ -25,9 +25,14 @@ const SKIP_LANGUAGE_PATHS = [
   '/privacy',
   '/terms',
   '/contact',
+  '/dancer',
 ];
 
 function shouldSkipLanguage(pathname: string): boolean {
+  // Root path should not redirect to language
+  if (pathname === '/') {
+    return true;
+  }
   return SKIP_LANGUAGE_PATHS.some((path) => pathname === path || pathname.startsWith(path + '/'));
 }
 
@@ -38,7 +43,7 @@ export function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-pathname', pathname);
 
-  // Skip language handling for certain paths
+  // Skip language handling for main website paths
   if (shouldSkipLanguage(pathname)) {
     return NextResponse.next({
       request: {
@@ -52,7 +57,7 @@ export function middleware(request: NextRequest) {
   const firstSegment = pathSegments[0];
 
   if (firstSegment && isValidLanguage(firstSegment)) {
-    // Path already has valid language prefix
+    // Path already has valid language prefix (e.g., /en/summer-tango)
     requestHeaders.set('x-language', firstSegment);
     return NextResponse.next({
       request: {
@@ -61,15 +66,8 @@ export function middleware(request: NextRequest) {
     });
   }
 
-  // Root path - redirect to language-specific home
-  if (pathname === '/') {
-    const acceptLanguage = request.headers.get('accept-language');
-    const detectedLang = parseAcceptLanguage(acceptLanguage);
-    return NextResponse.redirect(new URL(`/${detectedLang}`, request.url));
-  }
-
-  // Path without language prefix (e.g., /summer-tango-2024)
-  // Redirect to language-prefixed version
+  // Path without language prefix that looks like an event slug (e.g., /summer-tango-2024)
+  // Redirect to language-prefixed version for event pages
   const acceptLanguage = request.headers.get('accept-language');
   const detectedLang = parseAcceptLanguage(acceptLanguage);
 

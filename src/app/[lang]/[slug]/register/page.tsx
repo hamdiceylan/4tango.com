@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, use } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
 
 interface FormField {
   id: string;
@@ -65,12 +65,10 @@ const COUNTRIES = [
   "United States", "Uruguay"
 ].sort();
 
-export default function RegisterPage({
-  params,
-}: {
-  params: Promise<{ lang: string; slug: string }>;
-}) {
-  const { lang, slug } = use(params);
+export default function RegisterPage() {
+  const params = useParams();
+  const lang = params.lang as string;
+  const slug = params.slug as string;
   const router = useRouter();
 
   const [event, setEvent] = useState<EventData | null>(null);

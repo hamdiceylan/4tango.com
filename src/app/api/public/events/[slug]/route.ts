@@ -50,7 +50,6 @@ export async function GET(
     }
 
     // Only show published events publicly (or allow preview mode)
-    const url = new URL(request.url);
     const isPreview = url.searchParams.get("preview") === "true" ||
                       request.headers.get("x-preview-mode") === "true";
     if (event.status !== "PUBLISHED" && !isPreview) {

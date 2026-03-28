@@ -5,6 +5,11 @@ import { validateHostname, isApexDomain } from '@/lib/domains/validateHostname';
 import { isCustomDomainInUse } from '@/lib/domains/resolveEventByHostname';
 import { CUSTOM_DOMAIN_TARGET } from '@/lib/domains/platformHosts';
 import { createActivityLog } from '@/lib/activity-log';
+import {
+  createAmplifyDomainAssociation,
+  deleteAmplifyDomainAssociation,
+  isAmplifyConfigured,
+} from '@/lib/domains/amplify';
 
 // GET /api/events/[id]/custom-domain - Get current domain status
 export async function GET(
@@ -28,6 +33,9 @@ export async function GET(
         customDomainSslStatus: true,
         customDomainLastCheckedAt: true,
         customDomainError: true,
+        customDomainCertArn: true,
+        customDomainValidationName: true,
+        customDomainValidationValue: true,
       },
     });
 
@@ -47,6 +55,12 @@ export async function GET(
       error: event.customDomainError,
       dnsTarget: CUSTOM_DOMAIN_TARGET,
       isApex: event.customDomain ? isApexDomain(event.customDomain) : false,
+      // Validation records for DNS configuration
+      certArn: event.customDomainCertArn || null,
+      validationCname: event.customDomainValidationName && event.customDomainValidationValue ? {
+        name: event.customDomainValidationName,
+        value: event.customDomainValidationValue,
+      } : null,
     });
   } catch (error) {
     if (error instanceof AuthError) {
@@ -113,6 +127,29 @@ export async function POST(
       );
     }
 
+    // Create Amplify domain association if configured
+    let validationName: string | null = null;
+    let validationValue: string | null = null;
+    let amplifyDomainArn: string | null = null;
+
+    if (isAmplifyConfigured()) {
+      const amplifyResult = await createAmplifyDomainAssociation(hostname);
+
+      if (!amplifyResult.success) {
+        return NextResponse.json(
+          { error: amplifyResult.error || 'Failed to configure domain' },
+          { status: 500 }
+        );
+      }
+
+      if (amplifyResult.certificateVerificationRecord) {
+        validationName = amplifyResult.certificateVerificationRecord.name;
+        validationValue = amplifyResult.certificateVerificationRecord.value;
+      }
+
+      amplifyDomainArn = amplifyResult.domainName || null;
+    }
+
     // Update the event with the new custom domain
     const previousDomain = event.customDomain;
     const updatedEvent = await prisma.event.update({
@@ -120,10 +157,13 @@ export async function POST(
       data: {
         customDomain: hostname,
         customDomainStatus: 'PENDING',
-        customDomainSslStatus: 'NONE',
+        customDomainSslStatus: 'PENDING',
         customDomainVerifiedAt: null,
         customDomainLastCheckedAt: null,
         customDomainError: null,
+        customDomainCertArn: amplifyDomainArn,
+        customDomainValidationName: validationName,
+        customDomainValidationValue: validationValue,
       },
     });
 
@@ -145,6 +185,11 @@ export async function POST(
       status: updatedEvent.customDomainStatus,
       dnsTarget: CUSTOM_DOMAIN_TARGET,
       isApex: isApexDomain(hostname),
+      // Return validation records so user can add them
+      validationCname: validationName && validationValue ? {
+        name: validationName,
+        value: validationValue,
+      } : null,
     });
   } catch (error) {
     if (error instanceof AuthError) {
@@ -190,6 +235,11 @@ export async function DELETE(
       );
     }
 
+    // Delete Amplify domain association if configured
+    if (isAmplifyConfigured()) {
+      await deleteAmplifyDomainAssociation(previousDomain);
+    }
+
     // Remove the custom domain
     await prisma.event.update({
       where: { id: params.id },
@@ -200,6 +250,9 @@ export async function DELETE(
         customDomainVerifiedAt: null,
         customDomainLastCheckedAt: null,
         customDomainError: null,
+        customDomainCertArn: null,
+        customDomainValidationName: null,
+        customDomainValidationValue: null,
       },
     });
 

@@ -139,6 +139,10 @@ model Event {
   customDomainSslStatus     CustomDomainSslStatus @default(NONE)
   customDomainLastCheckedAt DateTime?
   customDomainError         String?
+  // ACM certificate for custom domain SSL
+  customDomainCertArn            String?   // ARN of ACM certificate
+  customDomainValidationName     String?   // DNS CNAME name for validation
+  customDomainValidationValue    String?   // DNS CNAME value for validation
   createdAt            DateTime    @default(now())
   updatedAt            DateTime    @updatedAt
 

@@ -2,6 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 
+interface DnsRecord {
+  name: string;
+  value: string;
+}
+
 interface CustomDomainState {
   hostname: string | null;
   status: "NONE" | "PENDING" | "DNS_VERIFIED" | "ACTIVE" | "FAILED" | "DISABLED";
@@ -11,6 +16,9 @@ interface CustomDomainState {
   error: string | null;
   dnsTarget: string;
   isApex: boolean;
+  certArn: string | null;
+  validationCname: DnsRecord | null;
+  subDomainDnsRecord?: DnsRecord | null;
 }
 
 interface CustomDomainCardProps {
@@ -45,7 +53,6 @@ export default function CustomDomainCard({ eventId, eventSlug }: CustomDomainCar
     }
   }, [eventId]);
 
-  // Fetch current domain status
   useEffect(() => {
     fetchDomainStatus();
   }, [fetchDomainStatus]);
@@ -75,7 +82,7 @@ export default function CustomDomainCard({ eventId, eventSlug }: CustomDomainCar
         return;
       }
 
-      setSuccess("Domain saved! Now add the DNS record below, then verify.");
+      setSuccess("Domain saved! Add the DNS records below, then click Verify.");
       await fetchDomainStatus();
     } catch {
       setError("Failed to save domain");
@@ -98,14 +105,14 @@ export default function CustomDomainCard({ eventId, eventSlug }: CustomDomainCar
       const data = await response.json();
 
       if (data.verified) {
-        setSuccess(data.message || "DNS verified and domain activated!");
+        setSuccess(data.message || "Certificate verified and domain activated!");
       } else {
-        setError(data.error || "DNS verification failed");
+        setError(data.error || "Verification failed. Please check your DNS records.");
       }
 
       await fetchDomainStatus();
     } catch {
-      setError("Failed to check DNS");
+      setError("Failed to verify certificate");
     } finally {
       setChecking(false);
     }
@@ -142,28 +149,35 @@ export default function CustomDomainCard({ eventId, eventSlug }: CustomDomainCar
     }
   };
 
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Fallback for older browsers
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+    }
+  };
+
   const getStatusBadge = () => {
     if (!domain || domain.status === "NONE") return null;
 
-    const statusColors = {
-      PENDING: "bg-yellow-100 text-yellow-700",
-      DNS_VERIFIED: "bg-blue-100 text-blue-700",
-      ACTIVE: "bg-green-100 text-green-700",
-      FAILED: "bg-red-100 text-red-700",
-      DISABLED: "bg-gray-100 text-gray-700",
+    const statusConfig = {
+      PENDING: { color: "bg-yellow-100 text-yellow-700", label: "Pending Verification" },
+      DNS_VERIFIED: { color: "bg-blue-100 text-blue-700", label: "DNS Verified" },
+      ACTIVE: { color: "bg-green-100 text-green-700", label: "Active" },
+      FAILED: { color: "bg-red-100 text-red-700", label: "Failed" },
+      DISABLED: { color: "bg-gray-100 text-gray-700", label: "Disabled" },
     };
 
-    const statusLabels = {
-      PENDING: "Waiting for DNS",
-      DNS_VERIFIED: "DNS Verified",
-      ACTIVE: "Active",
-      FAILED: "Failed",
-      DISABLED: "Disabled",
-    };
-
+    const config = statusConfig[domain.status];
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[domain.status]}`}>
-        {statusLabels[domain.status]}
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${config.color}`}>
+        {config.label}
       </span>
     );
   };
@@ -186,7 +200,7 @@ export default function CustomDomainCard({ eventId, eventSlug }: CustomDomainCar
       </div>
 
       <p className="text-gray-500 text-sm mb-4">
-        Connect your own domain to this event. Visitors can access your event at your branded URL.
+        Connect your own domain to this event. We handle SSL certificates automatically.
       </p>
 
       {/* Error/Success Messages */}
@@ -227,42 +241,118 @@ export default function CustomDomainCard({ eventId, eventSlug }: CustomDomainCar
         </div>
         {domain?.isApex && (
           <p className="mt-2 text-amber-600 text-sm">
-            ⚠️ Apex domains (without www) may have limited support. We recommend using www.yourdomain.com
+            Note: Apex domains (without www) may have limited support. We recommend using www.yourdomain.com
           </p>
         )}
       </div>
 
-      {/* DNS Instructions */}
-      {domain?.hostname && domain.status !== "NONE" && (
+      {/* DNS Configuration Instructions */}
+      {domain?.hostname && domain.status !== "NONE" && domain.status !== "ACTIVE" && (
         <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-          <h3 className="font-medium text-gray-900 mb-2">DNS Configuration</h3>
-          <p className="text-sm text-gray-600 mb-3">
-            Add this CNAME record to your domain&apos;s DNS settings:
+          <h3 className="font-medium text-gray-900 mb-3">DNS Configuration</h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Add these two CNAME records to your domain&apos;s DNS settings:
           </p>
-          <div className="bg-white border border-gray-200 rounded-lg p-3 font-mono text-sm">
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <span className="text-gray-500">Type:</span>
-                <span className="ml-2 text-gray-900">CNAME</span>
+
+          {/* Record 1: SSL Validation */}
+          {domain.validationCname && (
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-rose-500 text-white text-xs flex items-center justify-center font-medium">1</span>
+                <span className="font-medium text-gray-900">SSL Certificate Validation</span>
               </div>
-              <div>
-                <span className="text-gray-500">Host:</span>
-                <span className="ml-2 text-gray-900">
-                  {domain.hostname.startsWith("www.") ? "www" : domain.hostname.split(".")[0]}
-                </span>
+              <div className="ml-8 bg-white border border-gray-200 rounded-lg p-3 text-sm">
+                <div className="space-y-2">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="text-gray-500">Type:</span>
+                      <span className="ml-2 text-gray-900 font-mono">CNAME</span>
+                    </div>
+                  </div>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <span className="text-gray-500">Name:</span>
+                      <span className="ml-2 text-gray-900 font-mono text-xs break-all">
+                        {domain.validationCname.name}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => copyToClipboard(domain.validationCname!.name)}
+                      className="ml-2 p-1 text-gray-400 hover:text-gray-600"
+                      title="Copy"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <span className="text-gray-500">Value:</span>
+                      <span className="ml-2 text-gray-900 font-mono text-xs break-all">
+                        {domain.validationCname.value}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => copyToClipboard(domain.validationCname!.value)}
+                      className="ml-2 p-1 text-gray-400 hover:text-gray-600"
+                      title="Copy"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div>
-                <span className="text-gray-500">Value:</span>
-                <span className="ml-2 text-gray-900">{domain.dnsTarget}</span>
+            </div>
+          )}
+
+          {/* Record 2: Domain Routing */}
+          <div className="mb-2">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-rose-500 text-white text-xs flex items-center justify-center font-medium">2</span>
+              <span className="font-medium text-gray-900">Domain Routing</span>
+            </div>
+            <div className="ml-8 bg-white border border-gray-200 rounded-lg p-3 text-sm">
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <span className="text-gray-500">Type:</span>
+                  <span className="ml-2 text-gray-900 font-mono">CNAME</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Name:</span>
+                  <span className="ml-2 text-gray-900 font-mono">
+                    {domain.subDomainDnsRecord?.name || (domain.hostname.startsWith("www.") ? "www" : domain.hostname.split(".")[0])}
+                  </span>
+                </div>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <span className="text-gray-500">Value:</span>
+                    <span className="ml-2 text-gray-900 font-mono text-xs">
+                      {domain.subDomainDnsRecord?.value || domain.dnsTarget}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => copyToClipboard(domain.subDomainDnsRecord?.value || domain.dnsTarget)}
+                    className="ml-2 p-1 text-gray-400 hover:text-gray-600"
+                    title="Copy"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-          {domain.isApex && (
-            <p className="mt-3 text-sm text-gray-600">
-              Also set up a redirect from your apex domain ({domain.hostname.replace("www.", "")})
-              to https://{domain.hostname}
+
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-700">
+              <strong>Note:</strong> DNS changes can take up to 48 hours to propagate, but usually complete within minutes.
+              Click &quot;Verify&quot; after adding both records.
             </p>
-          )}
+          </div>
         </div>
       )}
 
@@ -280,10 +370,10 @@ export default function CustomDomainCard({ eventId, eventSlug }: CustomDomainCar
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
-                Checking DNS...
+                Verifying Certificate...
               </span>
             ) : (
-              "Verify DNS"
+              "Verify"
             )}
           </button>
         </div>
@@ -297,7 +387,7 @@ export default function CustomDomainCard({ eventId, eventSlug }: CustomDomainCar
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <div>
-              <p className="font-medium text-green-800">Domain is active!</p>
+              <p className="font-medium text-green-800">Domain is active with SSL!</p>
               <p className="text-sm text-green-700 mt-1">
                 Your event is accessible at:{" "}
                 <a
@@ -335,6 +425,9 @@ export default function CustomDomainCard({ eventId, eventSlug }: CustomDomainCar
             <div>
               <p className="font-medium text-red-800">Configuration Error</p>
               <p className="text-sm text-red-700 mt-1">{domain.error}</p>
+              <p className="text-sm text-red-700 mt-2">
+                Please remove the domain and try again, or contact support if the issue persists.
+              </p>
             </div>
           </div>
         </div>
@@ -355,8 +448,8 @@ export default function CustomDomainCard({ eventId, eventSlug }: CustomDomainCar
       {!domain?.hostname && (
         <div className="mt-4 text-sm text-gray-500">
           <p>
-            Enter your domain (e.g., www.yourevent.com) to get started. We recommend using a{" "}
-            <strong>www</strong> subdomain for best compatibility.
+            Enter your domain (e.g., www.yourevent.com) to get started. We&apos;ll automatically
+            generate an SSL certificate for your domain.
           </p>
         </div>
       )}

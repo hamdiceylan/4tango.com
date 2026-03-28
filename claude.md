@@ -25,6 +25,7 @@
 
 **CRITICAL: Dev will be merged to main (prod). Always develop with this in mind.**
 
+- **NEVER replace all Amplify environment variables** - The `aws amplify update-app --environment-variables` command REPLACES all vars, not merges! Always fetch existing vars first and include ALL of them when updating.
 - **Never use destructive patterns** - Avoid drop/recreate, reset, or wipe operations
 - **Always use migrations** - Use `prisma migrate dev` for schema changes, never `db push` in production workflow
 - **Additive changes first** - Add new columns as nullable or with defaults before making them required
@@ -66,6 +67,34 @@ Both Amplify apps MUST have the same environment variables:
 - `SES_FROM_EMAIL` - noreply@4tango.com
 - `SES_ACCESS_KEY_ID` - IAM user access key for SES
 - `SES_SECRET_ACCESS_KEY` - IAM user secret key for SES
+- `COGNITO_USER_POOL_ID` - Cognito user pool ID
+- `COGNITO_CLIENT_ID` - Cognito app client ID (must be public, no secret)
+- `COGNITO_REGION` - eu-west-1
+- `NEXT_PUBLIC_COGNITO_CLIENT_ID` - Same as COGNITO_CLIENT_ID
+- `NEXT_PUBLIC_COGNITO_DOMAIN` - Cognito hosted UI domain
+
+**⚠️ CRITICAL: Safe Environment Variable Updates**:
+The AWS CLI `update-app --environment-variables` REPLACES ALL variables, not merges!
+
+**NEVER do this** (wipes all other vars):
+```bash
+aws amplify update-app --app-id XXX --environment-variables '{"NEW_VAR": "value"}'
+```
+
+**ALWAYS do this** (fetch all vars first, then update):
+```bash
+# 1. First, get ALL current env vars
+aws amplify get-app --app-id XXX --region eu-west-1 --query 'app.environmentVariables'
+
+# 2. Copy the output, add/modify the var you need, then update with ALL vars
+aws amplify update-app --app-id XXX --region eu-west-1 --environment-variables '{
+  "EXISTING_VAR_1": "value1",
+  "EXISTING_VAR_2": "value2",
+  "NEW_OR_UPDATED_VAR": "new_value"
+}'
+```
+
+**On PROD, double-check before running any update-app command!**
 
 **Build Spec**:
 Keep build specs identical between dev and prod. Update via AWS CLI:

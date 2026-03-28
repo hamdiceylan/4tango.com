@@ -91,8 +91,19 @@ postgresql://tangoadmin:PASSWORD@tango-prod.cbucqu4yajzz.eu-west-1.rds.amazonaws
 ### Prod User Pool
 - **Pool ID**: `eu-west-1_rsb53q7Ks`
 - **Pool Name**: `4tango-prod`
-- **Client ID**: `31089qf4mefcl9etj9mv99hvgm`
+- **Client ID**: `4sn1safoeblktho5b9ep37p7ph` (public, no secret)
 - **Domain**: `https://4tango-prod.auth.eu-west-1.amazoncognito.com`
+
+### Important: App Client Configuration
+Web app clients must be configured **without a client secret** (public client).
+If a client has a secret, signup/login will fail with "SECRET_HASH was not received" error.
+
+To check if a client has a secret:
+```bash
+aws cognito-idp describe-user-pool-client --user-pool-id POOL_ID --client-id CLIENT_ID \
+  --region eu-west-1 --query 'UserPoolClient.ClientSecret'
+# Should return "null" for web apps
+```
 
 ### Social Login (Google/Apple)
 To enable social login, you need to:

@@ -97,7 +97,64 @@ if [ -n "$MISSING_IN_DEV" ]; then
 fi
 
 # ============================================
-# 3. RDS Databases
+# 3. Build Spec Env Vars Check
+# ============================================
+print_header "BUILD SPEC CONFIGURATION"
+
+# Required env vars that must be in .env.production during build
+REQUIRED_BUILD_VARS=(
+    "DATABASE_URL"
+    "NEXT_PUBLIC_URL"
+    "SES_REGION"
+    "SES_FROM_EMAIL"
+    "SES_ACCESS_KEY_ID"
+    "SES_SECRET_ACCESS_KEY"
+    "COGNITO_USER_POOL_ID"
+    "COGNITO_CLIENT_ID"
+    "COGNITO_REGION"
+    "NEXT_PUBLIC_COGNITO_CLIENT_ID"
+    "NEXT_PUBLIC_COGNITO_DOMAIN"
+)
+
+# Get build specs
+DEV_BUILDSPEC=$(aws amplify get-app --app-id $DEV_APP_ID --region $AWS_REGION \
+    --query 'app.buildSpec' --output text 2>/dev/null)
+PROD_BUILDSPEC=$(aws amplify get-app --app-id $PROD_APP_ID --region $AWS_REGION \
+    --query 'app.buildSpec' --output text 2>/dev/null)
+
+MISSING_DEV_BUILD=""
+MISSING_PROD_BUILD=""
+
+for var in "${REQUIRED_BUILD_VARS[@]}"; do
+    if ! echo "$DEV_BUILDSPEC" | grep -q "$var"; then
+        MISSING_DEV_BUILD="$MISSING_DEV_BUILD $var"
+    fi
+    if ! echo "$PROD_BUILDSPEC" | grep -q "$var"; then
+        MISSING_PROD_BUILD="$MISSING_PROD_BUILD $var"
+    fi
+done
+
+if [ -z "$MISSING_DEV_BUILD" ]; then
+    check_ok "Dev build spec includes all required env vars"
+else
+    check_fail "Dev build spec MISSING env vars:$MISSING_DEV_BUILD"
+fi
+
+if [ -z "$MISSING_PROD_BUILD" ]; then
+    check_ok "Prod build spec includes all required env vars"
+else
+    check_fail "Prod build spec MISSING env vars:$MISSING_PROD_BUILD"
+fi
+
+# Check build specs match
+if [ "$DEV_BUILDSPEC" == "$PROD_BUILDSPEC" ]; then
+    check_ok "Build specs are identical"
+else
+    check_warn "Build specs differ between dev and prod"
+fi
+
+# ============================================
+# 4. RDS Databases
 # ============================================
 print_header "RDS DATABASES"
 
@@ -138,7 +195,7 @@ else
 fi
 
 # ============================================
-# 4. Cognito User Pools
+# 5. Cognito User Pools
 # ============================================
 print_header "COGNITO (SOCIAL LOGIN)"
 
@@ -157,8 +214,36 @@ else
     check_fail "Prod Cognito pool NOT FOUND - Social login (Google/Apple) won't work!"
 fi
 
+# Critical: Check that app clients don't have secrets (web apps need public clients)
+DEV_CLIENT_ID=$(aws amplify get-app --app-id $DEV_APP_ID --region $AWS_REGION \
+    --query 'app.environmentVariables.COGNITO_CLIENT_ID' --output text 2>/dev/null)
+PROD_CLIENT_ID=$(aws amplify get-app --app-id $PROD_APP_ID --region $AWS_REGION \
+    --query 'app.environmentVariables.COGNITO_CLIENT_ID' --output text 2>/dev/null)
+
+DEV_POOL_ID="eu-west-1_xf1rFIxFp"
+PROD_POOL_ID="eu-west-1_rsb53q7Ks"
+
+DEV_SECRET=$(aws cognito-idp describe-user-pool-client --user-pool-id $DEV_POOL_ID \
+    --client-id "$DEV_CLIENT_ID" --region $AWS_REGION \
+    --query 'UserPoolClient.ClientSecret' --output text 2>/dev/null)
+PROD_SECRET=$(aws cognito-idp describe-user-pool-client --user-pool-id $PROD_POOL_ID \
+    --client-id "$PROD_CLIENT_ID" --region $AWS_REGION \
+    --query 'UserPoolClient.ClientSecret' --output text 2>/dev/null)
+
+if [ "$DEV_SECRET" == "None" ] || [ -z "$DEV_SECRET" ]; then
+    check_ok "Dev Cognito client: no secret (public client)"
+else
+    check_fail "Dev Cognito client HAS secret - signup/login will fail!"
+fi
+
+if [ "$PROD_SECRET" == "None" ] || [ -z "$PROD_SECRET" ]; then
+    check_ok "Prod Cognito client: no secret (public client)"
+else
+    check_fail "Prod Cognito client HAS secret - signup/login will fail!"
+fi
+
 # ============================================
-# 5. S3 Buckets
+# 6. S3 Buckets
 # ============================================
 print_header "S3 STORAGE"
 
@@ -175,7 +260,7 @@ else
 fi
 
 # ============================================
-# 6. SES Email
+# 7. SES Email
 # ============================================
 print_header "SES EMAIL"
 
@@ -188,7 +273,7 @@ else
 fi
 
 # ============================================
-# 7. Database Schema Sync
+# 8. Database Schema Sync
 # ============================================
 print_header "DATABASE SCHEMA"
 

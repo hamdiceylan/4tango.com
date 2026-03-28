@@ -204,6 +204,39 @@ DEV_MFA=$(echo "$DEV_COGNITO" | jq -r '.MfaConfiguration')
 PROD_MFA=$(echo "$PROD_COGNITO" | jq -r '.MfaConfiguration')
 check_match "MFA Configuration" "$DEV_MFA" "$PROD_MFA"
 
+# Critical: App client must not have secret (for web apps)
+echo ""
+echo "  App Client Configuration:"
+
+# Get client IDs from Amplify env vars
+DEV_CLIENT_ID=$(aws amplify get-app --app-id $DEV_APP_ID --region $AWS_REGION \
+    --query 'app.environmentVariables.COGNITO_CLIENT_ID' --output text 2>/dev/null)
+PROD_CLIENT_ID=$(aws amplify get-app --app-id $PROD_APP_ID --region $AWS_REGION \
+    --query 'app.environmentVariables.COGNITO_CLIENT_ID' --output text 2>/dev/null)
+
+# Check if dev client has a secret
+DEV_CLIENT_SECRET=$(aws cognito-idp describe-user-pool-client --user-pool-id $DEV_POOL_ID \
+    --client-id "$DEV_CLIENT_ID" --region $AWS_REGION \
+    --query 'UserPoolClient.ClientSecret' --output text 2>/dev/null)
+if [ "$DEV_CLIENT_SECRET" == "None" ] || [ -z "$DEV_CLIENT_SECRET" ]; then
+    echo -e "  ${GREEN}✓${NC} Dev client has no secret (correct for web app)"
+else
+    echo -e "  ${RED}✗${NC} Dev client HAS a secret - web auth will fail!"
+    ISSUES=$((ISSUES + 1))
+fi
+
+# Check if prod client has a secret
+PROD_CLIENT_SECRET=$(aws cognito-idp describe-user-pool-client --user-pool-id $PROD_POOL_ID \
+    --client-id "$PROD_CLIENT_ID" --region $AWS_REGION \
+    --query 'UserPoolClient.ClientSecret' --output text 2>/dev/null)
+if [ "$PROD_CLIENT_SECRET" == "None" ] || [ -z "$PROD_CLIENT_SECRET" ]; then
+    echo -e "  ${GREEN}✓${NC} Prod client has no secret (correct for web app)"
+else
+    echo -e "  ${RED}✗${NC} Prod client HAS a secret - web auth will fail!"
+    echo -e "      Create new client without secret: aws cognito-idp create-user-pool-client --no-generate-secret ..."
+    ISSUES=$((ISSUES + 1))
+fi
+
 # ============================================
 # 5. S3 Configuration
 # ============================================

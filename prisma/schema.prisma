@@ -132,6 +132,13 @@ model Event {
   // i18n settings
   defaultLanguage      String      @default("en")
   availableLanguages   String[]    @default(["en"])
+  // Custom domain settings
+  customDomain              String?   @unique
+  customDomainStatus        CustomDomainStatus @default(NONE)
+  customDomainVerifiedAt    DateTime?
+  customDomainSslStatus     CustomDomainSslStatus @default(NONE)
+  customDomainLastCheckedAt DateTime?
+  customDomainError         String?
   createdAt            DateTime    @default(now())
   updatedAt            DateTime    @updatedAt
 
@@ -148,6 +155,22 @@ enum EventStatus {
   PUBLISHED
   CLOSED
   CANCELLED
+}
+
+enum CustomDomainStatus {
+  NONE
+  PENDING
+  DNS_VERIFIED
+  ACTIVE
+  FAILED
+  DISABLED
+}
+
+enum CustomDomainSslStatus {
+  NONE
+  PENDING
+  ISSUED
+  FAILED
 }
 
 // Dancer - Central dancer database built from registrations

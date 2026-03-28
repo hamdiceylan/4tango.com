@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { localizeContent } from "@/lib/i18n/localize-content";
+import type { Language } from "@/lib/i18n";
 
 // GET /api/public/events/[slug] - Get public event by slug
 export async function GET(
@@ -7,6 +9,10 @@ export async function GET(
   { params }: { params: { slug: string } }
 ) {
   try {
+    // Get language from query param or default to 'en'
+    const url = new URL(request.url);
+    const lang = (url.searchParams.get("lang") || "en") as Language;
+
     const event = await prisma.event.findUnique({
       where: { slug: params.slug },
       include: {
@@ -89,19 +95,24 @@ export async function GET(
         type: section.type,
         order: section.order,
         title: section.title,
-        content: section.content,
+        // Localize section content
+        content: localizeContent(section.content, lang, event.defaultLanguage as Language),
         isVisible: section.isVisible,
       })),
+      defaultLanguage: event.defaultLanguage,
+      availableLanguages: event.availableLanguages,
       formFields: event.formFields.map(field => ({
         id: field.id,
         fieldType: field.fieldType,
         name: field.name,
-        label: field.label,
-        placeholder: field.placeholder,
-        helpText: field.helpText,
+        // Localize multi-language fields
+        label: localizeContent(field.labels || field.label, lang, event.defaultLanguage as Language),
+        placeholder: localizeContent(field.placeholders || field.placeholder, lang, event.defaultLanguage as Language),
+        helpText: localizeContent(field.helpTexts || field.helpText, lang, event.defaultLanguage as Language),
         isRequired: field.isRequired,
         order: field.order,
-        options: field.options,
+        // Localize options for select/radio fields
+        options: field.options ? localizeContent(field.options, lang, event.defaultLanguage as Language) : null,
         validation: field.validation,
         conditionalOn: field.conditionalOn,
       })),

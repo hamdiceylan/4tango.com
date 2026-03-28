@@ -102,8 +102,8 @@ export default function RegisterPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        // Fetch event data
-        const eventRes = await fetch(`/api/public/events/${slug}`);
+        // Fetch event data with language for localized content
+        const eventRes = await fetch(`/api/public/events/${slug}?lang=${lang}`);
         if (!eventRes.ok) {
           throw new Error("Event not found");
         }

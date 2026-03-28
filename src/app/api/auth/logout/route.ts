@@ -4,8 +4,6 @@ import prisma from "@/lib/prisma";
 
 // POST only - GET would be triggered by Next.js Link prefetching
 export async function POST() {
-  const baseUrl = process.env.NEXT_PUBLIC_URL || "https://4tango.com";
-
   try {
     const cookieStore = await cookies();
     const sessionToken = cookieStore.get("session")?.value;

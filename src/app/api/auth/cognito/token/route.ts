@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import {
   signInOrganizerWithPassword,
   signUpOrganizerWithPassword,
@@ -70,9 +69,16 @@ async function handleSignIn(body: {
   // Create session
   const sessionToken = await createSessionFromCognitoAuth(authResult);
 
-  // Set session cookie
-  const cookieStore = await cookies();
-  cookieStore.set('session', sessionToken, {
+  // Create response with JSON body
+  const response = NextResponse.json({
+    success: true,
+    userType: authResult.userType,
+    isNewUser: authResult.isNewUser,
+    redirect: authResult.isNewUser ? '/onboarding' : '/dashboard',
+  });
+
+  // Set session cookie on the response
+  response.cookies.set('session', sessionToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
@@ -80,9 +86,9 @@ async function handleSignIn(body: {
     path: '/',
   });
 
-  // Store refresh token
+  // Store refresh token on the response
   if (tokens.refreshToken) {
-    cookieStore.set('refresh_token', tokens.refreshToken, {
+    response.cookies.set('refresh_token', tokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -91,12 +97,7 @@ async function handleSignIn(body: {
     });
   }
 
-  return NextResponse.json({
-    success: true,
-    userType: authResult.userType,
-    isNewUser: authResult.isNewUser,
-    redirect: authResult.isNewUser ? '/onboarding' : '/dashboard',
-  });
+  return response;
 }
 
 // Sign up with email/password

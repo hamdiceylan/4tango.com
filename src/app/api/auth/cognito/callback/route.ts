@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import {
   exchangeCodeForTokens,
   authenticateWithCognitoTokens,
@@ -37,9 +36,28 @@ export async function GET(request: Request) {
     // Create session
     const sessionToken = await createSessionFromCognitoAuth(authResult);
 
-    // Set session cookie
-    const cookieStore = await cookies();
-    cookieStore.set('session', sessionToken, {
+    // Determine redirect URL based on user type and state
+    let redirectUrl: string;
+    if (authResult.userType === 'dancer') {
+      if (authResult.needsProfileCompletion) {
+        redirectUrl = '/complete-profile';
+      } else {
+        redirectUrl = '/';
+      }
+    } else {
+      // Organizer flow
+      if (authResult.isNewUser) {
+        redirectUrl = '/onboarding';
+      } else {
+        redirectUrl = '/dashboard';
+      }
+    }
+
+    // Create redirect response
+    const response = NextResponse.redirect(new URL(redirectUrl, request.url));
+
+    // Set session cookie on the response
+    response.cookies.set('session', sessionToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -47,9 +65,9 @@ export async function GET(request: Request) {
       path: '/',
     });
 
-    // Store refresh token if available (optional, for token refresh)
+    // Store refresh token on the response if available
     if (tokens.refreshToken) {
-      cookieStore.set('refresh_token', tokens.refreshToken, {
+      response.cookies.set('refresh_token', tokens.refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
@@ -58,24 +76,7 @@ export async function GET(request: Request) {
       });
     }
 
-    // Redirect based on user type and state
-    if (authResult.userType === 'dancer') {
-      if (authResult.needsProfileCompletion) {
-        // New dancer needs to complete profile
-        return NextResponse.redirect(new URL('/complete-profile', request.url));
-      }
-      // Dancer goes to their registrations or home
-      return NextResponse.redirect(new URL('/', request.url));
-    }
-
-    // Organizer flow
-    if (authResult.isNewUser) {
-      // New organizer goes to onboarding
-      return NextResponse.redirect(new URL('/onboarding', request.url));
-    }
-
-    // Existing organizer goes to dashboard
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    return response;
   } catch (error) {
     console.error('Cognito callback error:', error);
     const message = error instanceof Error ? error.message : 'Authentication failed';

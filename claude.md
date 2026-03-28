@@ -96,6 +96,31 @@ aws amplify update-app --app-id XXX --region eu-west-1 --environment-variables '
 
 **On PROD, double-check before running any update-app command!**
 
+**⚠️ CRITICAL: Cognito User Pool Configuration**:
+Dev and prod Cognito pools MUST have identical:
+1. **Custom attributes** - `custom:userType`, `custom:organizerId` (signup fails without these)
+2. **Password policies** - Same requirements for both
+3. **App client settings** - No client secret for web apps (causes SECRET_HASH error)
+
+**Check custom attributes:**
+```bash
+# Dev
+aws cognito-idp describe-user-pool --user-pool-id eu-west-1_xf1rFIxFp --region eu-west-1 \
+  --query 'UserPool.SchemaAttributes[?starts_with(Name, `custom:`)]'
+
+# Prod
+aws cognito-idp describe-user-pool --user-pool-id eu-west-1_rsb53q7Ks --region eu-west-1 \
+  --query 'UserPool.SchemaAttributes[?starts_with(Name, `custom:`)]'
+```
+
+**Add missing custom attribute to prod:**
+```bash
+aws cognito-idp add-custom-attributes --user-pool-id eu-west-1_rsb53q7Ks --region eu-west-1 \
+  --custom-attributes '[{"Name":"attributeName","AttributeDataType":"String","Mutable":true}]'
+```
+
+**Always run `npm run infra:deep` before deploying to catch Cognito drift!**
+
 **Build Spec**:
 Keep build specs identical between dev and prod. Update via AWS CLI:
 ```bash

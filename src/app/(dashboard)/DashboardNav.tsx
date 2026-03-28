@@ -80,7 +80,9 @@ export default function DashboardNav() {
   useEffect(() => {
     async function fetchRole() {
       try {
-        const profileRes = await fetch("/api/auth/profile");
+        const profileRes = await fetch("/api/auth/profile", {
+          credentials: "include",
+        });
         if (profileRes.ok) {
           const profile = await profileRes.json();
           setUserRole(profile.role);

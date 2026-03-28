@@ -48,7 +48,9 @@ export default function RegistrationsPage() {
 
   const fetchRegistrations = useCallback(async () => {
     try {
-      const response = await fetch("/api/registrations");
+      const response = await fetch("/api/registrations", {
+        credentials: "include",
+      });
       if (response.ok) {
         const data = await response.json();
         setRegistrations(data);

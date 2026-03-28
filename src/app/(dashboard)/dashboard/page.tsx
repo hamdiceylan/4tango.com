@@ -79,7 +79,9 @@ export default function DashboardPage() {
   useEffect(() => {
     async function fetchUserProfile() {
       try {
-        const profileRes = await fetch("/api/auth/profile");
+        const profileRes = await fetch("/api/auth/profile", {
+          credentials: "include",
+        });
         if (profileRes.ok) {
           const profile = await profileRes.json();
           setUserName(profile.fullName);
@@ -98,14 +100,18 @@ export default function DashboardPage() {
     setStatsLoading(true);
     try {
       // Fetch stats
-      const statsRes = await fetch(`/api/events/${selectedEventId}/stats`);
+      const statsRes = await fetch(`/api/events/${selectedEventId}/stats`, {
+        credentials: "include",
+      });
       if (statsRes.ok) {
         const data = await statsRes.json();
         setEventStats(data);
       }
 
       // Fetch recent registrations
-      const eventRes = await fetch(`/api/events/${selectedEventId}`);
+      const eventRes = await fetch(`/api/events/${selectedEventId}`, {
+        credentials: "include",
+      });
       if (eventRes.ok) {
         const data = await eventRes.json();
         // Get last 5 registrations
@@ -125,7 +131,9 @@ export default function DashboardPage() {
       }
 
       // Fetch recent activity for this event
-      const activityRes = await fetch(`/api/activity-log?eventId=${selectedEventId}&limit=5`);
+      const activityRes = await fetch(`/api/activity-log?eventId=${selectedEventId}&limit=5`, {
+        credentials: "include",
+      });
       if (activityRes.ok) {
         const data = await activityRes.json();
         setRecentActivity(data.logs || []);

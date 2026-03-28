@@ -43,7 +43,9 @@ export function EventsProvider({
   const fetchEvents = useCallback(async () => {
     try {
       setError(null);
-      const response = await fetch("/api/events");
+      const response = await fetch("/api/events", {
+        credentials: "include",
+      });
 
       if (!response.ok) {
         if (response.status === 401) {

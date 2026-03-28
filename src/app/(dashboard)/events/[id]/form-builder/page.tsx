@@ -131,6 +131,7 @@ export default function FormBuilderPage({ params }: { params: { id: string } }) 
           isRequired: false,
           options: typeInfo.hasOptions ? [{ value: "option1", label: "Option 1" }] : null,
         }),
+        credentials: "include",
       });
 
       if (res.ok) {
@@ -153,6 +154,7 @@ export default function FormBuilderPage({ params }: { params: { id: string } }) 
     try {
       const res = await fetch(`/api/events/${params.id}/form-fields/${fieldId}`, {
         method: "DELETE",
+        credentials: "include",
       });
 
       if (res.ok) {
@@ -175,6 +177,7 @@ export default function FormBuilderPage({ params }: { params: { id: string } }) 
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isRequired: !field.isRequired }),
+        credentials: "include",
       });
 
       if (res.ok) {
@@ -199,6 +202,7 @@ export default function FormBuilderPage({ params }: { params: { id: string } }) 
         body: JSON.stringify({
           fieldIds: customFields.map(f => f.id),
         }),
+        credentials: "include",
       });
 
       // Save selected field if any
@@ -215,6 +219,7 @@ export default function FormBuilderPage({ params }: { params: { id: string } }) 
             validation: selectedField.validation,
             conditionalOn: selectedField.conditionalOn,
           }),
+          credentials: "include",
         });
       }
 

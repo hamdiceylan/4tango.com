@@ -75,6 +75,7 @@ export default function EmailTemplatesPage() {
       method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(template),
+      credentials: "include",
     });
 
     if (!response.ok) {
@@ -92,6 +93,7 @@ export default function EmailTemplatesPage() {
 
     const response = await fetch(`/api/email-templates/${templateId}`, {
       method: "DELETE",
+      credentials: "include",
     });
 
     if (response.ok) {
@@ -111,6 +113,7 @@ export default function EmailTemplatesPage() {
         isActive: false,
         variables: template.variables,
       }),
+      credentials: "include",
     });
 
     if (response.ok) {

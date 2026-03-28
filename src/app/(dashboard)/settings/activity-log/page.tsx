@@ -67,7 +67,7 @@ export default function ActivityLogPage() {
 
   const fetchFilterOptions = useCallback(async () => {
     try {
-      const res = await fetch("/api/activity-log/filters");
+      const res = await fetch("/api/activity-log/filters", { credentials: "include" });
       if (res.ok) {
         const data = await res.json();
         setFilterOptions(data);
@@ -89,7 +89,7 @@ export default function ActivityLogPage() {
       if (dateTo) params.set("dateTo", dateTo);
       if (search) params.set("search", search);
 
-      const res = await fetch(`/api/activity-log?${params.toString()}`);
+      const res = await fetch(`/api/activity-log?${params.toString()}`, { credentials: "include" });
       if (!res.ok) {
         if (res.status === 401) {
           router.push("/login");

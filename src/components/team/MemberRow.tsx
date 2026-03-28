@@ -46,6 +46,7 @@ export default function MemberRow({
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: selectedRole }),
+        credentials: "include",
       });
 
       if (!res.ok) {
@@ -68,6 +69,7 @@ export default function MemberRow({
     try {
       const res = await fetch(`/api/team/members/${member.id}`, {
         method: "DELETE",
+        credentials: "include",
       });
 
       if (!res.ok) {

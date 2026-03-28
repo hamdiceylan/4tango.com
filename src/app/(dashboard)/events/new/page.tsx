@@ -78,6 +78,7 @@ export default function NewEventPage() {
           djs: formData.djs ? formData.djs.split(",").map(dj => dj.trim()).filter(Boolean) : [],
           coverImageUrl: formData.coverImage || null,
         }),
+        credentials: "include",
       });
 
       const data = await response.json();

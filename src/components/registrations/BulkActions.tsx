@@ -42,6 +42,7 @@ export default function BulkActions({
           actionId,
           input: {},
         }),
+        credentials: "include",
       });
 
       const data = await response.json();

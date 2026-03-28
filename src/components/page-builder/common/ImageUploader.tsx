@@ -46,6 +46,7 @@ export default function ImageUploader({
           size: file.size,
           category,
         }),
+        credentials: "include",
       });
 
       if (!presignRes.ok) {

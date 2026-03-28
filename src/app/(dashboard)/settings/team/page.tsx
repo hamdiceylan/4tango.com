@@ -41,7 +41,7 @@ export default function TeamSettingsPage() {
   const fetchData = async () => {
     try {
       // Fetch user profile to get role
-      const profileRes = await fetch("/api/auth/profile");
+      const profileRes = await fetch("/api/auth/profile", { credentials: "include" });
       if (!profileRes.ok) {
         router.push("/login");
         return;
@@ -57,8 +57,8 @@ export default function TeamSettingsPage() {
 
       // Fetch members and invitations in parallel
       const [membersRes, invitationsRes] = await Promise.all([
-        fetch("/api/team/members"),
-        fetch("/api/team/invitations"),
+        fetch("/api/team/members", { credentials: "include" }),
+        fetch("/api/team/invitations", { credentials: "include" }),
       ]);
 
       if (membersRes.ok) {
@@ -83,6 +83,7 @@ export default function TeamSettingsPage() {
     try {
       const res = await fetch(`/api/team/invitations/${id}`, {
         method: "DELETE",
+        credentials: "include",
       });
 
       if (res.ok) {
@@ -97,6 +98,7 @@ export default function TeamSettingsPage() {
     try {
       const res = await fetch(`/api/team/invitations/${id}`, {
         method: "POST",
+        credentials: "include",
       });
 
       if (res.ok) {

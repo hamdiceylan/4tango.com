@@ -30,7 +30,7 @@ export default function CustomDomainCard({ eventId, eventSlug }: CustomDomainCar
 
   const fetchDomainStatus = useCallback(async () => {
     try {
-      const response = await fetch(`/api/events/${eventId}/custom-domain`);
+      const response = await fetch(`/api/events/${eventId}/custom-domain`, { credentials: "include" });
       if (response.ok) {
         const data = await response.json();
         setDomain(data);
@@ -65,6 +65,7 @@ export default function CustomDomainCard({ eventId, eventSlug }: CustomDomainCar
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ hostname: inputValue.trim() }),
+        credentials: "include",
       });
 
       const data = await response.json();
@@ -91,6 +92,7 @@ export default function CustomDomainCard({ eventId, eventSlug }: CustomDomainCar
     try {
       const response = await fetch(`/api/events/${eventId}/custom-domain/check-dns`, {
         method: "POST",
+        credentials: "include",
       });
 
       const data = await response.json();
@@ -121,6 +123,7 @@ export default function CustomDomainCard({ eventId, eventSlug }: CustomDomainCar
     try {
       const response = await fetch(`/api/events/${eventId}/custom-domain`, {
         method: "DELETE",
+        credentials: "include",
       });
 
       if (!response.ok) {

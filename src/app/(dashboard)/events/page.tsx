@@ -26,7 +26,7 @@ export default function EventsPage() {
   useEffect(() => {
     async function fetchEvents() {
       try {
-        const res = await fetch("/api/events");
+        const res = await fetch("/api/events", { credentials: "include" });
         if (res.ok) {
           const data = await res.json();
           setEvents(data);

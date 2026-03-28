@@ -51,7 +51,7 @@ export default function EventDetailPage() {
   useEffect(() => {
     async function fetchEvent() {
       try {
-        const response = await fetch(`/api/events/${params.id}`);
+        const response = await fetch(`/api/events/${params.id}`, { credentials: "include" });
         if (!response.ok) {
           throw new Error("Event not found");
         }
@@ -149,6 +149,7 @@ export default function EventDetailPage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
+        credentials: "include",
       });
       if (!response.ok) {
         throw new Error("Failed to update status");

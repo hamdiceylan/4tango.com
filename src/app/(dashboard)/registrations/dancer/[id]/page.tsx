@@ -94,7 +94,7 @@ export default function DancerDetailPage() {
 
   async function fetchDancer() {
     try {
-      const response = await fetch(`/api/dancers/${dancerId}`);
+      const response = await fetch(`/api/dancers/${dancerId}`, { credentials: "include" });
       if (!response.ok) {
         if (response.status === 404) {
           router.push('/registrations');
@@ -113,7 +113,7 @@ export default function DancerDetailPage() {
 
   async function fetchTags() {
     try {
-      const response = await fetch('/api/dancers/tags');
+      const response = await fetch('/api/dancers/tags', { credentials: "include" });
       if (response.ok) {
         const data = await response.json();
         setAllTags(data);
@@ -132,6 +132,7 @@ export default function DancerDetailPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: newNote }),
+        credentials: "include",
       });
 
       if (response.ok) {
@@ -153,6 +154,7 @@ export default function DancerDetailPage() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: editingNoteContent }),
+        credentials: "include",
       });
 
       if (response.ok) {
@@ -171,6 +173,7 @@ export default function DancerDetailPage() {
     try {
       const response = await fetch(`/api/dancers/${dancerId}/notes/${noteId}`, {
         method: 'DELETE',
+        credentials: "include",
       });
 
       if (response.ok) {
@@ -185,6 +188,7 @@ export default function DancerDetailPage() {
     try {
       const response = await fetch(`/api/dancers/${dancerId}/tags/${tagId}`, {
         method: 'POST',
+        credentials: "include",
       });
 
       if (response.ok) {
@@ -200,6 +204,7 @@ export default function DancerDetailPage() {
     try {
       const response = await fetch(`/api/dancers/${dancerId}/tags/${tagId}`, {
         method: 'DELETE',
+        credentials: "include",
       });
 
       if (response.ok) {
@@ -218,6 +223,7 @@ export default function DancerDetailPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newTagName, color: newTagColor }),
+        credentials: "include",
       });
 
       if (response.ok) {

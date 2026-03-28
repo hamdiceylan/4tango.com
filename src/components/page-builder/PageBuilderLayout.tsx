@@ -134,6 +134,7 @@ export default function PageBuilderLayout({ eventId }: PageBuilderLayoutProps) {
           content: getDefaultContent(typeInfo.type),
           isVisible: true,
         }),
+        credentials: "include",
       });
 
       if (res.ok) {
@@ -153,6 +154,7 @@ export default function PageBuilderLayout({ eventId }: PageBuilderLayoutProps) {
     try {
       const res = await fetch(`/api/events/${eventId}/sections/${sectionId}`, {
         method: "DELETE",
+        credentials: "include",
       });
 
       if (res.ok) {
@@ -175,6 +177,7 @@ export default function PageBuilderLayout({ eventId }: PageBuilderLayoutProps) {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isVisible: !section.isVisible }),
+        credentials: "include",
       });
 
       if (res.ok) {
@@ -199,6 +202,7 @@ export default function PageBuilderLayout({ eventId }: PageBuilderLayoutProps) {
         body: JSON.stringify({
           sectionIds: sections.map((s) => s.id),
         }),
+        credentials: "include",
       });
 
       // Save selected section content if any
@@ -210,6 +214,7 @@ export default function PageBuilderLayout({ eventId }: PageBuilderLayoutProps) {
             title: selectedSection.title,
             content: selectedSection.content,
           }),
+          credentials: "include",
         });
       }
 
@@ -724,6 +729,7 @@ export default function PageBuilderLayout({ eventId }: PageBuilderLayoutProps) {
                   availableLanguages: newAvailableLanguages,
                   defaultLanguage: newDefaultLanguage,
                 }),
+                credentials: "include",
               });
               if (res.ok) {
                 setEvent({

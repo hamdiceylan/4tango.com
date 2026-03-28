@@ -30,6 +30,7 @@ export default function InviteMemberModal({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, role }),
+        credentials: "include",
       });
 
       const data = await res.json();

@@ -77,7 +77,7 @@ export default function ActionMenu({ registrationId, onActionComplete }: ActionM
   async function fetchActions() {
     setLoading(true);
     try {
-      const response = await fetch(`/api/registrations/${registrationId}/actions/list`);
+      const response = await fetch(`/api/registrations/${registrationId}/actions/list`, { credentials: "include" });
       if (response.ok) {
         const data = await response.json();
         setActions(data.actions);
@@ -118,6 +118,7 @@ export default function ActionMenu({ registrationId, onActionComplete }: ActionM
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ input }),
+        credentials: "include",
       });
 
       const data = await response.json();

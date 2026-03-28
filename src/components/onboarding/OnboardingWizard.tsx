@@ -100,6 +100,7 @@ export default function OnboardingWizard({ userName }: { userName: string }) {
           capacityLimit: data.capacityLimit ? parseInt(data.capacityLimit) : null,
           status: "DRAFT",
         }),
+        credentials: "include",
       });
 
       if (!response.ok) {
@@ -112,6 +113,7 @@ export default function OnboardingWizard({ userName }: { userName: string }) {
       // Mark onboarding as completed
       await fetch("/api/auth/onboarding-complete", {
         method: "POST",
+        credentials: "include",
       });
 
       // Redirect to the event page

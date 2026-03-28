@@ -5,12 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import type { OrganizerRole } from "@prisma/client";
 import { hasPermission, type Permission } from "@/lib/permissions";
-
-interface Event {
-  id: string;
-  title: string;
-  slug: string;
-}
+import { useEvents } from "@/contexts/EventsContext";
 
 interface NavItem {
   name: string;
@@ -77,54 +72,30 @@ const icons: Record<string, React.ReactNode> = {
 
 export default function DashboardNav() {
   const pathname = usePathname();
-  const [events, setEvents] = useState<Event[]>([]);
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const { events, selectedEventId, selectedEvent, loading, selectEvent } = useEvents();
   const [showEventDropdown, setShowEventDropdown] = useState(false);
   const [userRole, setUserRole] = useState<OrganizerRole | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  // Fetch user role and events
+  // Fetch user role
   useEffect(() => {
-    async function fetchData() {
+    async function fetchRole() {
       try {
-        // Fetch user profile for role
         const profileRes = await fetch("/api/auth/profile");
         if (profileRes.ok) {
           const profile = await profileRes.json();
           setUserRole(profile.role);
         }
-
-        // Fetch events
-        const eventsRes = await fetch("/api/events");
-        if (eventsRes.ok) {
-          const data = await eventsRes.json();
-          setEvents(data);
-          if (data.length > 0) {
-            const stored = localStorage.getItem("selectedEventId");
-            if (stored && data.find((e: Event) => e.id === stored)) {
-              setSelectedEventId(stored);
-            } else {
-              setSelectedEventId(data[0].id);
-              localStorage.setItem("selectedEventId", data[0].id);
-            }
-          }
-        }
       } catch {
         // Ignore errors
-      } finally {
-        setLoading(false);
       }
     }
-    fetchData();
+    fetchRole();
   }, []);
 
   const handleEventSelect = (eventId: string) => {
-    setSelectedEventId(eventId);
-    localStorage.setItem("selectedEventId", eventId);
+    selectEvent(eventId);
     setShowEventDropdown(false);
   };
-
-  const selectedEvent = events.find((e) => e.id === selectedEventId);
 
   // Permission checks
   const canViewTeam = userRole && hasPermission(userRole, "org:team:view");

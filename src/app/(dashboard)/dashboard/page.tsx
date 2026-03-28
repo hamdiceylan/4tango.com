@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
 import { ACTION_LABELS, CATEGORY_COLORS } from "@/lib/activity-log";
+import { useEvents } from "@/contexts/EventsContext";
 import type { ActivityCategory } from "@prisma/client";
 
 interface EventStats {
@@ -64,72 +65,37 @@ interface ActivityLogEntry {
   createdAt: string;
 }
 
-interface Event {
-  id: string;
-  title: string;
-}
-
 export default function DashboardPage() {
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-  const [events, setEvents] = useState<Event[]>([]);
+  // Use shared events context - single source of truth for events and selected event
+  const { events, selectedEventId, loading: eventsLoading } = useEvents();
+
   const [eventStats, setEventStats] = useState<EventStats | null>(null);
   const [recentRegistrations, setRecentRegistrations] = useState<Registration[]>([]);
   const [recentActivity, setRecentActivity] = useState<ActivityLogEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [statsLoading, setStatsLoading] = useState(false);
   const [userName, setUserName] = useState<string>("");
 
-  // Fetch events and user on mount
+  // Fetch user profile on mount
   useEffect(() => {
-    async function fetchInitialData() {
+    async function fetchUserProfile() {
       try {
-        // Fetch user profile
         const profileRes = await fetch("/api/auth/profile");
         if (profileRes.ok) {
           const profile = await profileRes.json();
           setUserName(profile.fullName);
         }
-
-        // Fetch events
-        const eventsRes = await fetch("/api/events");
-        if (eventsRes.ok) {
-          const data = await eventsRes.json();
-          setEvents(data);
-
-          // Get stored event ID
-          const stored = localStorage.getItem("selectedEventId");
-          if (stored && data.find((e: Event) => e.id === stored)) {
-            setSelectedEventId(stored);
-          } else if (data.length > 0) {
-            setSelectedEventId(data[0].id);
-          }
-        }
       } catch (error) {
-        console.error("Error fetching initial data:", error);
-      } finally {
-        setLoading(false);
+        console.error("Error fetching user profile:", error);
       }
     }
-    fetchInitialData();
+    fetchUserProfile();
   }, []);
-
-  // Listen for localStorage changes (when event is changed in sidebar)
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const stored = localStorage.getItem("selectedEventId");
-      if (stored && stored !== selectedEventId) {
-        setSelectedEventId(stored);
-      }
-    };
-
-    // Check periodically for changes (since storage event doesn't fire in same tab)
-    const interval = setInterval(handleStorageChange, 500);
-    return () => clearInterval(interval);
-  }, [selectedEventId]);
 
   // Fetch event stats, registrations, and activity when event changes
   const fetchEventData = useCallback(async () => {
     if (!selectedEventId) return;
 
+    setStatsLoading(true);
     try {
       // Fetch stats
       const statsRes = await fetch(`/api/events/${selectedEventId}/stats`);
@@ -166,6 +132,8 @@ export default function DashboardPage() {
       }
     } catch (error) {
       console.error("Error fetching event data:", error);
+    } finally {
+      setStatsLoading(false);
     }
   }, [selectedEventId]);
 
@@ -291,7 +259,7 @@ export default function DashboardPage() {
   };
 
   // Loading state
-  if (loading) {
+  if (eventsLoading) {
     return (
       <div className="p-8">
         <div className="animate-pulse">
@@ -338,6 +306,23 @@ export default function DashboardPage() {
             </svg>
             Create Your First Event
           </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading stats for selected event
+  if (selectedEventId && statsLoading && !eventStats) {
+    return (
+      <div className="p-8">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/3 mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2 mb-8"></div>
+          <div className="grid grid-cols-5 gap-4 mb-8">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-24 bg-gray-200 rounded-xl"></div>
+            ))}
+          </div>
         </div>
       </div>
     );

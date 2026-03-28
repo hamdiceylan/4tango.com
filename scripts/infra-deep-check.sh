@@ -237,6 +237,31 @@ else
     ISSUES=$((ISSUES + 1))
 fi
 
+# Check custom attributes match between dev and prod
+echo ""
+echo "  Custom Attributes:"
+DEV_CUSTOM_ATTRS=$(aws cognito-idp describe-user-pool --user-pool-id $DEV_POOL_ID --region $AWS_REGION \
+    --query 'UserPool.SchemaAttributes[?starts_with(Name, `custom:`)].Name' --output text 2>/dev/null | tr '\t' '\n' | sort)
+PROD_CUSTOM_ATTRS=$(aws cognito-idp describe-user-pool --user-pool-id $PROD_POOL_ID --region $AWS_REGION \
+    --query 'UserPool.SchemaAttributes[?starts_with(Name, `custom:`)].Name' --output text 2>/dev/null | tr '\t' '\n' | sort)
+
+MISSING_IN_PROD=$(comm -23 <(echo "$DEV_CUSTOM_ATTRS") <(echo "$PROD_CUSTOM_ATTRS") | grep -v "^$")
+MISSING_IN_DEV=$(comm -13 <(echo "$DEV_CUSTOM_ATTRS") <(echo "$PROD_CUSTOM_ATTRS") | grep -v "^$")
+
+if [ -z "$MISSING_IN_PROD" ] && [ -z "$MISSING_IN_DEV" ]; then
+    echo -e "  ${GREEN}✓${NC} Custom attributes match: $(echo "$DEV_CUSTOM_ATTRS" | tr '\n' ' ')"
+else
+    if [ -n "$MISSING_IN_PROD" ]; then
+        echo -e "  ${RED}✗${NC} Attributes missing in PROD: $MISSING_IN_PROD"
+        echo -e "      Add with: aws cognito-idp add-custom-attributes --user-pool-id $PROD_POOL_ID ..."
+        ISSUES=$((ISSUES + 1))
+    fi
+    if [ -n "$MISSING_IN_DEV" ]; then
+        echo -e "  ${YELLOW}⚠${NC} Attributes only in PROD: $MISSING_IN_DEV"
+        WARNINGS=$((WARNINGS + 1))
+    fi
+fi
+
 # ============================================
 # 5. S3 Configuration
 # ============================================

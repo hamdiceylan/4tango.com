@@ -211,6 +211,7 @@ export default function ProfilePage({
           </Link>
           <Link
             href="/api/auth/logout"
+            prefetch={false}
             className="text-gray-500 hover:text-red-500 transition text-sm"
           >
             Sign out

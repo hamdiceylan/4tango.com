@@ -70,7 +70,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 <p className="text-gray-900 text-sm font-medium truncate">{user.fullName}</p>
                 <p className="text-gray-500 text-xs truncate">{user.email}</p>
               </div>
-              <Link href="/api/auth/logout" className="text-gray-400 hover:text-gray-600 transition">
+              <Link href="/api/auth/logout" prefetch={false} className="text-gray-400 hover:text-gray-600 transition">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>

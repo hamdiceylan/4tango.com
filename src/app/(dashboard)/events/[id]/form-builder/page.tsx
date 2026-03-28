@@ -57,8 +57,8 @@ export default function FormBuilderPage({ params }: { params: { id: string } }) 
     async function fetchData() {
       try {
         const [eventRes, fieldsRes] = await Promise.all([
-          fetch(`/api/events/${params.id}`),
-          fetch(`/api/events/${params.id}/form-fields`)
+          fetch(`/api/events/${params.id}`, { credentials: "include" }),
+          fetch(`/api/events/${params.id}/form-fields`, { credentials: "include" })
         ]);
 
         if (eventRes.ok) {

@@ -38,8 +38,8 @@ export default function EmailTemplatesPage() {
   async function fetchData() {
     try {
       const [templatesRes, eventsRes] = await Promise.all([
-        fetch("/api/email-templates"),
-        fetch("/api/events"),
+        fetch("/api/email-templates", { credentials: "include" }),
+        fetch("/api/events", { credentials: "include" }),
       ]);
 
       if (templatesRes.ok) {

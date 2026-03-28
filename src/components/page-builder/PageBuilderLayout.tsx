@@ -67,8 +67,8 @@ export default function PageBuilderLayout({ eventId }: PageBuilderLayoutProps) {
     async function fetchData() {
       try {
         const [eventRes, sectionsRes] = await Promise.all([
-          fetch(`/api/events/${eventId}`),
-          fetch(`/api/events/${eventId}/sections`),
+          fetch(`/api/events/${eventId}`, { credentials: "include" }),
+          fetch(`/api/events/${eventId}/sections`, { credentials: "include" }),
         ]);
 
         if (eventRes.ok) {

@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import CustomDomainCard from "@/components/events/CustomDomainCard";
 
 interface Registration {
   id: string;
@@ -339,9 +338,6 @@ export default function EventDetailPage() {
 
       {activeTab === "settings" && (
         <div className="space-y-6">
-          {/* Custom Domain */}
-          <CustomDomainCard eventId={event.id} eventSlug={event.slug} />
-
           <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Event Status</h2>
             <div className="flex items-center gap-4">

@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { DjTeamContent, TeamMember } from "@/lib/section-types";
 import { Language, DEFAULT_LANGUAGE, LANGUAGE_FLAGS } from "@/lib/i18n";
+import { SectionBackground } from "@/lib/colors";
 import ImageUploader from "../common/ImageUploader";
+import SectionStylePicker from "./SectionStylePicker";
 
 interface DjTeamEditorProps {
   content: DjTeamContent;
@@ -80,6 +82,12 @@ export default function DjTeamEditor({
 
   return (
     <div className="space-y-6">
+      {/* Section Background */}
+      <SectionStylePicker
+        value={content?.background || "dark"}
+        onChange={(bg: SectionBackground) => onChange({ ...content, background: bg })}
+      />
+
       {/* Language Tabs - only show if multiple languages */}
       {langs.length > 1 && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">

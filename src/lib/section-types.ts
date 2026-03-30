@@ -1,4 +1,10 @@
 // Section type definitions for the page builder
+import type { SectionBackground } from "./colors";
+
+// Base content interface with common fields
+export interface BaseSectionContent {
+  background?: SectionBackground;
+}
 
 export type SectionType =
   | 'HERO'
@@ -23,7 +29,7 @@ export interface HeroContent {
   overlay?: 'dark' | 'light' | 'none';
 }
 
-export interface AboutContent {
+export interface AboutContent extends BaseSectionContent {
   content: string; // Markdown or HTML content
   images?: string[];
 }
@@ -40,7 +46,7 @@ export interface ScheduleItem {
   description?: string;
 }
 
-export interface ScheduleContent {
+export interface ScheduleContent extends BaseSectionContent {
   days: ScheduleDay[];
 }
 
@@ -52,15 +58,15 @@ export interface TeamMember {
   role?: string; // For photographers: "Lead Photographer", etc.
 }
 
-export interface DjTeamContent {
+export interface DjTeamContent extends BaseSectionContent {
   members: TeamMember[];
 }
 
-export interface PhotographersContent {
+export interface PhotographersContent extends BaseSectionContent {
   members: TeamMember[];
 }
 
-export interface AccommodationContent {
+export interface AccommodationContent extends BaseSectionContent {
   title: string;
   description?: string;
   images?: string[];
@@ -70,7 +76,7 @@ export interface AccommodationContent {
   bookingUrl?: string;
 }
 
-export interface PricingContent {
+export interface PricingContent extends BaseSectionContent {
   showPackages: boolean;
   customContent?: string; // Additional HTML/markdown content
 }
@@ -80,12 +86,12 @@ export interface GalleryImage {
   caption?: string;
 }
 
-export interface GalleryContent {
+export interface GalleryContent extends BaseSectionContent {
   images: GalleryImage[];
   layout?: 'grid' | 'carousel' | 'masonry';
 }
 
-export interface ContactContent {
+export interface ContactContent extends BaseSectionContent {
   email?: string;
   phone?: string;
   socialLinks?: {
@@ -97,7 +103,7 @@ export interface ContactContent {
   formFields?: string[]; // Which fields to show in contact form
 }
 
-export interface CustomTextContent {
+export interface CustomTextContent extends BaseSectionContent {
   content: string; // Markdown content
 }
 

@@ -2,9 +2,47 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import type { Language } from "@/lib/i18n";
+import { type Language, LANGUAGE_FLAGS, LANGUAGE_NAMES } from "@/lib/i18n";
 import { localizeContent } from "@/lib/i18n/localize-content";
+import { SectionBackground } from "@/lib/colors";
 import LanguageSelector from "@/components/ui/LanguageSelector";
+
+// Helper to get section background styles
+function getSectionBackgroundStyles(
+  bg: SectionBackground | undefined,
+  colors: { primary: string; secondary: string; dark: string }
+): { className: string; style: React.CSSProperties } {
+  switch (bg) {
+    case "dark":
+      return {
+        className: "text-white",
+        style: { backgroundColor: colors.dark },
+      };
+    case "primary":
+      return {
+        className: "text-white",
+        style: { backgroundColor: colors.primary },
+      };
+    case "gradient":
+      return {
+        className: "text-white",
+        style: {
+          background: `linear-gradient(135deg, ${colors.dark} 0%, #1e1b4b 50%, ${colors.dark} 100%)`,
+        },
+      };
+    case "light-alt":
+      return {
+        className: "",
+        style: { backgroundColor: "#f9fafb" }, // gray-50
+      };
+    case "light":
+    default:
+      return {
+        className: "",
+        style: { backgroundColor: "#ffffff" },
+      };
+  }
+}
 
 // Types
 interface EventData {
@@ -23,6 +61,8 @@ interface EventData {
   priceAmount: number;
   currency: string;
   primaryColor: string | null;
+  secondaryColor: string | null;
+  darkColor: string | null;
   logoUrl: string | null;
   bannerUrl: string | null;
   defaultLanguage: string;
@@ -116,6 +156,7 @@ export default function EventPageClient({ event, lang, isPreview }: EventPageCli
   const [currentSlide, setCurrentSlide] = useState(0);
   const [activeTab, setActiveTab] = useState(0);
   const [hotelSlide, setHotelSlide] = useState(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Extract section data helpers - apply localization to content
   const getSection = (type: string): PageSection | undefined => {
@@ -241,8 +282,10 @@ export default function EventPageClient({ event, lang, isPreview }: EventPageCli
   const pricingNote = pricingSection?.content?.note as string | undefined;
   const depositNote = pricingSection?.content?.depositNote as string | undefined;
 
-  // Primary color
-  const primaryColor = event.primaryColor || "#e85a2c";
+  // Theme colors
+  const primaryColor = event.primaryColor || "#f43f5e";
+  const secondaryColor = event.secondaryColor || "#d4a853";
+  const darkColor = event.darkColor || "#0a0a1a";
 
   // Navigation links based on available sections - using localized titles
   const navLinks = [
@@ -257,8 +300,18 @@ export default function EventPageClient({ event, lang, isPreview }: EventPageCli
   // Register URL with language prefix
   const registerUrl = `/${lang}/${event.slug}/register`;
 
+  // Handle smooth scroll for nav links
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    e.preventDefault();
+    const targetId = href.replace('#', '');
+    const element = document.getElementById(targetId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white scroll-smooth">
       {/* Preview Mode Banner */}
       {isPreview && (
         <div className="fixed top-0 left-0 right-0 z-[60] bg-amber-500 text-black px-4 py-2 text-center text-sm font-medium">
@@ -272,8 +325,11 @@ export default function EventPageClient({ event, lang, isPreview }: EventPageCli
         </div>
       )}
 
-      {/* Navigation - Transparent */}
-      <header className={`fixed left-0 right-0 z-50 ${isPreview ? "top-10" : "top-0"}`}>
+      {/* Navigation */}
+      <header
+        className={`fixed left-0 right-0 z-50 backdrop-blur-sm ${isPreview ? "top-10" : "top-0"}`}
+        style={{ backgroundColor: `${darkColor}cc` }}
+      >
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between py-3">
             <Link href={`/${lang}/${event.slug}`} className="flex items-center">
@@ -289,38 +345,105 @@ export default function EventPageClient({ event, lang, isPreview }: EventPageCli
                 <a
                   key={link.href}
                   href={link.href}
-                  className="text-white hover:opacity-80 font-medium text-sm tracking-wide transition drop-shadow-md"
+                  onClick={(e) => handleNavClick(e, link.href)}
+                  className="text-white hover:opacity-80 font-medium text-sm tracking-wide transition drop-shadow-md cursor-pointer"
                 >
                   {link.label}
                 </a>
               ))}
             </nav>
 
-            <div className="flex items-center gap-4">
-              {/* Language Selector */}
-              <LanguageSelector
-                currentLang={lang}
-                availableLanguages={(event.availableLanguages || [lang]) as Language[]}
-                slug={event.slug}
-              />
+            <div className="flex items-center gap-3">
+              {/* Language Selector - Desktop only */}
+              <div className="hidden lg:block">
+                <LanguageSelector
+                  currentLang={lang}
+                  availableLanguages={(event.availableLanguages || [lang]) as Language[]}
+                  slug={event.slug}
+                  variant="compact"
+                />
+              </div>
 
-              <button className="lg:hidden text-white p-2">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
-                </svg>
+              <button
+                className="lg:hidden text-white p-2"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              >
+                {mobileMenuOpen ? (
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                ) : (
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                )}
               </button>
             </div>
           </div>
         </div>
       </header>
 
+      {/* Mobile Menu - Full Screen (outside header) */}
+      {mobileMenuOpen && (
+        <div
+          className={`lg:hidden fixed left-0 right-0 bottom-0 z-40 flex flex-col overflow-y-auto ${isPreview ? "top-[96px]" : "top-[56px]"}`}
+          style={{ backgroundColor: darkColor }}
+        >
+          <nav className="flex-1 flex flex-col py-6 px-4">
+            {navLinks.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                onClick={(e) => {
+                  handleNavClick(e, link.href);
+                  setMobileMenuOpen(false);
+                }}
+                className="text-white hover:bg-white/10 font-medium text-lg tracking-wide transition px-4 py-4 border-b border-white/10"
+              >
+                {link.label}
+              </a>
+            ))}
+          </nav>
+
+          {/* Language Selector in Mobile Menu */}
+          <div className="px-4 py-4 border-t border-white/10">
+            <p className="text-white/50 text-xs uppercase tracking-wider mb-3">Language</p>
+            <div className="flex flex-wrap gap-2">
+              {(event.availableLanguages || [lang]).map((language) => (
+                <Link
+                  key={language}
+                  href={`/${language}/${event.slug}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition"
+                  style={
+                    language === lang
+                      ? { backgroundColor: `${secondaryColor}33`, color: secondaryColor }
+                      : { backgroundColor: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)" }
+                  }
+                >
+                  <span className="text-lg">{LANGUAGE_FLAGS[language as Language]}</span>
+                  <span>{LANGUAGE_NAMES[language as Language]}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Register CTA */}
+          <div className="p-4 border-t border-white/10">
+            <Link
+              href={registerUrl}
+              onClick={() => setMobileMenuOpen(false)}
+              className="block w-full text-center text-white px-6 py-4 font-bold text-lg tracking-wide transition-all shadow-lg rounded-lg"
+              style={{ backgroundColor: primaryColor }}
+            >
+              REGISTER NOW
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center">
+      <section className="relative min-h-[70vh] flex items-center justify-center">
         {/* Background slider */}
         <div className="absolute inset-0">
           {heroImages.map((img, index) => (
@@ -391,19 +514,29 @@ export default function EventPageClient({ event, lang, isPreview }: EventPageCli
       </section>
 
       {/* About Section */}
-      {aboutSection && aboutContent && (
-        <section id="about" className="py-16 px-4 bg-gray-50 scroll-mt-16">
-          <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-10">
-              <h2 className="text-2xl md:text-3xl font-normal text-[#1a1a2e] mb-3 tracking-wide">
-                {getLocalizedSectionTitle(aboutSection, "about", lang)}
-              </h2>
-              <div className="w-12 h-0.5 mx-auto" style={{ backgroundColor: primaryColor }}></div>
-            </div>
+      {aboutSection && aboutContent && (() => {
+        const aboutBg = getSectionBackgroundStyles(
+          aboutSection?.content?.background as SectionBackground,
+          { primary: primaryColor, secondary: secondaryColor, dark: darkColor }
+        );
+        const isDarkBg = ["dark", "primary", "gradient"].includes(aboutSection?.content?.background as string);
+        return (
+          <section
+            id="about"
+            className={`py-16 px-4 scroll-mt-16 ${aboutBg.className}`}
+            style={aboutBg.style}
+          >
+            <div className="max-w-4xl mx-auto">
+              <div className="text-center mb-10">
+                <h2 className={`text-2xl md:text-3xl font-normal mb-3 tracking-wide ${isDarkBg ? "text-white" : "text-[#1a1a2e]"}`}>
+                  {getLocalizedSectionTitle(aboutSection, "about", lang)}
+                </h2>
+                <div className="w-12 h-0.5 mx-auto" style={{ backgroundColor: isDarkBg ? secondaryColor : primaryColor }}></div>
+              </div>
 
-            <div className="prose prose-gray max-w-none text-center">
-              <div
-                className="text-gray-600 leading-relaxed"
+              <div className="prose prose-gray max-w-none text-center">
+                <div
+                  className={`leading-relaxed ${isDarkBg ? "text-white/80" : "text-gray-600"}`}
                 dangerouslySetInnerHTML={{ __html: aboutContent }}
               />
             </div>
@@ -422,7 +555,8 @@ export default function EventPageClient({ event, lang, isPreview }: EventPageCli
             )}
           </div>
         </section>
-      )}
+        );
+      })()}
 
       {/* Program Section */}
       {scheduleSection && schedule.length > 0 && (
@@ -640,7 +774,7 @@ export default function EventPageClient({ event, lang, isPreview }: EventPageCli
       {djSection && djTeam.length > 0 && (
         <section id="djs" className="relative py-16 px-4 scroll-mt-16 overflow-hidden">
           <div className="absolute inset-0">
-            <div className="absolute inset-0 bg-[#0a0a1a]"></div>
+            <div className="absolute inset-0" style={{ backgroundColor: darkColor }}></div>
             <div
               className="absolute inset-0 opacity-60"
               style={{
@@ -658,21 +792,29 @@ export default function EventPageClient({ event, lang, isPreview }: EventPageCli
               <h2 className="text-2xl md:text-3xl font-normal text-white mb-3 tracking-wide">
                 {getLocalizedSectionTitle(djSection, "djTeam", lang)}
               </h2>
-              <div className="w-12 h-0.5 bg-[#d4a853] mx-auto"></div>
+              <div className="w-12 h-0.5 mx-auto" style={{ backgroundColor: secondaryColor }}></div>
             </div>
 
             <div className="flex flex-wrap justify-center gap-6">
               {djTeam.map((dj, index) => (
                 <div key={index} className="text-center" style={{ width: "180px" }}>
                   <div className="relative mx-auto w-44 h-44 mb-3">
-                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#d4a853] via-[#f0d68a] to-[#b8962d] p-1.5">
-                      <div className="w-full h-full rounded-full overflow-hidden bg-[#0a0a20] relative">
+                    <div
+                      className="absolute inset-0 rounded-full p-1.5"
+                      style={{
+                        background: `linear-gradient(to bottom right, ${secondaryColor}, ${secondaryColor}88, ${secondaryColor}dd)`,
+                      }}
+                    >
+                      <div
+                        className="w-full h-full rounded-full overflow-hidden relative"
+                        style={{ backgroundColor: darkColor }}
+                      >
                         <img src={dj.photo} alt={dj.name} className="w-full h-full object-cover" />
                       </div>
                     </div>
                   </div>
                   <h3 className="font-medium text-white text-sm mb-0.5">{dj.name}</h3>
-                  <p className="text-[#d4a853] text-xs flex items-center justify-center gap-1">
+                  <p className="text-xs flex items-center justify-center gap-1" style={{ color: secondaryColor }}>
                     <span>{countryFlags[dj.country] || ""}</span>
                     <span>{dj.country?.toUpperCase()}</span>
                   </p>
@@ -687,7 +829,7 @@ export default function EventPageClient({ event, lang, isPreview }: EventPageCli
       {photographersSection && photographers.length > 0 && (
         <section className="relative py-16 px-4 scroll-mt-16 overflow-hidden">
           <div className="absolute inset-0">
-            <div className="absolute inset-0 bg-[#0a0a1a]"></div>
+            <div className="absolute inset-0" style={{ backgroundColor: darkColor }}></div>
             <div
               className="absolute inset-0 opacity-60"
               style={{
@@ -704,15 +846,23 @@ export default function EventPageClient({ event, lang, isPreview }: EventPageCli
               <h2 className="text-2xl md:text-3xl font-normal text-white mb-3 tracking-wide">
                 {getLocalizedSectionTitle(photographersSection, "photographers", lang)}
               </h2>
-              <div className="w-12 h-0.5 bg-[#d4a853] mx-auto"></div>
+              <div className="w-12 h-0.5 mx-auto" style={{ backgroundColor: secondaryColor }}></div>
             </div>
 
             <div className="flex flex-wrap justify-center gap-6">
               {photographers.map((photographer, index) => (
                 <div key={index} className="text-center" style={{ width: "180px" }}>
                   <div className="relative mx-auto w-44 h-44 mb-3">
-                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#d4a853] via-[#f0d68a] to-[#b8962d] p-1.5">
-                      <div className="w-full h-full rounded-full overflow-hidden bg-[#0a0a20] relative">
+                    <div
+                      className="absolute inset-0 rounded-full p-1.5"
+                      style={{
+                        background: `linear-gradient(to bottom right, ${secondaryColor}, ${secondaryColor}88, ${secondaryColor}dd)`,
+                      }}
+                    >
+                      <div
+                        className="w-full h-full rounded-full overflow-hidden relative"
+                        style={{ backgroundColor: darkColor }}
+                      >
                         <img
                           src={photographer.photo}
                           alt={photographer.name}
@@ -722,7 +872,7 @@ export default function EventPageClient({ event, lang, isPreview }: EventPageCli
                     </div>
                   </div>
                   <h3 className="font-medium text-white text-sm mb-0.5">{photographer.name}</h3>
-                  <p className="text-[#d4a853] text-xs flex items-center justify-center gap-1">
+                  <p className="text-xs flex items-center justify-center gap-1" style={{ color: secondaryColor }}>
                     <span>{countryFlags[photographer.country] || ""}</span>
                     <span>{photographer.country?.toUpperCase()}</span>
                   </p>
@@ -734,66 +884,80 @@ export default function EventPageClient({ event, lang, isPreview }: EventPageCli
       )}
 
       {/* Prices Section */}
-      {event.packages.length > 0 && (
-        <section id="prices" className="py-16 px-4 bg-white scroll-mt-16">
-          <div className="max-w-5xl mx-auto">
-            <div className="text-center mb-10">
-              <h2 className="text-2xl md:text-3xl font-normal text-[#1a1a2e] mb-3 tracking-wide">
-                {getLocalizedSectionTitle(pricingSection, "prices", lang)}
-              </h2>
-              <div className="w-12 h-0.5 mx-auto" style={{ backgroundColor: primaryColor }}></div>
-            </div>
+      {event.packages.length > 0 && (() => {
+        const pricingBg = getSectionBackgroundStyles(
+          pricingSection?.content?.background as SectionBackground,
+          { primary: primaryColor, secondary: secondaryColor, dark: darkColor }
+        );
+        const isDarkBg = ["dark", "primary", "gradient"].includes(pricingSection?.content?.background as string);
+        return (
+          <section
+            id="prices"
+            className={`py-16 px-4 scroll-mt-16 ${pricingBg.className}`}
+            style={pricingBg.style}
+          >
+            <div className="max-w-5xl mx-auto">
+              <div className="text-center mb-10">
+                <h2 className={`text-2xl md:text-3xl font-normal mb-3 tracking-wide ${isDarkBg ? "text-white" : "text-[#1a1a2e]"}`}>
+                  {getLocalizedSectionTitle(pricingSection, "prices", lang)}
+                </h2>
+                <div className="w-12 h-0.5 mx-auto" style={{ backgroundColor: isDarkBg ? secondaryColor : primaryColor }}></div>
+              </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {event.packages.map((pkg) => (
-                <div key={pkg.id} className="border border-gray-200 text-center p-6">
-                  <h3 className="text-base font-bold text-[#1a1a2e] mb-1">{pkg.name}</h3>
-                  {pkg.description && (
-                    <>
-                      <div
-                        className="w-8 h-px mx-auto mb-3"
-                        style={{ backgroundColor: primaryColor }}
-                      ></div>
-                      <p
-                        className="text-xs font-bold tracking-widest mb-3"
-                        style={{ color: primaryColor }}
-                      >
-                        {pkg.description}
-                      </p>
-                    </>
-                  )}
-                  <div className="mb-4">
-                    <span className="text-3xl font-bold text-[#1a1a2e]">{pkg.price / 100}</span>
-                    <span className="text-gray-500 text-xs block mt-1">per person</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {event.packages.map((pkg) => (
+                  <div
+                    key={pkg.id}
+                    className={`text-center p-6 ${isDarkBg ? "bg-white/10 border border-white/20" : "border border-gray-200 bg-white"}`}
+                  >
+                    <h3 className={`text-base font-bold mb-1 ${isDarkBg ? "text-white" : "text-[#1a1a2e]"}`}>{pkg.name}</h3>
+                    {pkg.description && (
+                      <>
+                        <div
+                          className="w-8 h-px mx-auto mb-3"
+                          style={{ backgroundColor: isDarkBg ? secondaryColor : primaryColor }}
+                        ></div>
+                        <p
+                          className="text-xs font-bold tracking-widest mb-3"
+                          style={{ color: isDarkBg ? secondaryColor : primaryColor }}
+                        >
+                          {pkg.description}
+                        </p>
+                      </>
+                    )}
+                    <div className="mb-4">
+                      <span className={`text-3xl font-bold ${isDarkBg ? "text-white" : "text-[#1a1a2e]"}`}>{pkg.price / 100}</span>
+                      <span className={`text-xs block mt-1 ${isDarkBg ? "text-white/60" : "text-gray-500"}`}>per person</span>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
 
-            <div className="mt-8 text-center text-sm text-gray-600">
-              {pricingNote && <p className="mb-4">{pricingNote}</p>}
-              {depositNote && <p className="text-xs text-gray-400">{depositNote}</p>}
+              <div className={`mt-8 text-center text-sm ${isDarkBg ? "text-white/70" : "text-gray-600"}`}>
+                {pricingNote && <p className="mb-4">{pricingNote}</p>}
+                {depositNote && <p className={`text-xs ${isDarkBg ? "text-white/50" : "text-gray-400"}`}>{depositNote}</p>}
+              </div>
             </div>
-          </div>
-        </section>
-      )}
+          </section>
+        );
+      })()}
 
       {/* Registration Section */}
-      <section id="register" className="py-16 px-4 bg-gray-50 scroll-mt-16">
+      <section id="register" className="py-16 px-4 scroll-mt-16" style={{ backgroundColor: darkColor }}>
         <div className="max-w-2xl mx-auto text-center">
-          <h2 className="text-2xl md:text-3xl font-normal text-[#1a1a2e] mb-3 tracking-wide">
+          <h2 className="text-2xl md:text-3xl font-normal text-white mb-3 tracking-wide">
             REGISTER
           </h2>
-          <div className="w-12 h-0.5 mx-auto mb-8" style={{ backgroundColor: primaryColor }}></div>
+          <div className="w-12 h-0.5 mx-auto mb-8" style={{ backgroundColor: secondaryColor }}></div>
 
-          <p className="text-gray-600 mb-8">
+          <p className="text-white/70 mb-8">
             Ready to join us for an unforgettable tango experience? Click below to complete your
             registration.
           </p>
 
           <Link
             href={registerUrl}
-            className="inline-block text-white px-10 py-4 font-bold text-lg tracking-wide transition-all shadow-lg rounded-sm"
+            className="inline-block text-white px-10 py-4 font-bold text-lg tracking-wide transition-all shadow-lg rounded-sm hover:opacity-90"
             style={{ backgroundColor: primaryColor }}
           >
             REGISTER NOW
@@ -802,7 +966,7 @@ export default function EventPageClient({ event, lang, isPreview }: EventPageCli
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#0d0d1a] text-white py-12 px-4">
+      <footer className="text-white py-12 px-4" style={{ backgroundColor: darkColor }}>
         <div className="max-w-4xl mx-auto text-center">
           {heroLogo && <img src={heroLogo} alt={event.title} className="h-20 w-auto mx-auto mb-4" />}
           <p className="text-white/50 text-sm mb-6">
@@ -811,7 +975,8 @@ export default function EventPageClient({ event, lang, isPreview }: EventPageCli
 
           <a
             href={`mailto:${event.organizer.email}`}
-            className="text-white/60 hover:text-[#d4a853] transition text-sm"
+            className="text-white/60 transition text-sm hover:opacity-80"
+            style={{ color: secondaryColor }}
           >
             {event.organizer.email}
           </a>

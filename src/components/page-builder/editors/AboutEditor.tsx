@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { AboutContent } from "@/lib/section-types";
 import { Language, DEFAULT_LANGUAGE, LANGUAGE_FLAGS } from "@/lib/i18n";
+import { SectionBackground } from "@/lib/colors";
 import RichTextEditor from "../common/RichTextEditor";
 import ImageUploader from "../common/ImageUploader";
+import SectionStylePicker from "./SectionStylePicker";
 
 interface AboutEditorProps {
   content: AboutContent;
@@ -91,6 +93,12 @@ export default function AboutEditor({ content, onChange, availableLanguages = [D
 
   return (
     <div className="space-y-6">
+      {/* Section Background */}
+      <SectionStylePicker
+        value={content?.background || "light"}
+        onChange={(bg: SectionBackground) => onChange({ ...content, background: bg })}
+      />
+
       {/* Content - Localized */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Content</label>

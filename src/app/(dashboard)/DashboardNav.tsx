@@ -63,11 +63,6 @@ const icons: Record<string, React.ReactNode> = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
   ),
-  team: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-    </svg>
-  ),
 };
 
 export default function DashboardNav() {
@@ -99,24 +94,25 @@ export default function DashboardNav() {
     setShowEventDropdown(false);
   };
 
-  // Permission checks
-  const canViewTeam = userRole && hasPermission(userRole, "org:team:view");
-
   // Event-specific navigation items
   const eventNavItems: NavItem[] = [
     { name: "Overview", href: `/dashboard`, icon: "overview", permission: "event:view" },
-    { name: "Page Builder", href: `/events/${selectedEventId}/page-builder`, icon: "pageBuilder", permission: "landing:edit" },
-    { name: "Registration Forms", href: `/events/${selectedEventId}/form-builder`, icon: "forms", permission: "form:edit" },
     { name: "Registrations", href: `/registrations?eventId=${selectedEventId}`, icon: "registrations", permission: "registration:view" },
-    { name: "Event Settings", href: `/events/${selectedEventId}`, icon: "eventSettings", permission: "event:edit" },
+    { name: "Settings", href: `/events/${selectedEventId}`, icon: "eventSettings", permission: "event:edit" },
+    { name: "Activity Log", href: "/settings/activity-log", icon: "activityLog", permission: "org:settings:view" },
   ];
 
-  // Organization navigation items
-  const orgNavItems: NavItem[] = [
-    { name: "All Events", href: "/events", icon: "allEvents", permission: "event:view" },
-    { name: "Activity Log", href: "/settings/activity-log", icon: "activityLog", permission: "org:settings:view" },
-    { name: "Settings", href: "/settings", icon: "settings", permission: "org:settings:view" },
+  // Builder navigation items
+  const builderNavItems: NavItem[] = [
+    { name: "Page Builder", href: `/events/${selectedEventId}/page-builder`, icon: "pageBuilder", permission: "landing:edit" },
+    { name: "Form Builder", href: `/events/${selectedEventId}/form-builder`, icon: "forms", permission: "form:edit" },
   ];
+
+  // Account navigation items
+  const settingsNavItems: NavItem[] = [
+    { name: "Account", href: "/settings", icon: "settings", permission: "org:settings:view" },
+  ];
+
 
   const isActivePath = (href: string) => {
     // Handle URLs with query parameters (e.g., /registrations?eventId=...)
@@ -132,9 +128,9 @@ export default function DashboardNav() {
       return pathname === "/events" || pathname === "/events/new";
     }
 
-    // Special case: /settings should only match /settings or /settings/team (not /settings/activity-log)
+    // Special case: /settings should only match /settings exactly (not /settings/activity-log)
     if (hrefPath === "/settings") {
-      return pathname === "/settings" || pathname === "/settings/team";
+      return pathname === "/settings";
     }
 
     // Special case: Event Settings (/events/[id]) should only match exactly
@@ -211,6 +207,18 @@ export default function DashboardNav() {
                     </span>
                   </button>
                 ))}
+                <div className="border-t border-gray-100 mt-1 pt-1">
+                  <Link
+                    href="/events"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-50 transition text-sm text-gray-500 hover:text-gray-700"
+                    onClick={() => setShowEventDropdown(false)}
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                    </svg>
+                    Manage Events
+                  </Link>
+                </div>
               </div>
             )}
           </div>
@@ -219,34 +227,64 @@ export default function DashboardNav() {
 
       {/* Navigation */}
       <nav className="p-4 space-y-6 flex-1 overflow-y-auto">
-        {/* Event Section */}
         {selectedEvent ? (
-          <div className="space-y-1">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 mb-2">
-              Event
-            </p>
-            {eventNavItems.map((item) => {
-              if (item.permission && userRole && !hasPermission(userRole, item.permission)) {
-                return null;
-              }
-              const isActive = isActivePath(item.href);
+          <>
+            {/* Builders Section */}
+            <div className="space-y-1">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 mb-2">
+                Builders
+              </p>
+              {builderNavItems.map((item) => {
+                if (item.permission && userRole && !hasPermission(userRole, item.permission)) {
+                  return null;
+                }
+                const isActive = isActivePath(item.href);
 
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition ${
-                    isActive
-                      ? "bg-rose-500 text-white shadow-lg shadow-rose-500/25"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                  }`}
-                >
-                  {icons[item.icon]}
-                  <span className="text-sm font-medium">{item.name}</span>
-                </Link>
-              );
-            })}
-          </div>
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition ${
+                      isActive
+                        ? "bg-rose-500 text-white shadow-lg shadow-rose-500/25"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                    }`}
+                  >
+                    {icons[item.icon]}
+                    <span className="text-sm font-medium">{item.name}</span>
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* Event Section */}
+            <div className="space-y-1">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 mb-2">
+                Event
+              </p>
+              {eventNavItems.map((item) => {
+                if (item.permission && userRole && !hasPermission(userRole, item.permission)) {
+                  return null;
+                }
+                const isActive = isActivePath(item.href);
+
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition ${
+                      isActive
+                        ? "bg-rose-500 text-white shadow-lg shadow-rose-500/25"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                    }`}
+                  >
+                    {icons[item.icon]}
+                    <span className="text-sm font-medium">{item.name}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </>
         ) : events.length > 0 ? (
           <div className="px-4 py-8 text-center">
             <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -257,56 +295,32 @@ export default function DashboardNav() {
             <p className="text-sm text-gray-500">Select an event to get started</p>
           </div>
         ) : null}
-
-        {/* Organization Section */}
-        <div className="space-y-1">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 mb-2">
-            Organization
-          </p>
-          {orgNavItems.map((item) => {
-            if (item.permission && userRole && !hasPermission(userRole, item.permission)) {
-              return null;
-            }
-            const isActive = isActivePath(item.href);
-            const isSettingsActive = item.href === "/settings" && pathname.startsWith("/settings");
-
-            return (
-              <div key={item.name}>
-                <Link
-                  href={item.href}
-                  className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition ${
-                    isActive && item.href !== "/settings"
-                      ? "bg-rose-500 text-white shadow-lg shadow-rose-500/25"
-                      : isSettingsActive
-                      ? "bg-rose-500 text-white shadow-lg shadow-rose-500/25"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                  }`}
-                >
-                  {icons[item.icon]}
-                  <span className="text-sm font-medium">{item.name}</span>
-                </Link>
-
-                {/* Settings sub-navigation - Team */}
-                {item.href === "/settings" && isSettingsActive && canViewTeam && (
-                  <div className="ml-4 mt-1 space-y-1">
-                    <Link
-                      href="/settings/team"
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition ${
-                        pathname === "/settings/team"
-                          ? "bg-rose-100 text-rose-700"
-                          : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                      }`}
-                    >
-                      {icons.team}
-                      Team
-                    </Link>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
       </nav>
+
+      {/* Account Section - Bottom */}
+      <div className="p-4 border-t border-gray-100 pb-20 space-y-1">
+        {settingsNavItems.map((item) => {
+          if (item.permission && userRole && !hasPermission(userRole, item.permission)) {
+            return null;
+          }
+          const isActive = isActivePath(item.href);
+
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition ${
+                isActive
+                  ? "bg-rose-500 text-white shadow-lg shadow-rose-500/25"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+              }`}
+            >
+              {icons[item.icon]}
+              <span className="text-sm font-medium">{item.name}</span>
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 }

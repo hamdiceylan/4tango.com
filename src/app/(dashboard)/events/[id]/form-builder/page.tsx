@@ -297,12 +297,6 @@ export default function FormBuilderPage({ params }: { params: { id: string } }) 
       {/* Left Sidebar - Field List */}
       <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
         <div className="p-4 border-b border-gray-200">
-          <Link href={`/events/${event.id}`} className="text-gray-500 hover:text-gray-900 transition flex items-center gap-2 mb-4">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Event
-          </Link>
           <h1 className="text-xl font-bold text-gray-900">Form Builder</h1>
           <p className="text-gray-500 text-sm">{event.title}</p>
         </div>

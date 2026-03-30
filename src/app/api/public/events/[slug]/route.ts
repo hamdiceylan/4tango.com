@@ -86,6 +86,8 @@ export async function GET(
       status: event.status,
       djs: event.djs,
       primaryColor: event.primaryColor,
+      secondaryColor: event.secondaryColor,
+      darkColor: event.darkColor,
       logoUrl: event.logoUrl,
       bannerUrl: event.bannerUrl,
       organizer: event.organizer,

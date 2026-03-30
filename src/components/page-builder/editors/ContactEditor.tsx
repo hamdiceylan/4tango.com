@@ -1,6 +1,8 @@
 "use client";
 
 import { ContactContent } from "@/lib/section-types";
+import { SectionBackground } from "@/lib/colors";
+import SectionStylePicker from "./SectionStylePicker";
 
 interface ContactEditorProps {
   content: ContactContent;
@@ -20,6 +22,12 @@ export default function ContactEditor({ content, onChange }: ContactEditorProps)
 
   return (
     <div className="space-y-6">
+      {/* Section Background */}
+      <SectionStylePicker
+        value={content?.background || "light"}
+        onChange={(bg: SectionBackground) => onChange({ ...content, background: bg })}
+      />
+
       {/* Email */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>

@@ -4,11 +4,12 @@ import { useState, useEffect } from "react";
 
 interface LivePreviewProps {
   eventSlug: string;
+  lang?: string;
 }
 
-export default function LivePreview({ eventSlug }: LivePreviewProps) {
+export default function LivePreview({ eventSlug, lang = "en" }: LivePreviewProps) {
   const [iframeKey, setIframeKey] = useState(0);
-  const previewUrl = `/${eventSlug}?preview=true`;
+  const previewUrl = `/${lang}/${eventSlug}?preview=true`;
 
   // Refresh preview
   const refreshPreview = () => {

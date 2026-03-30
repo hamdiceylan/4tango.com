@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { AccommodationContent } from "@/lib/section-types";
 import { Language, DEFAULT_LANGUAGE, LANGUAGE_FLAGS } from "@/lib/i18n";
+import { SectionBackground } from "@/lib/colors";
 import RichTextEditor from "../common/RichTextEditor";
 import ImageUploader from "../common/ImageUploader";
+import SectionStylePicker from "./SectionStylePicker";
 
 interface AccommodationEditorProps {
   content: AccommodationContent;
@@ -81,6 +83,12 @@ export default function AccommodationEditor({
 
   return (
     <div className="space-y-6">
+      {/* Section Background */}
+      <SectionStylePicker
+        value={content?.background || "light"}
+        onChange={(bg: SectionBackground) => onChange({ ...content, background: bg })}
+      />
+
       {/* Language Tabs - only show if multiple languages */}
       {multiLang && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">

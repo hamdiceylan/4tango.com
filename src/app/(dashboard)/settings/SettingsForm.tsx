@@ -1,6 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import type { OrganizerRole } from "@prisma/client";
+import { hasPermission, getAssignableRoles, ROLE_DISPLAY_NAMES } from "@/lib/permissions";
+import MemberRow from "@/components/team/MemberRow";
+import InviteMemberModal from "@/components/team/InviteMemberModal";
 
 interface SettingsFormProps {
   initialData: {
@@ -11,10 +16,42 @@ interface SettingsFormProps {
   };
 }
 
+interface Member {
+  id: string;
+  email: string;
+  fullName: string;
+  role: OrganizerRole;
+  createdAt: string;
+}
+
+interface Invitation {
+  id: string;
+  email: string;
+  role: OrganizerRole;
+  invitedBy: string;
+  createdAt: string;
+  expiresAt: string;
+  isExpired: boolean;
+}
+
+interface UserData {
+  id: string;
+  role: OrganizerRole;
+}
+
 export default function SettingsForm({ initialData }: SettingsFormProps) {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<"profile" | "team">("profile");
   const [profile, setProfile] = useState(initialData);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // Team state
+  const [members, setMembers] = useState<Member[]>([]);
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [user, setUser] = useState<UserData | null>(null);
+  const [teamLoading, setTeamLoading] = useState(true);
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
   const initials = profile.name
     .split(" ")
@@ -38,12 +75,118 @@ export default function SettingsForm({ initialData }: SettingsFormProps) {
     }
   };
 
+  // Team functions
+  const fetchTeamData = async () => {
+    try {
+      const profileRes = await fetch("/api/auth/profile", { credentials: "include" });
+      if (!profileRes.ok) {
+        router.push("/login");
+        return;
+      }
+      const profileData = await profileRes.json();
+      setUser({ id: profileData.id, role: profileData.role });
+
+      if (!hasPermission(profileData.role, "org:team:view")) {
+        return;
+      }
+
+      const [membersRes, invitationsRes] = await Promise.all([
+        fetch("/api/team/members", { credentials: "include" }),
+        fetch("/api/team/invitations", { credentials: "include" }),
+      ]);
+
+      if (membersRes.ok) {
+        setMembers(await membersRes.json());
+      }
+
+      if (invitationsRes.ok) {
+        setInvitations(await invitationsRes.json());
+      }
+    } catch (error) {
+      console.error("Error fetching team data:", error);
+    } finally {
+      setTeamLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTeamData();
+  }, []);
+
+  const handleCancelInvitation = async (id: string) => {
+    try {
+      const res = await fetch(`/api/team/invitations/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (res.ok) {
+        setInvitations(invitations.filter((inv) => inv.id !== id));
+      }
+    } catch (error) {
+      console.error("Error cancelling invitation:", error);
+    }
+  };
+
+  const handleResendInvitation = async (id: string) => {
+    try {
+      const res = await fetch(`/api/team/invitations/${id}`, {
+        method: "POST",
+        credentials: "include",
+      });
+
+      if (res.ok) {
+        fetchTeamData();
+      }
+    } catch (error) {
+      console.error("Error resending invitation:", error);
+    }
+  };
+
+  const canViewTeam = user && hasPermission(user.role, "org:team:view");
+  const canInvite = user && hasPermission(user.role, "org:team:invite");
+  const assignableRoles = user ? getAssignableRoles(user.role) : [];
+
   return (
     <div className="p-8 max-w-4xl">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Settings</h1>
-        <p className="text-gray-500">Manage your account and preferences</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Account</h1>
+        <p className="text-gray-500">Manage your account, preferences, and team</p>
+      </div>
+
+      {/* Tabs */}
+      <div className="border-b border-gray-200 mb-6">
+        <nav className="flex gap-8">
+          <button
+            onClick={() => setActiveTab("profile")}
+            className={`pb-4 font-medium transition relative ${
+              activeTab === "profile"
+                ? "text-rose-500"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Profile
+            {activeTab === "profile" && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-rose-500" />
+            )}
+          </button>
+          {canViewTeam && (
+            <button
+              onClick={() => setActiveTab("team")}
+              className={`pb-4 font-medium transition relative ${
+                activeTab === "team"
+                  ? "text-rose-500"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Team
+              {activeTab === "team" && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-rose-500" />
+              )}
+            </button>
+          )}
+        </nav>
       </div>
 
       {message && (
@@ -52,154 +195,255 @@ export default function SettingsForm({ initialData }: SettingsFormProps) {
         </div>
       )}
 
-      {/* Profile Settings */}
-      <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm mb-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-6">Profile</h2>
-        <div className="space-y-6">
-          <div className="flex items-center gap-6">
-            <div className="w-20 h-20 bg-rose-100 rounded-full flex items-center justify-center">
-              <span className="text-2xl text-rose-600 font-bold">{initials}</span>
+      {/* Profile Tab */}
+      {activeTab === "profile" && (
+        <>
+          {/* Profile Settings */}
+          <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Profile</h2>
+            <div className="space-y-6">
+              <div className="flex items-center gap-6">
+                <div className="w-20 h-20 bg-rose-100 rounded-full flex items-center justify-center">
+                  <span className="text-2xl text-rose-600 font-bold">{initials}</span>
+                </div>
+                <button className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition font-medium">
+                  Change Photo
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    value={profile.name}
+                    onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={profile.email}
+                    disabled
+                    className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-gray-500 cursor-not-allowed"
+                  />
+                  <p className="text-gray-500 text-xs mt-1">Email cannot be changed</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Organization Name
+                  </label>
+                  <input
+                    type="text"
+                    value={profile.organization}
+                    onChange={(e) => setProfile({ ...profile, organization: e.target.value })}
+                    placeholder="Your organization or brand name"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Default Currency
+                  </label>
+                  <select
+                    value={profile.currency}
+                    onChange={(e) => setProfile({ ...profile, currency: e.target.value })}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                  >
+                    <option value="EUR">EUR - Euro</option>
+                    <option value="USD">USD - US Dollar</option>
+                    <option value="GBP">GBP - British Pound</option>
+                  </select>
+                </div>
+              </div>
             </div>
-            <button className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition font-medium">
-              Change Photo
+          </div>
+
+          {/* Payment Settings */}
+          <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Payment Settings</h2>
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                  <svg className="w-6 h-6 text-purple-600" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z"/>
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-gray-900 font-medium">Stripe</p>
+                  <p className="text-gray-500 text-sm">Not connected</p>
+                </div>
+              </div>
+              <button className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-lg transition font-medium shadow-lg shadow-rose-500/25">
+                Connect Stripe
+              </button>
+            </div>
+            <p className="text-gray-500 text-sm mt-3">
+              Connect your Stripe account to accept payments for your events.
+            </p>
+          </div>
+
+          {/* Danger Zone */}
+          <div className="bg-red-50 rounded-2xl p-6 border border-red-200">
+            <h2 className="text-xl font-semibold text-red-600 mb-4">Danger Zone</h2>
+            <p className="text-gray-600 mb-4">
+              Permanently delete your account and all associated data. This action cannot be undone.
+            </p>
+            <button className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition font-medium">
+              Delete Account
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Full Name
-              </label>
-              <input
-                type="text"
-                value={profile.name}
-                onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email
-              </label>
-              <input
-                type="email"
-                value={profile.email}
-                disabled
-                className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-gray-500 cursor-not-allowed"
-              />
-              <p className="text-gray-500 text-xs mt-1">Email cannot be changed</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Organization Name
-              </label>
-              <input
-                type="text"
-                value={profile.organization}
-                onChange={(e) => setProfile({ ...profile, organization: e.target.value })}
-                placeholder="Your organization or brand name"
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Default Currency
-              </label>
-              <select
-                value={profile.currency}
-                onChange={(e) => setProfile({ ...profile, currency: e.target.value })}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-              >
-                <option value="EUR">EUR - Euro</option>
-                <option value="USD">USD - US Dollar</option>
-                <option value="GBP">GBP - British Pound</option>
-              </select>
-            </div>
+          {/* Save Button */}
+          <div className="mt-8 flex justify-end">
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white px-8 py-3 rounded-xl font-semibold transition flex items-center gap-2 shadow-lg shadow-rose-500/25"
+            >
+              {isSaving ? (
+                <>
+                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </button>
           </div>
-        </div>
-      </div>
+        </>
+      )}
 
-      {/* Payment Settings */}
-      <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm mb-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-6">Payment Settings</h2>
-        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-              <svg className="w-6 h-6 text-purple-600" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z"/>
-              </svg>
+      {/* Team Tab */}
+      {activeTab === "team" && canViewTeam && (
+        <>
+          {teamLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-500"></div>
             </div>
-            <div>
-              <p className="text-gray-900 font-medium">Stripe</p>
-              <p className="text-gray-500 text-sm">Not connected</p>
-            </div>
-          </div>
-          <button className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-lg transition font-medium shadow-lg shadow-rose-500/25">
-            Connect Stripe
-          </button>
-        </div>
-        <p className="text-gray-500 text-sm mt-3">
-          Connect your Stripe account to accept payments for your events.
-        </p>
-      </div>
-
-      {/* Notification Settings */}
-      <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm mb-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-6">Notifications</h2>
-        <div className="space-y-4">
-          {[
-            { label: "New registration notifications", description: "Get notified when someone registers for your event" },
-            { label: "Payment notifications", description: "Get notified when a payment is received" },
-            { label: "Weekly summary", description: "Receive a weekly summary of your events" },
-          ].map((item, i) => (
-            <div key={i} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
-              <div>
-                <p className="text-gray-900 font-medium">{item.label}</p>
-                <p className="text-gray-500 text-sm">{item.description}</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" defaultChecked className="sr-only peer" />
-                <div className="w-11 h-6 bg-gray-300 peer-focus:ring-2 peer-focus:ring-rose-500 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
-              </label>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Danger Zone */}
-      <div className="bg-red-50 rounded-2xl p-6 border border-red-200">
-        <h2 className="text-xl font-semibold text-red-600 mb-4">Danger Zone</h2>
-        <p className="text-gray-600 mb-4">
-          Permanently delete your account and all associated data. This action cannot be undone.
-        </p>
-        <button className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition font-medium">
-          Delete Account
-        </button>
-      </div>
-
-      {/* Save Button */}
-      <div className="mt-8 flex justify-end">
-        <button
-          onClick={handleSave}
-          disabled={isSaving}
-          className="bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white px-8 py-3 rounded-xl font-semibold transition flex items-center gap-2 shadow-lg shadow-rose-500/25"
-        >
-          {isSaving ? (
-            <>
-              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-              Saving...
-            </>
           ) : (
-            "Save Changes"
+            <>
+              {/* Team Members */}
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm mb-8">
+                <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+                  <h2 className="font-semibold text-gray-900">
+                    Team Members ({members.length})
+                  </h2>
+                  {canInvite && (
+                    <button
+                      onClick={() => setShowInviteModal(true)}
+                      className="px-4 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition text-sm flex items-center gap-2"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 4v16m8-8H4"
+                        />
+                      </svg>
+                      Invite Member
+                    </button>
+                  )}
+                </div>
+
+                <div>
+                  {members.map((member) => (
+                    <MemberRow
+                      key={member.id}
+                      member={member}
+                      currentUserId={user!.id}
+                      currentUserRole={user!.role}
+                      onUpdate={fetchTeamData}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Pending Invitations */}
+              {invitations.length > 0 && (
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+                  <div className="p-4 border-b border-gray-200">
+                    <h2 className="font-semibold text-gray-900">
+                      Pending Invitations ({invitations.length})
+                    </h2>
+                  </div>
+
+                  <div className="divide-y divide-gray-100">
+                    {invitations.map((invitation) => (
+                      <div
+                        key={invitation.id}
+                        className="p-4 flex items-center justify-between"
+                      >
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-gray-900">
+                              {invitation.email}
+                            </p>
+                            <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-600">
+                              {ROLE_DISPLAY_NAMES[invitation.role]}
+                            </span>
+                            {invitation.isExpired && (
+                              <span className="px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-600">
+                                Expired
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-500 mt-0.5">
+                            Invited by {invitation.invitedBy} &middot;{" "}
+                            {new Date(invitation.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleResendInvitation(invitation.id)}
+                            className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
+                          >
+                            Resend
+                          </button>
+                          <button
+                            onClick={() => handleCancelInvitation(invitation.id)}
+                            className="px-3 py-1.5 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
-        </button>
-      </div>
+
+          {/* Invite Modal */}
+          {showInviteModal && (
+            <InviteMemberModal
+              assignableRoles={assignableRoles}
+              onClose={() => setShowInviteModal(false)}
+              onInvite={fetchTeamData}
+            />
+          )}
+        </>
+      )}
     </div>
   );
 }

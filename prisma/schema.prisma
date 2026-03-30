@@ -127,6 +127,8 @@ model Event {
   djs                  String[]    // Array of DJ names
   // Theme settings for page builder
   primaryColor         String?     @default("#f43f5e") // rose-500
+  secondaryColor       String?     @default("#d4a853") // gold accent
+  darkColor            String?     @default("#0a0a1a") // dark navy background
   logoUrl              String?
   bannerUrl            String?
   // i18n settings
@@ -284,7 +286,7 @@ model EventPageSection {
   eventId   String
   type      SectionType
   order     Int
-  title     String?
+  title     Json?       // Can be string or localized object { en: "Title", es: "Título" }
   content   Json        // Section-specific data (varies by type)
   isVisible Boolean     @default(true)
   createdAt DateTime    @default(now())

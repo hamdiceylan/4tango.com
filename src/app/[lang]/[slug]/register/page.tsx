@@ -36,6 +36,7 @@ interface EventData {
   endAt: string;
   priceAmount: number;
   currency: string;
+  primaryColor?: string | null;
   formFields: FormField[];
   packages: Package[];
   organizer: {
@@ -231,6 +232,9 @@ export default function RegisterPage() {
     );
   }
 
+  // Theme color
+  const primaryColor = event.primaryColor || "#f43f5e";
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -246,7 +250,8 @@ export default function RegisterPage() {
             currentLang={lang as Language}
             availableLanguages={(event.availableLanguages || [lang]) as Language[]}
             slug={`${event.slug}/register`}
-            className="[&_a]:bg-gray-100 [&_a]:hover:bg-gray-200 [&_a.ring-2]:bg-rose-100 [&_a.ring-2]:ring-rose-400"
+            variant="compact"
+            className="[&_button]:bg-gray-100 [&_button]:border-gray-200 [&_button]:hover:bg-gray-200 [&_svg]:text-gray-500"
           />
         </div>
       </header>
@@ -408,9 +413,13 @@ export default function RegisterPage() {
                     key={pkg.id}
                     className={`flex items-center justify-between p-4 border-2 rounded-lg cursor-pointer transition ${
                       formData.packageId === pkg.id
-                        ? "border-rose-500 bg-rose-50"
+                        ? ""
                         : "border-gray-200 hover:border-gray-300"
                     }`}
+                    style={formData.packageId === pkg.id ? {
+                      borderColor: primaryColor,
+                      backgroundColor: `${primaryColor}10`,
+                    } : {}}
                   >
                     <div className="flex items-center gap-3">
                       <input
@@ -419,7 +428,8 @@ export default function RegisterPage() {
                         value={pkg.id}
                         checked={formData.packageId === pkg.id}
                         onChange={handleChange}
-                        className="text-rose-500 focus:ring-rose-500"
+                        className="accent-current"
+                        style={{ accentColor: primaryColor }}
                       />
                       <div>
                         <p className="font-medium text-gray-900">{pkg.name}</p>
@@ -587,7 +597,11 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="mt-6 w-full bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white py-3 rounded-xl font-semibold transition shadow-lg shadow-rose-500/25 flex items-center justify-center gap-2"
+              className="mt-6 w-full text-white py-3 rounded-xl font-semibold transition shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+              style={{
+                backgroundColor: primaryColor,
+                boxShadow: `0 10px 15px -3px ${primaryColor}40`,
+              }}
             >
               {isSubmitting ? (
                 <>
@@ -598,7 +612,7 @@ export default function RegisterPage() {
                   Submitting...
                 </>
               ) : (
-                <>Register for {event.priceAmount > 0 ? `${(event.priceAmount / 100).toFixed(0)} ${event.currency}` : "Free"}</>
+                "Register"
               )}
             </button>
           </div>
@@ -606,7 +620,7 @@ export default function RegisterPage() {
 
         {/* Footer */}
         <p className="text-center text-gray-400 text-sm mt-8">
-          Powered by <Link href={`/${lang}`} className="text-rose-500 hover:underline">4Tango</Link>
+          Powered by <Link href={`/${lang}`} className="hover:underline" style={{ color: primaryColor }}>4Tango</Link>
         </p>
       </div>
     </div>

@@ -23,11 +23,11 @@ export function SmoothScrollLink({ href, className, children, onClick }: SmoothS
       const duration = 1000; // 1 second for smooth slow scroll
       let startTime: number | null = null;
 
-      function easeInOutCubic(t: number): number {
+      const easeInOutCubic = (t: number): number => {
         return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-      }
+      };
 
-      function animation(currentTime: number) {
+      const animation = (currentTime: number) => {
         if (startTime === null) startTime = currentTime;
         const elapsed = currentTime - startTime;
         const progress = Math.min(elapsed / duration, 1);
@@ -38,7 +38,7 @@ export function SmoothScrollLink({ href, className, children, onClick }: SmoothS
         if (elapsed < duration) {
           requestAnimationFrame(animation);
         }
-      }
+      };
 
       requestAnimationFrame(animation);
     }

@@ -40,7 +40,7 @@ interface Event {
 
 export default function EventDetailPage() {
   const params = useParams<{ id: string }>();
-  const [activeTab, setActiveTab] = useState<"overview" | "settings">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "settings" | "notifications">("overview");
   const [copied, setCopied] = useState(false);
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
@@ -165,23 +165,15 @@ export default function EventDetailPage() {
     <div className="p-8">
       {/* Header */}
       <div className="mb-8">
-        <Link href="/events" className="text-gray-500 hover:text-gray-900 transition flex items-center gap-2 mb-4">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Back to Events
-        </Link>
-        <div>
-          <div className="flex items-center gap-3 mb-2">
+        <div className="flex items-center gap-3 mb-2">
             <h1 className="text-3xl font-bold text-gray-900">{event.title}</h1>
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${
               event.status === "PUBLISHED" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
             }`}>
               {event.status.toLowerCase()}
             </span>
-          </div>
-          <p className="text-gray-500">{event.city}, {event.country} · {formatDate(event.startAt)} to {formatDate(event.endAt)}</p>
         </div>
+        <p className="text-gray-500">{event.city}, {event.country} · {formatDate(event.startAt)} to {formatDate(event.endAt)}</p>
       </div>
 
       {/* Stats Cards */}
@@ -210,6 +202,7 @@ export default function EventDetailPage() {
           {[
             { id: "overview", label: "Overview" },
             { id: "settings", label: "Settings" },
+            { id: "notifications", label: "Notifications" },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -419,6 +412,32 @@ export default function EventDetailPage() {
               <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium">
                 Delete Event
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "notifications" && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900 mb-6">Notifications</h2>
+            <div className="space-y-4">
+              {[
+                { label: "New registration notifications", description: "Get notified when someone registers for this event" },
+                { label: "Payment notifications", description: "Get notified when a payment is received" },
+                { label: "Waitlist notifications", description: "Get notified when someone joins the waitlist" },
+              ].map((item, i) => (
+                <div key={i} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <div>
+                    <p className="text-gray-900 font-medium">{item.label}</p>
+                    <p className="text-gray-500 text-sm">{item.description}</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" defaultChecked className="sr-only peer" />
+                    <div className="w-11 h-6 bg-gray-300 peer-focus:ring-2 peer-focus:ring-rose-500 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
+                  </label>
+                </div>
+              ))}
             </div>
           </div>
         </div>

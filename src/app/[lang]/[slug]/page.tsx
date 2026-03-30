@@ -217,6 +217,8 @@ export default async function EventPage({ params, searchParams }: PageProps) {
     priceAmount: event.priceAmount,
     currency: event.currency,
     primaryColor: event.primaryColor,
+    secondaryColor: event.secondaryColor,
+    darkColor: event.darkColor,
     logoUrl: event.logoUrl,
     bannerUrl: event.bannerUrl,
     defaultLanguage: event.defaultLanguage,

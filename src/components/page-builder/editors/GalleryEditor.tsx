@@ -1,7 +1,9 @@
 "use client";
 
 import { GalleryContent, GalleryImage } from "@/lib/section-types";
+import { SectionBackground } from "@/lib/colors";
 import ImageUploader from "../common/ImageUploader";
+import SectionStylePicker from "./SectionStylePicker";
 
 interface GalleryEditorProps {
   content: GalleryContent;
@@ -30,6 +32,12 @@ export default function GalleryEditor({ content, onChange }: GalleryEditorProps)
 
   return (
     <div className="space-y-6">
+      {/* Section Background */}
+      <SectionStylePicker
+        value={content?.background || "light"}
+        onChange={(bg: SectionBackground) => onChange({ ...content, background: bg })}
+      />
+
       {/* Layout Selection */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Layout</label>

@@ -16,6 +16,8 @@ import CustomTextEditor from "./editors/CustomTextEditor";
 import PricingEditor from "./editors/PricingEditor";
 import LivePreview from "./LivePreview";
 import LanguageSettings from "./LanguageSettings";
+import ColorSettings from "./ColorSettings";
+import { DEFAULT_COLORS } from "@/lib/colors";
 
 interface Section {
   id: string;
@@ -41,6 +43,8 @@ interface Event {
   title: string;
   slug: string;
   primaryColor: string | null;
+  secondaryColor: string | null;
+  darkColor: string | null;
   availableLanguages: Language[];
   defaultLanguage: Language;
 }
@@ -60,6 +64,7 @@ export default function PageBuilderLayout({ eventId }: PageBuilderLayoutProps) {
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [showLanguageSettings, setShowLanguageSettings] = useState(false);
+  const [showColorSettings, setShowColorSettings] = useState(false);
   const [titleEditLang, setTitleEditLang] = useState<Language>(DEFAULT_LANGUAGE);
 
   // Fetch event and sections
@@ -78,6 +83,8 @@ export default function PageBuilderLayout({ eventId }: PageBuilderLayoutProps) {
             title: eventData.title,
             slug: eventData.slug,
             primaryColor: eventData.primaryColor,
+            secondaryColor: eventData.secondaryColor,
+            darkColor: eventData.darkColor,
             availableLanguages: (eventData.availableLanguages || [DEFAULT_LANGUAGE]) as Language[],
             defaultLanguage: (eventData.defaultLanguage || DEFAULT_LANGUAGE) as Language,
           });
@@ -205,18 +212,21 @@ export default function PageBuilderLayout({ eventId }: PageBuilderLayoutProps) {
         credentials: "include",
       });
 
-      // Save selected section content if any
-      if (selectedSection) {
-        await fetch(`/api/events/${eventId}/sections/${selectedSection.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: selectedSection.title,
-            content: selectedSection.content,
-          }),
-          credentials: "include",
-        });
-      }
+      // Save all sections (title and content for each)
+      // This ensures any changes made to any section are saved, not just the currently selected one
+      await Promise.all(
+        sections.map((section) =>
+          fetch(`/api/events/${eventId}/sections/${section.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: section.title,
+              content: section.content,
+            }),
+            credentials: "include",
+          })
+        )
+      );
 
       setHasChanges(false);
     } catch (error) {
@@ -403,15 +413,6 @@ export default function PageBuilderLayout({ eventId }: PageBuilderLayoutProps) {
       <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
         {/* Header */}
         <div className="p-4 border-b border-gray-200">
-          <Link
-            href={`/events/${event.id}`}
-            className="text-gray-500 hover:text-gray-900 transition flex items-center gap-2 mb-4"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Event
-          </Link>
           <h1 className="text-xl font-bold text-gray-900">Page Builder</h1>
           <p className="text-gray-500 text-sm">{event.title}</p>
         </div>
@@ -570,6 +571,32 @@ export default function PageBuilderLayout({ eventId }: PageBuilderLayoutProps) {
 
         {/* Footer Actions */}
         <div className="p-4 border-t border-gray-200 space-y-2">
+          {/* Theme Button */}
+          <button
+            onClick={() => setShowColorSettings(true)}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg font-medium transition"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+            </svg>
+            Theme
+            {event && (
+              <span className="ml-1 flex items-center gap-0.5">
+                <span
+                  className="w-3 h-3 rounded-full border border-white/50"
+                  style={{ backgroundColor: event.primaryColor || DEFAULT_COLORS.primary }}
+                />
+                <span
+                  className="w-3 h-3 rounded-full border border-white/50"
+                  style={{ backgroundColor: event.secondaryColor || DEFAULT_COLORS.secondary }}
+                />
+                <span
+                  className="w-3 h-3 rounded-full border border-white/50"
+                  style={{ backgroundColor: event.darkColor || DEFAULT_COLORS.dark }}
+                />
+              </span>
+            )}
+          </button>
           {/* Languages Button */}
           <button
             onClick={() => setShowLanguageSettings(true)}
@@ -610,7 +637,7 @@ export default function PageBuilderLayout({ eventId }: PageBuilderLayoutProps) {
             {showPreview ? "Hide Preview" : "Show Preview"}
           </button>
           <Link
-            href={`/${event.slug}?preview=true`}
+            href={`/${event.defaultLanguage}/${event.slug}?preview=true`}
             target="_blank"
             className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition"
           >
@@ -710,7 +737,7 @@ export default function PageBuilderLayout({ eventId }: PageBuilderLayoutProps) {
         {/* Live Preview */}
         {showPreview && (
           <div className="w-1/2 border-l border-gray-200">
-            <LivePreview eventSlug={event.slug} />
+            <LivePreview eventSlug={event.slug} lang={event.defaultLanguage} />
           </div>
         )}
       </div>
@@ -743,6 +770,40 @@ export default function PageBuilderLayout({ eventId }: PageBuilderLayoutProps) {
             }
           }}
           onClose={() => setShowLanguageSettings(false)}
+        />
+      )}
+
+      {/* Color Settings Modal */}
+      {showColorSettings && event && (
+        <ColorSettings
+          primaryColor={event.primaryColor || DEFAULT_COLORS.primary}
+          secondaryColor={event.secondaryColor || DEFAULT_COLORS.secondary}
+          darkColor={event.darkColor || DEFAULT_COLORS.dark}
+          onUpdate={async (colors) => {
+            try {
+              const res = await fetch(`/api/events/${eventId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  primaryColor: colors.primaryColor,
+                  secondaryColor: colors.secondaryColor,
+                  darkColor: colors.darkColor,
+                }),
+                credentials: "include",
+              });
+              if (res.ok) {
+                setEvent({
+                  ...event,
+                  primaryColor: colors.primaryColor,
+                  secondaryColor: colors.secondaryColor,
+                  darkColor: colors.darkColor,
+                });
+              }
+            } catch (error) {
+              console.error("Error updating color settings:", error);
+            }
+          }}
+          onClose={() => setShowColorSettings(false)}
         />
       )}
     </div>

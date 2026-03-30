@@ -1,17 +1,19 @@
 import Link from "next/link";
+import { MobileNav } from "@/components/MobileNav";
 
 export default function TermsOfServicePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 py-4">
+        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-gradient-to-br from-rose-500 to-rose-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">4T</span>
             </div>
             <span className="text-gray-900 font-bold text-xl">4Tango</span>
           </Link>
+          <MobileNav />
         </div>
       </header>
 

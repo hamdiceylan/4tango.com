@@ -271,6 +271,7 @@ aws amplify list-jobs --app-id <APP_ID> --branch-name <BRANCH> --region eu-west-
 |------|---------|
 | `prisma/schema.prisma` | Database schema |
 | `docs/TEST_SCENARIOS.md` | Test scenarios - **update when features change** |
+| `docs/plans.md` | Pricing plans, features, limits, and add-ons - **source of truth for subscription logic** |
 | `src/lib/email.ts` | SES email client |
 | `src/lib/prisma.ts` | Prisma client singleton |
 | `src/lib/registration-actions/` | Registration action system |

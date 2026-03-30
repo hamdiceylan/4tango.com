@@ -1,29 +1,32 @@
 import Link from "next/link";
+import { SmoothScrollLink } from "@/components/SmoothScrollLink";
+import { MobileNav } from "@/components/MobileNav";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-rose-50">
+    <div id="top" className="min-h-screen bg-gradient-to-b from-white to-rose-50">
       {/* Navigation */}
       <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-2">
+            <SmoothScrollLink href="#top" className="flex items-center gap-2 cursor-pointer">
               <div className="w-8 h-8 bg-gradient-to-br from-rose-500 to-rose-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">4T</span>
               </div>
               <span className="text-gray-900 font-bold text-xl">4Tango</span>
-            </div>
+            </SmoothScrollLink>
             <div className="hidden md:flex items-center gap-8">
-              <Link href="#features" className="text-gray-600 hover:text-gray-900 transition">Features</Link>
-              <Link href="#how-it-works" className="text-gray-600 hover:text-gray-900 transition">How it works</Link>
-              <Link href="#pricing" className="text-gray-600 hover:text-gray-900 transition">Pricing</Link>
-              <Link href="#faq" className="text-gray-600 hover:text-gray-900 transition">FAQ</Link>
+              <SmoothScrollLink href="#features" className="text-gray-600 hover:text-gray-900 transition">Features</SmoothScrollLink>
+              <SmoothScrollLink href="#how-it-works" className="text-gray-600 hover:text-gray-900 transition">How it works</SmoothScrollLink>
+              <SmoothScrollLink href="#pricing" className="text-gray-600 hover:text-gray-900 transition">Pricing</SmoothScrollLink>
+              <SmoothScrollLink href="#faq" className="text-gray-600 hover:text-gray-900 transition">FAQ</SmoothScrollLink>
             </div>
             <div className="flex items-center gap-4">
-              <Link href="/login" className="text-gray-600 hover:text-gray-900 transition">Log in</Link>
-              <Link href="/signup" className="bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-lg font-medium transition shadow-sm">
+              <Link href="/login" className="hidden md:block text-gray-600 hover:text-gray-900 transition">Log in</Link>
+              <Link href="/signup" className="hidden md:block bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-lg font-medium transition shadow-sm">
                 Get Started
               </Link>
+              <MobileNav />
             </div>
           </div>
         </div>
@@ -31,65 +34,25 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
-                Run your tango events with{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-rose-600">
-                  less admin
-                </span>
-              </h1>
-              <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-                Create beautiful event pages, collect registrations, manage attendees, and keep everything in one place. Built specifically for tango organizers.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link href="/signup" className="bg-rose-500 hover:bg-rose-600 text-white px-8 py-4 rounded-xl font-semibold text-lg transition shadow-lg shadow-rose-500/25 text-center">
-                  Create your first event
-                </Link>
-                <Link href="/contact" className="border border-gray-300 hover:border-gray-400 text-gray-700 px-8 py-4 rounded-xl font-semibold text-lg transition text-center bg-white">
-                  Contact us
-                </Link>
-              </div>
-              <p className="text-gray-500 mt-4 text-sm">Free trial - No credit card required</p>
-            </div>
-            <div className="relative">
-              <div className="bg-white rounded-2xl p-6 shadow-2xl shadow-gray-200/50 border border-gray-100">
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                    <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                    <div className="w-3 h-3 rounded-full bg-green-400"></div>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="bg-white rounded-lg p-4 border border-gray-100 shadow-sm">
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="text-gray-900 font-semibold">Spring Tango Marathon</h3>
-                        <span className="bg-emerald-100 text-emerald-700 text-xs px-2 py-1 rounded-full font-medium">Published</span>
-                      </div>
-                      <p className="text-gray-500 text-sm mb-3">Apr 15-17, 2026 - Barcelona</p>
-                      <div className="flex gap-4 text-sm">
-                        <span className="text-gray-600"><strong className="text-gray-900">127</strong> registrations</span>
-                        <span className="text-gray-600"><strong className="text-emerald-600">98</strong> paid</span>
-                      </div>
-                    </div>
-                    <div className="bg-white rounded-lg p-4 border border-gray-100 shadow-sm">
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="text-gray-900 font-semibold">Summer Milonga Night</h3>
-                        <span className="bg-amber-100 text-amber-700 text-xs px-2 py-1 rounded-full font-medium">Draft</span>
-                      </div>
-                      <p className="text-gray-500 text-sm mb-3">Jun 20, 2026 - Madrid</p>
-                      <div className="flex gap-4 text-sm">
-                        <span className="text-gray-600"><strong className="text-gray-900">0</strong> registrations</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-rose-200 rounded-full blur-2xl opacity-60"></div>
-              <div className="absolute -top-4 -left-4 w-32 h-32 bg-rose-100 rounded-full blur-3xl opacity-60"></div>
-            </div>
+        <div className="max-w-4xl mx-auto text-center">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
+            Run your tango events with{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-rose-600">
+              less admin
+            </span>
+          </h1>
+          <p className="text-xl text-gray-600 mb-8 leading-relaxed max-w-2xl mx-auto">
+            Create beautiful event pages, collect registrations, manage attendees, and keep everything in one place. Built specifically for tango organizers.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/signup" className="bg-rose-500 hover:bg-rose-600 text-white px-8 py-4 rounded-xl font-semibold text-lg transition shadow-lg shadow-rose-500/25 text-center">
+              Create your first event
+            </Link>
+            <Link href="/contact" className="border border-gray-300 hover:border-gray-400 text-gray-700 px-8 py-4 rounded-xl font-semibold text-lg transition text-center bg-white">
+              Contact us
+            </Link>
           </div>
+          <p className="text-gray-500 mt-4 text-sm">Free trial - No credit card required</p>
         </div>
       </section>
 
@@ -98,10 +61,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4">
           <p className="text-center text-gray-500 mb-8">Trusted by tango organizers worldwide</p>
           <div className="flex flex-wrap justify-center items-center gap-12">
-            <div className="text-gray-400 font-semibold text-lg">Buenos Aires Tango Club</div>
-            <div className="text-gray-400 font-semibold text-lg">European Tango Network</div>
-            <div className="text-gray-400 font-semibold text-lg">Tokyo Milonga</div>
-            <div className="text-gray-400 font-semibold text-lg">Berlin Tango Festival</div>
+            <div className="text-gray-400 font-semibold text-lg">Caliente Tango Marathon</div>
+            <div className="text-gray-400 font-semibold text-lg">Sol de Invierno Marathon</div>
+            <div className="text-gray-400 font-semibold text-lg">Ephesus Tango Marathon</div>
+            <div className="text-gray-400 font-semibold text-lg">Game of Tangueros Marathon</div>
           </div>
         </div>
       </section>
@@ -173,14 +136,41 @@ export default function Home() {
               Simple, transparent pricing
             </h2>
             <p className="text-gray-600 text-lg">
-              Start free, upgrade when you need more
+              Start free, add modules as you grow
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             {[
-              { name: "Free", price: "0", period: "forever", description: "Perfect for trying out 4Tango", features: ["1 active event", "Up to 50 registrations", "Basic event page", "Email confirmations", "CSV export"], cta: "Start free", highlighted: false },
-              { name: "Starter", price: "19", period: "per month", description: "For regular event organizers", features: ["5 active events", "Up to 200 registrations/event", "Custom event branding", "Payment collection", "Email tracking", "Priority support"], cta: "Start free trial", highlighted: true },
-              { name: "Pro", price: "49", period: "per month", description: "For festivals and large events", features: ["Unlimited events", "Unlimited registrations", "Advanced customization", "Team access", "API access", "Dedicated support"], cta: "Contact us", highlighted: false }
+              {
+                name: "Free",
+                price: "0",
+                period: "forever",
+                billedAnnually: false,
+                description: "Perfect for your first event",
+                features: ["1 active event", "Up to 50 registrations", "Basic registration form", "Basic event page", "Email confirmations", "CSV export"],
+                cta: "Start free",
+                highlighted: false
+              },
+              {
+                name: "Starter",
+                price: "15",
+                period: "/month",
+                billedAnnually: true,
+                description: "For regular event organizers",
+                features: ["5 active events", "Up to 300 registrations/event", "Custom registration forms", "Email tracking", "Priority support"],
+                cta: "Start free trial",
+                highlighted: true
+              },
+              {
+                name: "Professional",
+                price: "39",
+                period: "/month",
+                billedAnnually: true,
+                description: "For festivals and large events",
+                features: ["Unlimited events", "Unlimited registrations", "Advanced form logic", "Team access (5 members)", "API access", "Dedicated support"],
+                cta: "Start free trial",
+                highlighted: false
+              }
             ].map((plan, i) => (
               <div key={i} className={`rounded-2xl p-8 ${plan.highlighted ? "bg-gradient-to-b from-rose-500 to-rose-600 text-white relative shadow-xl shadow-rose-500/25" : "bg-white border border-gray-200"}`}>
                 {plan.highlighted && (
@@ -189,15 +179,22 @@ export default function Home() {
                   </div>
                 )}
                 <h3 className={`font-semibold text-xl mb-2 ${plan.highlighted ? "text-white" : "text-gray-900"}`}>{plan.name}</h3>
-                <div className="mb-4">
-                  <span className={`text-4xl font-bold ${plan.highlighted ? "text-white" : "text-gray-900"}`}>{plan.price} EUR</span>
-                  <span className={`ml-2 ${plan.highlighted ? "text-rose-100" : "text-gray-500"}`}>{plan.period}</span>
+                <div className="mb-1">
+                  <span className={`text-4xl font-bold ${plan.highlighted ? "text-white" : "text-gray-900"}`}>{plan.price}</span>
+                  <span className={`text-2xl font-bold ${plan.highlighted ? "text-white" : "text-gray-900"}`}> EUR</span>
+                  <span className={`ml-1 ${plan.highlighted ? "text-rose-100" : "text-gray-500"}`}>{plan.period}</span>
                 </div>
+                {plan.billedAnnually && (
+                  <p className={`text-sm mb-4 ${plan.highlighted ? "text-rose-200" : "text-gray-400"}`}>
+                    billed annually
+                  </p>
+                )}
+                {!plan.billedAnnually && <div className="mb-4" />}
                 <p className={`mb-6 ${plan.highlighted ? "text-rose-100" : "text-gray-600"}`}>{plan.description}</p>
                 <ul className="space-y-3 mb-8">
                   {plan.features.map((feature, j) => (
                     <li key={j} className={`flex items-center gap-2 ${plan.highlighted ? "text-white" : "text-gray-700"}`}>
-                      <svg className={`w-5 h-5 ${plan.highlighted ? "text-white" : "text-rose-500"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className={`w-5 h-5 flex-shrink-0 ${plan.highlighted ? "text-white" : "text-rose-500"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                       {feature}
@@ -209,6 +206,61 @@ export default function Home() {
                 </button>
               </div>
             ))}
+          </div>
+
+          {/* Add-ons Section */}
+          <div className="mt-20">
+            <div className="text-center mb-12">
+              <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
+                Powerful add-ons
+              </h3>
+              <p className="text-gray-600">
+                Extend your capabilities with specialized modules
+              </p>
+            </div>
+            <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+              {[
+                {
+                  name: "Custom Event Page",
+                  price: "9",
+                  description: "Build stunning branded event pages",
+                  features: ["Drag & drop page builder", "Custom branding & colors", "Image galleries & videos", "Custom domain (Pro only)"]
+                },
+                {
+                  name: "Transfer Management",
+                  price: "19",
+                  description: "Coordinate airport transfers & shuttles",
+                  features: ["Arrival/departure collection", "Shuttle scheduling", "Driver assignments", "Transfer manifests"]
+                },
+                {
+                  name: "Accommodation",
+                  price: "19",
+                  description: "Manage hotel blocks & room bookings",
+                  features: ["Hotel partnership management", "Room block allocation", "Roommate matching", "Booking reports"]
+                }
+              ].map((addon, i) => (
+                <div key={i} className="bg-gray-50 rounded-xl p-6 border border-gray-200 hover:border-rose-200 hover:shadow-lg transition-all">
+                  <div className="flex justify-between items-start mb-3">
+                    <h4 className="text-gray-900 font-semibold text-lg">{addon.name}</h4>
+                    <span className="text-rose-600 font-bold">+{addon.price} EUR<span className="text-gray-400 font-normal text-sm">/mo</span></span>
+                  </div>
+                  <p className="text-gray-600 text-sm mb-4">{addon.description}</p>
+                  <ul className="space-y-2">
+                    {addon.features.map((feature, j) => (
+                      <li key={j} className="flex items-center gap-2 text-gray-600 text-sm">
+                        <svg className="w-4 h-4 text-rose-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+            <p className="text-center text-gray-500 text-sm mt-6">
+              Add-ons available on Starter and Professional plans
+            </p>
           </div>
         </div>
       </section>
@@ -225,10 +277,10 @@ export default function Home() {
             {[
               { q: "Do dancers need to create an account to register?", a: "No! Dancers can register for events without creating an account. They just fill in the registration form and receive a confirmation email. This keeps the experience smooth and frictionless." },
               { q: "Can I export my registration data?", a: "Yes, you can export all your registration data to CSV at any time. This includes all attendee information, payment status, and email tracking data." },
-              { q: "Can I run paid events?", a: "Absolutely. We integrate with Stripe for secure payment processing. You can set any price in your preferred currency, and payments are tracked automatically." },
               { q: "Can I manage leader/follower ratios?", a: "This feature is on our roadmap. For now, you can see the role breakdown in your registration list and manage it manually. Automated balancing is coming soon." },
-              { q: "Is there a limit on registrations?", a: "The free plan allows up to 50 registrations per event. Starter and Pro plans have higher or unlimited limits. Check our pricing for details." },
-              { q: "Can I use my own domain?", a: "Pro plan users can use custom domains for their event pages. Contact us for setup assistance." }
+              { q: "Is there a limit on registrations?", a: "The Free plan allows up to 50 registrations per event. Starter allows 300 per event, and Professional offers unlimited registrations. Check our pricing for details." },
+              { q: "Can I use my own domain?", a: "Yes! With the Custom Event Page add-on on the Professional plan, you can use your own domain for event pages. Contact us for setup assistance." },
+              { q: "How does billing work?", a: "Paid plans are billed annually. The monthly price shown is the equivalent when paying for a year upfront. Add-ons are billed monthly along with your subscription." }
             ].map((faq, i) => (
               <div key={i} className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
                 <h3 className="text-gray-900 font-semibold mb-2">{faq.q}</h3>
@@ -275,9 +327,9 @@ export default function Home() {
             <div>
               <h4 className="text-white font-semibold mb-4">Product</h4>
               <ul className="space-y-2">
-                <li><Link href="#features" className="text-gray-400 hover:text-white transition">Features</Link></li>
-                <li><Link href="#pricing" className="text-gray-400 hover:text-white transition">Pricing</Link></li>
-                <li><Link href="#faq" className="text-gray-400 hover:text-white transition">FAQ</Link></li>
+                <li><SmoothScrollLink href="#features" className="text-gray-400 hover:text-white transition">Features</SmoothScrollLink></li>
+                <li><SmoothScrollLink href="#pricing" className="text-gray-400 hover:text-white transition">Pricing</SmoothScrollLink></li>
+                <li><SmoothScrollLink href="#faq" className="text-gray-400 hover:text-white transition">FAQ</SmoothScrollLink></li>
               </ul>
             </div>
             <div>

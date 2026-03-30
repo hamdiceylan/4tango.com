@@ -1,0 +1,50 @@
+# Git Workflow Rules
+
+## Branch Strategy
+
+All development work MUST follow this workflow:
+
+1. **Always work on `develop` branch locally**
+   - Never make changes directly on `main`
+   - Switch to develop before starting any work: `git checkout develop`
+
+2. **Push to `develop` first**
+   - All commits go to develop first: `git push origin develop`
+   - This deploys to dev.4tango.com for testing
+
+3. **Merge to `main` only after testing on develop**
+   - Once changes are verified on dev.4tango.com
+   - Merge develop into main: `git checkout main && git merge develop`
+   - Push to main: `git push origin main`
+   - This deploys to production (4tango.com)
+
+## Workflow Commands
+
+```bash
+# Start work (always from develop)
+git checkout develop
+git pull origin develop
+
+# Make changes and commit
+git add <files>
+git commit -m "Description"
+
+# Push to develop first
+git push origin develop
+
+# After testing on dev.4tango.com, merge to main
+git checkout main
+git pull origin main
+git merge develop
+git push origin main
+
+# Return to develop for next task
+git checkout develop
+```
+
+## Rules
+
+- NEVER push directly to main without going through develop first
+- NEVER force push to main
+- Always test on dev.4tango.com before merging to main
+- Keep develop and main in sync after production deployments

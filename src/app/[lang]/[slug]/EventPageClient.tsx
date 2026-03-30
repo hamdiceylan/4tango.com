@@ -142,8 +142,13 @@ function getLocalizedSectionTitle(
   if (typeof title === "string") return title.toUpperCase();
 
   // If title is localized object, get the right language
-  const localizedTitle = title[lang] || title["en"] || Object.values(title)[0];
-  return localizedTitle ? localizedTitle.toUpperCase() : defaultSectionLabels[lang]?.[key] || key.toUpperCase();
+  if (typeof title === "object" && title !== null) {
+    const titleObj = title as Record<string, string>;
+    const localizedTitle = titleObj[lang] || titleObj["en"] || Object.values(titleObj)[0];
+    return localizedTitle ? String(localizedTitle).toUpperCase() : defaultSectionLabels[lang]?.[key] || key.toUpperCase();
+  }
+
+  return defaultSectionLabels[lang]?.[key] || key.toUpperCase();
 }
 
 // Default hero images

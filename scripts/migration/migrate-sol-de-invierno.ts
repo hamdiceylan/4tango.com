@@ -514,7 +514,7 @@ The salon where we will hold our evening milongas is 700 square meter with high 
         eventId: event.id,
         type: section.type,
         order: section.order,
-        title: section.title || null,
+        title: section.title || undefined,
         content: section.content,
         isVisible: true,
       },

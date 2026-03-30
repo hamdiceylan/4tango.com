@@ -79,7 +79,7 @@ interface PageSection {
   id: string;
   type: string;
   order: number;
-  title: string | Record<string, string> | null;
+  title: string | Record<string, string> | null | unknown;
   content: Record<string, unknown>;
   isVisible: boolean;
 }

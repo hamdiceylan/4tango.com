@@ -36,22 +36,8 @@ export async function GET(request: Request) {
     // Create session
     const sessionToken = await createSessionFromCognitoAuth(authResult);
 
-    // Determine redirect URL based on user type and state
-    let redirectUrl: string;
-    if (authResult.userType === 'dancer') {
-      if (authResult.needsProfileCompletion) {
-        redirectUrl = '/complete-profile';
-      } else {
-        redirectUrl = '/';
-      }
-    } else {
-      // Organizer flow
-      if (authResult.isNewUser) {
-        redirectUrl = '/onboarding';
-      } else {
-        redirectUrl = '/dashboard';
-      }
-    }
+    // Determine redirect URL for organizers
+    const redirectUrl = authResult.isNewUser ? '/onboarding' : '/dashboard';
 
     // Create redirect response
     const response = NextResponse.redirect(new URL(redirectUrl, request.url));

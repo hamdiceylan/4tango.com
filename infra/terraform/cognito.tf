@@ -1,5 +1,5 @@
 # AWS Cognito User Pool for 4Tango Authentication
-# Supports both organizer email/password and dancer social login
+# Email/password authentication for organizers only
 
 # ==============================================================================
 # USER POOL
@@ -7,6 +7,11 @@
 
 resource "aws_cognito_user_pool" "main" {
   name = "4tango-${var.environment}"
+
+  # Ignore schema changes - these are set at creation time and can't be modified
+  lifecycle {
+    ignore_changes = [schema]
+  }
 
   # Username configuration - allow email as username
   username_attributes      = ["email"]
@@ -33,59 +38,10 @@ resource "aws_cognito_user_pool" "main" {
   # MFA configuration (optional for now)
   mfa_configuration = "OFF"
 
-  # User attribute schema - standard attributes
-  schema {
-    name                     = "email"
-    attribute_data_type      = "String"
-    developer_only_attribute = false
-    mutable                  = true
-    required                 = true
-
-    string_attribute_constraints {
-      min_length = 1
-      max_length = 256
-    }
-  }
-
-  schema {
-    name                     = "name"
-    attribute_data_type      = "String"
-    developer_only_attribute = false
-    mutable                  = true
-    required                 = false
-
-    string_attribute_constraints {
-      min_length = 1
-      max_length = 256
-    }
-  }
-
-  # Custom attributes
-  schema {
-    name                     = "organizerId"
-    attribute_data_type      = "String"
-    developer_only_attribute = false
-    mutable                  = true
-    required                 = false
-
-    string_attribute_constraints {
-      min_length = 1
-      max_length = 256
-    }
-  }
-
-  schema {
-    name                     = "userType"
-    attribute_data_type      = "String"
-    developer_only_attribute = false
-    mutable                  = true
-    required                 = false
-
-    string_attribute_constraints {
-      min_length = 1
-      max_length = 50
-    }
-  }
+  # Note: Schema attributes (email, name, custom:organizerId, custom:userType)
+  # are already defined on existing user pools. Schema blocks are only needed
+  # for new user pool creation and are omitted here to avoid conflicts with
+  # imported user pools.
 
   # Email configuration
   email_configuration {
@@ -153,75 +109,6 @@ resource "aws_cognito_user_pool_domain" "main" {
 }
 
 # ==============================================================================
-# IDENTITY PROVIDERS - Social Login
-# ==============================================================================
-
-# Google Identity Provider
-resource "aws_cognito_identity_provider" "google" {
-  count = var.cognito_google_client_id != "" ? 1 : 0
-
-  user_pool_id  = aws_cognito_user_pool.main.id
-  provider_name = "Google"
-  provider_type = "Google"
-
-  provider_details = {
-    client_id        = var.cognito_google_client_id
-    client_secret    = var.cognito_google_client_secret
-    authorize_scopes = "openid email profile"
-  }
-
-  attribute_mapping = {
-    email    = "email"
-    name     = "name"
-    username = "sub"
-  }
-}
-
-# Apple Identity Provider
-resource "aws_cognito_identity_provider" "apple" {
-  count = var.cognito_apple_team_id != "" ? 1 : 0
-
-  user_pool_id  = aws_cognito_user_pool.main.id
-  provider_name = "SignInWithApple"
-  provider_type = "SignInWithApple"
-
-  provider_details = {
-    client_id        = var.cognito_apple_client_id
-    team_id          = var.cognito_apple_team_id
-    key_id           = var.cognito_apple_key_id
-    private_key      = var.cognito_apple_private_key
-    authorize_scopes = "email name"
-  }
-
-  attribute_mapping = {
-    email    = "email"
-    name     = "name"
-    username = "sub"
-  }
-}
-
-# Facebook Identity Provider
-resource "aws_cognito_identity_provider" "facebook" {
-  count = var.cognito_facebook_app_id != "" ? 1 : 0
-
-  user_pool_id  = aws_cognito_user_pool.main.id
-  provider_name = "Facebook"
-  provider_type = "Facebook"
-
-  provider_details = {
-    client_id        = var.cognito_facebook_app_id
-    client_secret    = var.cognito_facebook_app_secret
-    authorize_scopes = "email,public_profile"
-  }
-
-  attribute_mapping = {
-    email    = "email"
-    name     = "name"
-    username = "id"
-  }
-}
-
-# ==============================================================================
 # USER POOL CLIENT - Web Application
 # ==============================================================================
 
@@ -265,13 +152,8 @@ resource "aws_cognito_user_pool_client" "web" {
     "http://localhost:3000/login"
   ]
 
-  # Supported identity providers
-  supported_identity_providers = concat(
-    ["COGNITO"],
-    var.cognito_google_client_id != "" ? ["Google"] : [],
-    var.cognito_apple_team_id != "" ? ["SignInWithApple"] : [],
-    var.cognito_facebook_app_id != "" ? ["Facebook"] : []
-  )
+  # Supported identity providers (email/password only, no social login)
+  supported_identity_providers = ["COGNITO"]
 
   # Prevent user existence errors (security)
   prevent_user_existence_errors = "ENABLED"
@@ -384,66 +266,6 @@ resource "aws_cognito_identity_pool_roles_attachment" "main" {
   roles = {
     "authenticated" = aws_iam_role.cognito_authenticated.arn
   }
-}
-
-# ==============================================================================
-# VARIABLES
-# ==============================================================================
-
-variable "cognito_google_client_id" {
-  description = "Google OAuth Client ID"
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
-variable "cognito_google_client_secret" {
-  description = "Google OAuth Client Secret"
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
-variable "cognito_apple_client_id" {
-  description = "Apple OAuth Client ID (Service ID)"
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
-variable "cognito_apple_team_id" {
-  description = "Apple Team ID"
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
-variable "cognito_apple_key_id" {
-  description = "Apple Key ID"
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
-variable "cognito_apple_private_key" {
-  description = "Apple Private Key (PEM format)"
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
-variable "cognito_facebook_app_id" {
-  description = "Facebook App ID"
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
-variable "cognito_facebook_app_secret" {
-  description = "Facebook App Secret"
-  type        = string
-  default     = ""
-  sensitive   = true
 }
 
 # ==============================================================================

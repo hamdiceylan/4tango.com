@@ -45,14 +45,6 @@ interface EventData {
   defaultLanguage?: string;
 }
 
-interface DancerSession {
-  id: string;
-  email: string;
-  fullName: string;
-  city?: string | null;
-  country?: string | null;
-}
-
 const EXPERIENCE_LEVELS = [
   { value: "1-2", label: "1-2 years" },
   { value: "3-5", label: "3-5 years" },
@@ -76,7 +68,6 @@ export default function RegisterPage() {
   const router = useRouter();
 
   const [event, setEvent] = useState<EventData | null>(null);
-  const [dancer, setDancer] = useState<DancerSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -120,28 +111,6 @@ export default function RegisterPage() {
           }
         });
         setCustomFields(initialCustomFields);
-
-        // Try to fetch dancer session for pre-fill
-        try {
-          const dancerRes = await fetch("/api/dancer/profile");
-          if (dancerRes.ok) {
-            const dancerData = await dancerRes.json();
-            setDancer(dancerData);
-
-            // Pre-fill form with dancer data
-            const nameParts = dancerData.fullName.split(" ");
-            setFormData((prev) => ({
-              ...prev,
-              firstName: nameParts[0] || "",
-              lastName: nameParts.slice(1).join(" ") || "",
-              email: dancerData.email,
-              city: dancerData.city || "",
-              country: dancerData.country || "",
-            }));
-          }
-        } catch {
-          // No dancer session, continue without pre-fill
-        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load event");
       } finally {
@@ -291,42 +260,6 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        {/* Quick Sign In (if not logged in) */}
-        {!dancer && (
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-8">
-            <div className="flex items-center gap-3">
-              <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div className="flex-1">
-                <p className="text-blue-800 font-medium">Have an account?</p>
-                <p className="text-blue-600 text-sm">Sign in for quick registration with your saved details.</p>
-              </div>
-              <Link
-                href={`/login?redirect=/${lang}/${event.slug}/register`}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-sm font-medium"
-              >
-                Sign in
-              </Link>
-            </div>
-          </div>
-        )}
-
-        {/* Logged in as banner */}
-        {dancer && (
-          <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-8">
-            <div className="flex items-center gap-3">
-              <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              <div>
-                <p className="text-green-800 font-medium">Welcome back, {dancer.fullName}!</p>
-                <p className="text-green-600 text-sm">Your details have been pre-filled.</p>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Registration Form */}
         <form onSubmit={handleSubmit} className="space-y-8">
           {error && (
@@ -376,8 +309,7 @@ export default function RegisterPage() {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                readOnly={!!dancer}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent ${errors.email ? "border-red-300" : "border-gray-200"} ${dancer ? "bg-gray-100" : ""}`}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent ${errors.email ? "border-red-300" : "border-gray-200"}`}
               />
               {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
             </div>

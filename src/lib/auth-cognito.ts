@@ -6,7 +6,6 @@ import {
   getCognitoUrls,
   CognitoTokens,
   decodeIdToken,
-  getProviderFromToken,
   getAppUrl,
 } from '@/lib/cognito';
 
@@ -82,22 +81,21 @@ export async function refreshTokens(refreshToken: string): Promise<CognitoTokens
   };
 }
 
-// User types
-export type CognitoUserType = 'organizer' | 'dancer';
+// User types (only organizers now)
+export type CognitoUserType = 'organizer';
 
 export interface CognitoAuthResult {
   userType: CognitoUserType;
   cognitoUserId: string;
   email: string;
   name?: string;
-  provider?: string;
   isNewUser: boolean;
-  needsProfileCompletion: boolean;
-  userId: string; // OrganizerUser.id or Dancer.id
-  organizerId?: string; // For organizers
+  userId: string; // OrganizerUser.id
+  organizerId: string;
 }
 
-// Authenticate or register a user from Cognito tokens
+// Authenticate or register an organizer from Cognito tokens
+// (Social login for dancers has been removed - only email/password for organizers)
 export async function authenticateWithCognitoTokens(
   tokens: CognitoTokens
 ): Promise<CognitoAuthResult> {
@@ -106,19 +104,9 @@ export async function authenticateWithCognitoTokens(
   const cognitoUserId = payload.sub;
   const email = payload.email;
   const name = payload.name;
-  const provider = getProviderFromToken(payload);
   const organizationName = payload['custom:organizerId']; // Stores org name from signup
 
-  // Check if this is an organizer (email/password users are typically organizers)
-  // Social login users are typically dancers
-  const isOrganizerLogin = !provider; // No provider means email/password login
-
-  if (isOrganizerLogin) {
-    return authenticateOrganizer(cognitoUserId, email, name, organizationName);
-  } else {
-    const pictureUrl = payload.picture; // Profile picture from OAuth provider
-    return authenticateDancer(cognitoUserId, email, name, provider, pictureUrl);
-  }
+  return authenticateOrganizer(cognitoUserId, email, name, organizationName);
 }
 
 // Authenticate or register an organizer
@@ -141,7 +129,6 @@ async function authenticateOrganizer(
       email: organizerUser.email,
       name: organizerUser.fullName,
       isNewUser: false,
-      needsProfileCompletion: false,
       userId: organizerUser.id,
       organizerId: organizerUser.organizerId,
     };
@@ -166,7 +153,6 @@ async function authenticateOrganizer(
       email: organizerUser.email,
       name: organizerUser.fullName,
       isNewUser: false,
-      needsProfileCompletion: false,
       userId: organizerUser.id,
       organizerId: organizerUser.organizerId,
     };
@@ -199,126 +185,8 @@ async function authenticateOrganizer(
     email,
     name: fullName,
     isNewUser: true,
-    needsProfileCompletion: false, // Organizers use onboarding wizard instead
     userId: organizer.users[0].id,
     organizerId: organizer.id,
-  };
-}
-
-// Authenticate or register a dancer
-async function authenticateDancer(
-  cognitoUserId: string,
-  email: string,
-  name?: string,
-  provider?: string | null,
-  pictureUrl?: string | null
-): Promise<CognitoAuthResult> {
-  // Check if dancer auth exists with this Cognito ID
-  const existingAuth = await prisma.dancerAuth.findUnique({
-    where: { cognitoUserId },
-    include: { dancer: true },
-  });
-
-  if (existingAuth) {
-    // Update last login and provider picture if available
-    await prisma.dancerAuth.update({
-      where: { id: existingAuth.id },
-      data: {
-        lastLoginAt: new Date(),
-        providerPictureUrl: pictureUrl || existingAuth.providerPictureUrl,
-      },
-    });
-
-    // Update dancer's profile picture if they don't have one and we have a provider picture
-    if (pictureUrl && !existingAuth.dancer.profilePictureUrl) {
-      await prisma.dancer.update({
-        where: { id: existingAuth.dancerId },
-        data: { profilePictureUrl: pictureUrl },
-      });
-    }
-
-    return {
-      userType: 'dancer',
-      cognitoUserId,
-      email: existingAuth.dancer.email,
-      name: existingAuth.dancer.fullName,
-      provider: provider || undefined,
-      isNewUser: false,
-      needsProfileCompletion: !existingAuth.dancer.country, // Need country for dancer DB
-      userId: existingAuth.dancerId,
-    };
-  }
-
-  // Check if dancer exists with this email
-  const existingDancer = await prisma.dancer.findUnique({
-    where: { email },
-    include: { auth: true },
-  });
-
-  if (existingDancer) {
-    // Link Cognito auth to existing dancer
-    if (existingDancer.auth) {
-      // Already has auth with different Cognito ID - error
-      throw new Error('This email is already linked to a different account');
-    }
-
-    await prisma.dancerAuth.create({
-      data: {
-        dancerId: existingDancer.id,
-        cognitoUserId,
-        provider: provider || undefined,
-        providerPictureUrl: pictureUrl || undefined,
-        lastLoginAt: new Date(),
-      },
-    });
-
-    // Update dancer's profile picture if they don't have one and we have a provider picture
-    if (pictureUrl && !existingDancer.profilePictureUrl) {
-      await prisma.dancer.update({
-        where: { id: existingDancer.id },
-        data: { profilePictureUrl: pictureUrl },
-      });
-    }
-
-    return {
-      userType: 'dancer',
-      cognitoUserId,
-      email: existingDancer.email,
-      name: existingDancer.fullName,
-      provider: provider || undefined,
-      isNewUser: false,
-      needsProfileCompletion: !existingDancer.country,
-      userId: existingDancer.id,
-    };
-  }
-
-  // New dancer - create dancer and auth
-  const fullName = name || email.split('@')[0];
-  const dancer = await prisma.dancer.create({
-    data: {
-      email,
-      fullName,
-      profilePictureUrl: pictureUrl || undefined, // Set profile picture from OAuth if available
-      auth: {
-        create: {
-          cognitoUserId,
-          provider: provider || undefined,
-          providerPictureUrl: pictureUrl || undefined,
-          lastLoginAt: new Date(),
-        },
-      },
-    },
-  });
-
-  return {
-    userType: 'dancer',
-    cognitoUserId,
-    email,
-    name: fullName,
-    provider: provider || undefined,
-    isNewUser: true,
-    needsProfileCompletion: true, // New dancers need to complete profile
-    userId: dancer.id,
   };
 }
 

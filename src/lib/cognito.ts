@@ -53,39 +53,6 @@ export function getCognitoUrls(config: CognitoConfig) {
   };
 }
 
-// Build the authorization URL for social login
-export function buildAuthorizationUrl(
-  provider: 'Google' | 'SignInWithApple' | 'Facebook',
-  state?: string
-): string {
-  const config = getCognitoConfig();
-  const urls = getCognitoUrls(config);
-  const appUrl = getAppUrl();
-
-  const params = new URLSearchParams({
-    client_id: config.clientId,
-    response_type: 'code',
-    scope: 'email openid profile',
-    redirect_uri: `${appUrl}/api/auth/cognito/callback`,
-    identity_provider: provider,
-  });
-
-  if (state) {
-    params.set('state', state);
-  }
-
-  return `${urls.authorize}?${params.toString()}`;
-}
-
-// Build URLs for each social provider
-export function getSocialLoginUrls() {
-  return {
-    google: buildAuthorizationUrl('Google'),
-    apple: buildAuthorizationUrl('SignInWithApple'),
-    facebook: buildAuthorizationUrl('Facebook'),
-  };
-}
-
 // PKCE (Proof Key for Code Exchange) utilities for public clients
 export function generateCodeVerifier(): string {
   const array = new Uint8Array(32);

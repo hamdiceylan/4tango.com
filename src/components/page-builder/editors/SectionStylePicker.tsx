@@ -8,8 +8,6 @@ interface SectionStylePickerProps {
 }
 
 export default function SectionStylePicker({ value, onChange }: SectionStylePickerProps) {
-  const selectedBg = SECTION_BACKGROUNDS.find((bg) => bg.value === value) || SECTION_BACKGROUNDS[0];
-
   return (
     <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 mb-4">
       <div

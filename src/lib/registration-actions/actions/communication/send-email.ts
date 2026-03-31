@@ -1,7 +1,6 @@
 import { ActionDefinition, ActionContext, ActionInput, ActionResult } from "../../types";
 import prisma from "@/lib/prisma";
 import { sendEmail, type TemplateVariables } from "@/lib/email-service";
-import { getDefaultTemplate } from "@/lib/email-templates/defaults";
 import { EmailType } from "@prisma/client";
 
 export const sendEmailAction: ActionDefinition = {

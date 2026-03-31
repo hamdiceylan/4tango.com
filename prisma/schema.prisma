@@ -27,6 +27,7 @@ model Organizer {
   dancerNotes    DancerNote[]
   dancerTags     DancerTag[]
   activityLogs   ActivityLog[]
+  emailEvents    EmailEvent[]
 }
 
 // Organizer role enum for team management
@@ -143,6 +144,7 @@ model Event {
   formFields     EventFormField[]
   packages       EventPackage[]
   emailTemplates EmailTemplate[]
+  emailEvents    EmailEvent[]
 }
 
 enum EventStatus {
@@ -265,15 +267,69 @@ enum PaymentStatus {
 
 // Email Events - Track email delivery status from SES
 model EmailEvent {
-  id               String   @id @default(cuid())
-  registrationId   String
-  eventType        String   // sent, delivered, opened, clicked, bounced, complained
-  providerMessageId String?
-  payloadJson      String?  @db.Text
-  occurredAt       DateTime
-  createdAt        DateTime @default(now())
+  id               String       @id @default(cuid())
+  organizerId      String
+  eventId          String?
+  registrationId   String?
 
-  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  // Email identification
+  messageId        String?      @unique  // SES Message ID
+  trackingId       String       @unique @default(cuid())
+
+  // Email metadata
+  emailType        EmailType
+  templateId       String?
+  recipientEmail   String
+  recipientName    String?
+  subject          String
+  htmlContent      String       @db.Text
+
+  // Status
+  status           EmailStatus  @default(QUEUED)
+
+  // Tracking timestamps
+  sentAt           DateTime?
+  deliveredAt      DateTime?
+  openedAt         DateTime?
+  clickedAt        DateTime?
+  bouncedAt        DateTime?
+
+  // Error info
+  errorMessage     String?
+  bounceType       String?
+
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  // Relations
+  organizer        Organizer    @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  event            Event?       @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  registration     Registration? @relation(fields: [registrationId], references: [id], onDelete: SetNull)
+  template         EmailTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  @@index([organizerId, createdAt])
+  @@index([eventId])
+  @@index([registrationId])
+  @@index([status])
+  @@index([messageId])
+}
+
+enum EmailType {
+  REGISTRATION_CONFIRMATION
+  ORGANIZER_NOTIFICATION
+  PAYMENT_REMINDER
+  STATUS_UPDATE
+  CUSTOM
+}
+
+enum EmailStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  OPENED
+  CLICKED
+  BOUNCED
+  FAILED
 }
 
 // ==========================================
@@ -426,8 +482,9 @@ model EmailTemplate {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  organizer Organizer @relation(fields: [organizerId], references: [id], onDelete: Cascade)
-  event     Event?    @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  organizer Organizer    @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  event     Event?       @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  emails    EmailEvent[]
 
   @@unique([organizerId, name, language])
   @@index([organizerId])

@@ -1,4 +1,6 @@
 import { ActionDefinition, ActionContext, ActionInput, ActionResult } from "../../types";
+import prisma from "@/lib/prisma";
+import { sendPaymentReminder } from "@/lib/email-service";
 
 export const sendPaymentReminderAction: ActionDefinition = {
   id: "send-payment-reminder",
@@ -26,16 +28,6 @@ export const sendPaymentReminderAction: ActionDefinition = {
       defaultValue: "friendly",
     },
     {
-      name: "includePaymentLink",
-      label: "Include payment link",
-      type: "select",
-      options: [
-        { value: "yes", label: "Yes" },
-        { value: "no", label: "No" },
-      ],
-      defaultValue: "yes",
-    },
-    {
       name: "customMessage",
       label: "Additional message",
       type: "textarea",
@@ -45,18 +37,57 @@ export const sendPaymentReminderAction: ActionDefinition = {
 
   execute: async (context: ActionContext, input: ActionInput): Promise<ActionResult> => {
     try {
-      // TODO: Implement actual payment reminder email sending
-      // This would use payment reminder templates with different urgency levels
-
-      return {
-        success: true,
-        message: "Payment reminder sent",
-        data: {
-          urgency: input.urgency,
-          paymentLinkIncluded: input.includePaymentLink === "yes",
-          sentAt: new Date().toISOString(),
+      // Fetch registration details
+      const registration = await prisma.registration.findUnique({
+        where: { id: context.registrationId },
+        include: {
+          event: true,
         },
-      };
+      });
+
+      if (!registration) {
+        return {
+          success: false,
+          message: "Registration not found",
+        };
+      }
+
+      const urgency = (input.urgency as "friendly" | "urgent" | "final") || "friendly";
+      const customMessage = input.customMessage ? String(input.customMessage) : undefined;
+
+      const result = await sendPaymentReminder({
+        registration: {
+          id: registration.id,
+          fullNameSnapshot: registration.fullNameSnapshot,
+          emailSnapshot: registration.emailSnapshot,
+          paymentAmount: registration.paymentAmount,
+          accessToken: registration.accessToken,
+        },
+        event: {
+          id: registration.event.id,
+          title: registration.event.title,
+          currency: registration.event.currency,
+        },
+        organizerId: context.organizerId,
+        urgency,
+        customMessage,
+      });
+
+      if (result.success) {
+        return {
+          success: true,
+          message: "Payment reminder sent",
+          data: {
+            urgency,
+            sentAt: new Date().toISOString(),
+          },
+        };
+      } else {
+        return {
+          success: false,
+          message: result.error || "Failed to send payment reminder",
+        };
+      }
     } catch (error) {
       console.error("Error sending payment reminder:", error);
       return {

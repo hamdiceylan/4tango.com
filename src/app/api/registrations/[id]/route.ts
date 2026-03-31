@@ -23,7 +23,7 @@ export async function GET(
         dancer: true,
         customFieldValues: true,
         emailEvents: {
-          orderBy: { occurredAt: "desc" }
+          orderBy: { createdAt: "desc" }
         }
       }
     });

@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { sendEmail, getRegistrationConfirmationEmailHtml } from "@/lib/email";
 import { DancerRole } from "@prisma/client";
+import {
+  sendRegistrationConfirmation,
+  sendOrganizerNotification,
+} from "@/lib/email-service";
 
 // POST /api/public/events/[slug]/register - Create registration
 export async function POST(
@@ -168,36 +171,68 @@ export async function POST(
     // Generate confirmation number
     const confirmationNumber = `4T-${event.startAt.getFullYear()}-${registration.id.slice(-6).toUpperCase()}`;
 
-    // Send confirmation email
-    const baseUrl = process.env.NEXT_PUBLIC_URL || "https://4tango.com";
-    const registrationUrl = `${baseUrl}/registration/${registration.accessToken}`;
+    // Fetch organizer for notification email
+    const organizer = await prisma.organizer.findUnique({
+      where: { id: event.organizerId },
+    });
 
+    // Send confirmation email to dancer
     try {
-      await sendEmail({
-        to: email,
-        subject: `Registration Confirmed - ${event.title}`,
-        html: getRegistrationConfirmationEmailHtml({
-          eventTitle: event.title,
-          eventDate: event.startAt.toLocaleDateString("en-US", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          }),
-          dancerName: `${firstName} ${lastName}`,
-          confirmationNumber,
-          registrationUrl,
-        }),
+      const confirmResult = await sendRegistrationConfirmation({
+        registration: {
+          id: registration.id,
+          fullNameSnapshot: `${firstName} ${lastName}`,
+          emailSnapshot: email.toLowerCase(),
+          roleSnapshot: dancerRole,
+          accessToken: registration.accessToken,
+        },
+        event: {
+          id: event.id,
+          title: event.title,
+          startAt: event.startAt,
+          endAt: event.endAt,
+          city: event.city,
+          country: event.country,
+        },
+        organizerId: event.organizerId,
       });
 
-      // Update email sent timestamp
-      await prisma.registration.update({
-        where: { id: registration.id },
-        data: { emailSentAt: new Date() }
-      });
+      if (confirmResult.success) {
+        // Update email sent timestamp
+        await prisma.registration.update({
+          where: { id: registration.id },
+          data: { emailSentAt: new Date() }
+        });
+      }
     } catch (emailError) {
       console.error("Failed to send confirmation email:", emailError);
       // Don't fail the registration if email fails
+    }
+
+    // Send notification email to organizer
+    if (organizer) {
+      try {
+        await sendOrganizerNotification({
+          registration: {
+            id: registration.id,
+            fullNameSnapshot: `${firstName} ${lastName}`,
+            emailSnapshot: email.toLowerCase(),
+            roleSnapshot: dancerRole,
+          },
+          event: {
+            id: event.id,
+            title: event.title,
+          },
+          organizer: {
+            id: organizer.id,
+            email: organizer.email,
+            name: organizer.name,
+          },
+        });
+      } catch (emailError) {
+        console.error("Failed to send organizer notification:", emailError);
+        // Don't fail the registration if email fails
+      }
     }
 
     return NextResponse.json({

@@ -67,11 +67,41 @@ export function replaceTemplateVariables(
   variables: TemplateVariables
 ): string {
   let result = content;
-  for (const [key, value] of Object.entries(variables)) {
+
+  // Add common aliases for backwards compatibility
+  const extendedVariables: TemplateVariables = {
+    ...variables,
+    // Aliases - support both eventName and eventTitle
+    eventName: variables.eventTitle,
+    name: variables.dancerName,
+    email: variables.dancerEmail,
+    role: variables.dancerRole,
+  };
+
+  // Replace all provided variables - support both {{var}} and {var} formats
+  for (const [key, value] of Object.entries(extendedVariables)) {
     if (value !== undefined) {
+      // Double curly braces {{var}}
       result = result.replace(new RegExp(`{{${key}}}`, "g"), value);
+      // Single curly braces {var}
+      result = result.replace(new RegExp(`{${key}}`, "g"), value);
     }
   }
+
+  // Safety: Remove any remaining unreplaced variables to prevent showing raw placeholders
+  const remainingDoubleVars = result.match(/{{[a-zA-Z_]+}}/g);
+  const remainingSingleVars = result.match(/{[a-zA-Z_]+}/g);
+
+  if (remainingDoubleVars && remainingDoubleVars.length > 0) {
+    console.warn("Unreplaced template variables (double braces):", remainingDoubleVars);
+    result = result.replace(/{{[a-zA-Z_]+}}/g, "");
+  }
+
+  if (remainingSingleVars && remainingSingleVars.length > 0) {
+    console.warn("Unreplaced template variables (single braces):", remainingSingleVars);
+    result = result.replace(/{[a-zA-Z_]+}/g, "");
+  }
+
   return result;
 }
 

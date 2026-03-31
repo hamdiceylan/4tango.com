@@ -44,6 +44,7 @@ export async function GET(
         registrationStatus: true,
         paymentStatus: true,
         paymentAmount: true,
+        countrySnapshot: true,
       },
     });
 
@@ -80,6 +81,16 @@ export async function GET(
       revenue: paidRegistrations.reduce((sum, r) => sum + (r.paymentAmount || 0), 0),
     };
 
+    // Country distribution
+    const countryMap = new Map<string, number>();
+    registrations.forEach((r) => {
+      const country = r.countrySnapshot || "Unknown";
+      countryMap.set(country, (countryMap.get(country) || 0) + 1);
+    });
+    const countryDistribution = Array.from(countryMap.entries())
+      .map(([country, count]) => ({ country, count }))
+      .sort((a, b) => b.count - a.count);
+
     return NextResponse.json({
       event: {
         ...event,
@@ -91,6 +102,7 @@ export async function GET(
         role: roleStats,
         status: statusStats,
         payment: paymentStats,
+        countryDistribution,
       },
     });
   } catch (error) {

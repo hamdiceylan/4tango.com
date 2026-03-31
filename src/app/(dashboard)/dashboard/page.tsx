@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import { ACTION_LABELS, CATEGORY_COLORS } from "@/lib/activity-log";
 import { useEvents } from "@/contexts/EventsContext";
 import type { ActivityCategory } from "@prisma/client";
+import PieChart from "@/components/charts/PieChart";
 
 interface EventStats {
   event: {
@@ -43,6 +44,10 @@ interface EventStats {
       refunded: number;
       revenue: number;
     };
+    countryDistribution: {
+      country: string;
+      count: number;
+    }[];
   };
 }
 
@@ -421,6 +426,38 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Registration Progress Bar */}
+      {event.capacityLimit && (
+        <div className="bg-white rounded-lg px-4 py-3 border border-gray-200 shadow-sm mb-4">
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    stats.total > event.capacityLimit
+                      ? "bg-red-500"
+                      : stats.total >= event.capacityLimit * 0.9
+                      ? "bg-amber-500"
+                      : "bg-green-500"
+                  }`}
+                  style={{
+                    width: `${Math.min((stats.total / event.capacityLimit) * 100, 100)}%`,
+                  }}
+                />
+              </div>
+            </div>
+            <span className={`text-sm font-medium whitespace-nowrap ${
+              stats.total > event.capacityLimit ? "text-red-600" : "text-gray-600"
+            }`}>
+              {stats.total}/{event.capacityLimit}
+              <span className="text-gray-400 ml-1">
+                ({Math.round((stats.total / event.capacityLimit) * 100)}%)
+              </span>
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Stats Row 1: Registrations by role */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
         <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
@@ -477,7 +514,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Recent Registrations and Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         {/* Recent Registrations */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
           <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
@@ -611,6 +648,19 @@ export default function DashboardPage() {
             <p className="text-gray-500 text-sm">Customize form fields</p>
           </Link>
         </div>
+      </div>
+
+      {/* Country Distribution - Full Width */}
+      <div className="mt-8 bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Country Distribution</h2>
+        <PieChart
+          data={stats.countryDistribution.map((c) => ({
+            label: c.country,
+            value: c.count,
+          }))}
+          size={280}
+          maxItems={10}
+        />
       </div>
     </div>
   );

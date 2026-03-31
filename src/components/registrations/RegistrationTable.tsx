@@ -29,6 +29,7 @@ interface Registration {
 interface RegistrationTableProps {
   registrations: Registration[];
   onRefresh: () => void;
+  hideEventColumn?: boolean;
 }
 
 interface Filter {
@@ -95,10 +96,13 @@ const COLUMN_FILTER_CONFIG: Record<string, { type: "text" | "select" | "date" | 
 
 const STORAGE_KEY = "4tango_registration_columns";
 const FILTER_STORAGE_KEY = "4tango_registration_filters";
+const PAGE_SIZE_KEY = "4tango_registration_page_size";
+const PAGE_SIZES = [25, 50, 100, 200];
 
 export default function RegistrationTable({
   registrations,
   onRefresh,
+  hideEventColumn = false,
 }: RegistrationTableProps) {
   const [columns, setColumns] = useState<ColumnConfig[]>(DEFAULT_COLUMNS);
   const [showCustomizer, setShowCustomizer] = useState(false);
@@ -108,6 +112,8 @@ export default function RegistrationTable({
   const [filters, setFilters] = useState<Filter[]>([]);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const filterDropdownRef = useRef<HTMLDivElement>(null);
+  const [pageSize, setPageSize] = useState(50);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Close filter dropdown on outside click
   useEffect(() => {
@@ -122,7 +128,7 @@ export default function RegistrationTable({
     }
   }, [showFilterDropdown]);
 
-  // Load saved column preferences and filters
+  // Load saved column preferences, filters, and page size
   useEffect(() => {
     const savedColumns = localStorage.getItem(STORAGE_KEY);
     if (savedColumns) {
@@ -140,7 +146,19 @@ export default function RegistrationTable({
         // Use defaults
       }
     }
+    const savedPageSize = localStorage.getItem(PAGE_SIZE_KEY);
+    if (savedPageSize) {
+      const size = parseInt(savedPageSize, 10);
+      if (PAGE_SIZES.includes(size)) {
+        setPageSize(size);
+      }
+    }
   }, []);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters]);
 
   // Save column preferences
   function handleColumnsChange(newColumns: ColumnConfig[]) {
@@ -260,11 +278,21 @@ export default function RegistrationTable({
   }, [registrations, filters]);
 
   // Selection handlers
+  // Selection handlers - defined as regular functions, used after paginatedRegistrations is calculated
   function toggleSelectAll() {
-    if (selectedIds.size === filteredRegistrations.length) {
-      setSelectedIds(new Set());
+    const pageIds = paginatedRegistrations.map((r) => r.id);
+    const allSelected = pageIds.every((id) => selectedIds.has(id));
+
+    if (allSelected) {
+      // Deselect all on current page
+      const newSelected = new Set(selectedIds);
+      pageIds.forEach((id) => newSelected.delete(id));
+      setSelectedIds(newSelected);
     } else {
-      setSelectedIds(new Set(filteredRegistrations.map((r) => r.id)));
+      // Select all on current page
+      const newSelected = new Set(selectedIds);
+      pageIds.forEach((id) => newSelected.add(id));
+      setSelectedIds(newSelected);
     }
   }
 
@@ -338,51 +366,71 @@ export default function RegistrationTable({
     return 0;
   });
 
+  // Pagination
+  const totalPages = Math.ceil(sortedRegistrations.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedRegistrations = sortedRegistrations.slice(startIndex, endIndex);
+
+  function handlePageSizeChange(newSize: number) {
+    setPageSize(newSize);
+    setCurrentPage(1);
+    localStorage.setItem(PAGE_SIZE_KEY, String(newSize));
+  }
+
+  function goToPage(page: number) {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  }
+
+  // Check if all items on current page are selected
+  const allPageSelected = paginatedRegistrations.length > 0 &&
+    paginatedRegistrations.every((r) => selectedIds.has(r.id));
+
   const visibleColumns = columns
     .filter((c) => c.visible)
+    .filter((c) => !(hideEventColumn && c.id === "event"))
     .sort((a, b) => a.order - b.order);
 
   function renderCell(reg: Registration, columnId: string) {
     switch (columnId) {
       case "fullName":
         return (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {/* Profile picture */}
             {reg.dancerProfilePictureUrl ? (
               <img
                 src={reg.dancerProfilePictureUrl}
                 alt={reg.fullName}
-                className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                className="w-6 h-6 rounded-full object-cover flex-shrink-0"
               />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-                <span className="text-sm font-medium text-gray-500">
+              <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                <span className="text-xs font-medium text-gray-500">
                   {reg.fullName.charAt(0).toUpperCase()}
                 </span>
               </div>
             )}
-            <div>
+            <div className="min-w-0">
               {reg.dancerId ? (
                 <Link
                   href={`/registrations/dancer/${reg.dancerId}`}
-                  className="text-gray-900 font-medium hover:text-rose-500 hover:underline"
+                  className="text-gray-900 text-sm font-medium hover:text-rose-500 truncate block"
                 >
                   {reg.fullName}
                 </Link>
               ) : (
-                <p className="text-gray-900 font-medium">{reg.fullName}</p>
+                <span className="text-gray-900 text-sm font-medium truncate block">{reg.fullName}</span>
               )}
-              <p className="text-gray-500 text-sm">{reg.email}</p>
             </div>
           </div>
         );
       case "email":
-        return <span className="text-gray-700">{reg.email}</span>;
+        return <span className="text-gray-600 text-sm truncate">{reg.email}</span>;
       case "event":
         return (
           <Link
             href={`/events/${reg.event.id}`}
-            className="text-rose-500 hover:text-rose-600 hover:underline"
+            className="text-rose-500 hover:text-rose-600 text-sm truncate block max-w-[150px]"
           >
             {reg.event.title}
           </Link>
@@ -390,49 +438,49 @@ export default function RegistrationTable({
       case "role":
         return (
           <span
-            className={`px-2 py-1 rounded text-xs font-medium ${
+            className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${
               reg.role === "LEADER"
-                ? "bg-blue-100 text-blue-700"
-                : "bg-pink-100 text-pink-700"
+                ? "bg-blue-50 text-blue-600"
+                : "bg-pink-50 text-pink-600"
             }`}
           >
-            {reg.role}
+            {reg.role === "LEADER" ? "L" : "F"}
           </span>
         );
       case "country":
-        return <span className="text-gray-600">{reg.country || "-"}</span>;
+        return <span className="text-gray-600 text-sm">{reg.country || "-"}</span>;
       case "city":
-        return <span className="text-gray-600">{reg.city || "-"}</span>;
+        return <span className="text-gray-600 text-sm">{reg.city || "-"}</span>;
       case "registrationStatus":
         return (
           <span
-            className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(
+            className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${getStatusColor(
               reg.registrationStatus
             )}`}
           >
-            {formatStatus(reg.registrationStatus)}
+            {formatStatusShort(reg.registrationStatus)}
           </span>
         );
       case "paymentStatus":
         return (
           <span
-            className={`px-2 py-1 rounded text-xs font-medium ${getPaymentStatusColor(
+            className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${getPaymentStatusColor(
               reg.paymentStatus
             )}`}
           >
-            {formatPaymentStatus(reg.paymentStatus)}
+            {formatPaymentStatusShort(reg.paymentStatus)}
           </span>
         );
       case "paymentAmount":
         return (
-          <span className="text-gray-600">
-            {reg.paymentAmount ? `€${(reg.paymentAmount / 100).toFixed(2)}` : "-"}
+          <span className="text-gray-600 text-sm">
+            {reg.paymentAmount ? `€${(reg.paymentAmount / 100).toFixed(0)}` : "-"}
           </span>
         );
       case "createdAt":
         return (
-          <span className="text-gray-600">
-            {new Date(reg.createdAt).toLocaleDateString()}
+          <span className="text-gray-500 text-xs">
+            {new Date(reg.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}
           </span>
         );
       default:
@@ -443,7 +491,7 @@ export default function RegistrationTable({
   return (
     <div>
       {/* Bulk actions bar */}
-      <div className="mb-4">
+      <div className="mb-2">
         <BulkActions
           selectedIds={Array.from(selectedIds)}
           onClearSelection={() => setSelectedIds(new Set())}
@@ -454,33 +502,34 @@ export default function RegistrationTable({
         />
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+      <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
         {/* Table header controls */}
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center justify-between mb-3">
-            <div className="text-sm text-gray-500">
+        <div className="px-3 py-2 border-b border-gray-100">
+          <div className="flex items-center justify-between">
+            <div className="text-xs text-gray-500">
               {filteredRegistrations.length === registrations.length
-                ? `${registrations.length} registration${registrations.length !== 1 ? "s" : ""}`
-                : `${filteredRegistrations.length} of ${registrations.length} registrations`}
+                ? `${registrations.length} total`
+                : `${filteredRegistrations.length}/${registrations.length}`}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <div className="relative" ref={filterDropdownRef}>
                 <button
                   onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-                  className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1 px-3 py-1.5 border border-gray-200 rounded-lg hover:bg-gray-50"
+                  className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100"
+                  title="Add filter"
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                   </svg>
-                  Add Filter
+                  Filter
                 </button>
                 {showFilterDropdown && (
-                  <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 py-1 max-h-64 overflow-y-auto">
+                  <div className="absolute right-0 top-full mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 z-50 py-1 max-h-64 overflow-y-auto">
                     {DEFAULT_COLUMNS.map((col) => (
                       <button
                         key={col.id}
                         onClick={() => addFilter(col.id)}
-                        className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                        className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-100"
                       >
                         {col.label}
                       </button>
@@ -490,20 +539,20 @@ export default function RegistrationTable({
               </div>
               <button
                 onClick={() => setShowCustomizer(true)}
-                className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1 px-3 py-1.5 border border-gray-200 rounded-lg hover:bg-gray-50"
+                className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100"
+                title="Customize columns"
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
                 </svg>
-                Columns
+                Cols
               </button>
             </div>
           </div>
 
           {/* Active filters */}
           {filters.length > 0 && (
-            <div className="flex flex-wrap gap-2 items-center">
+            <div className="flex flex-wrap gap-1.5 items-center mt-2">
               {filters.map((filter) => {
                 const col = DEFAULT_COLUMNS.find((c) => c.id === filter.column);
                 const config = COLUMN_FILTER_CONFIG[filter.column];
@@ -511,15 +560,15 @@ export default function RegistrationTable({
                 return (
                   <div
                     key={filter.id}
-                    className="flex items-center gap-1 bg-gray-100 rounded-lg px-2 py-1 text-sm"
+                    className="flex items-center gap-0.5 bg-gray-100 rounded px-1.5 py-0.5 text-xs"
                   >
-                    <span className="text-gray-600 font-medium">{col?.label}:</span>
+                    <span className="text-gray-500">{col?.label}:</span>
 
                     {config?.type === "select" ? (
                       <select
                         value={filter.value}
                         onChange={(e) => updateFilter(filter.id, { value: e.target.value })}
-                        className="bg-transparent border-none text-gray-900 text-sm focus:outline-none focus:ring-0 py-0"
+                        className="bg-transparent border-none text-gray-700 text-xs focus:outline-none focus:ring-0 py-0 pr-4"
                       >
                         <option value="">Any</option>
                         {config.options?.map((opt) => (
@@ -529,29 +578,29 @@ export default function RegistrationTable({
                         ))}
                       </select>
                     ) : config?.type === "date" ? (
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-0.5">
                         <select
                           value={filter.operator}
                           onChange={(e) => updateFilter(filter.id, { operator: e.target.value })}
-                          className="bg-transparent border-none text-gray-600 text-sm focus:outline-none focus:ring-0 py-0"
+                          className="bg-transparent border-none text-gray-500 text-xs focus:outline-none focus:ring-0 py-0"
                         >
                           <option value="equals">on</option>
-                          <option value="before">before</option>
-                          <option value="after">after</option>
+                          <option value="before">&lt;</option>
+                          <option value="after">&gt;</option>
                         </select>
                         <input
                           type="date"
                           value={filter.value}
                           onChange={(e) => updateFilter(filter.id, { value: e.target.value })}
-                          className="bg-transparent border-none text-gray-900 text-sm focus:outline-none focus:ring-0 py-0"
+                          className="bg-transparent border-none text-gray-700 text-xs focus:outline-none focus:ring-0 py-0 w-28"
                         />
                       </div>
                     ) : config?.type === "number" ? (
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-0.5">
                         <select
                           value={filter.operator}
                           onChange={(e) => updateFilter(filter.id, { operator: e.target.value })}
-                          className="bg-transparent border-none text-gray-600 text-sm focus:outline-none focus:ring-0 py-0"
+                          className="bg-transparent border-none text-gray-500 text-xs focus:outline-none focus:ring-0 py-0"
                         >
                           <option value="equals">=</option>
                           <option value="greater">&gt;</option>
@@ -562,27 +611,27 @@ export default function RegistrationTable({
                           value={filter.value}
                           onChange={(e) => updateFilter(filter.id, { value: e.target.value })}
                           placeholder="0"
-                          className="bg-transparent border-none text-gray-900 text-sm focus:outline-none focus:ring-0 py-0 w-20"
+                          className="bg-transparent border-none text-gray-700 text-xs focus:outline-none focus:ring-0 py-0 w-14"
                         />
                       </div>
                     ) : (
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-0.5">
                         <select
                           value={filter.operator}
                           onChange={(e) => updateFilter(filter.id, { operator: e.target.value })}
-                          className="bg-transparent border-none text-gray-600 text-sm focus:outline-none focus:ring-0 py-0"
+                          className="bg-transparent border-none text-gray-500 text-xs focus:outline-none focus:ring-0 py-0"
                         >
-                          <option value="contains">contains</option>
-                          <option value="equals">equals</option>
-                          <option value="starts">starts with</option>
+                          <option value="contains">~</option>
+                          <option value="equals">=</option>
+                          <option value="starts">^</option>
                         </select>
                         <input
                           type="text"
                           value={filter.value}
                           onChange={(e) => updateFilter(filter.id, { value: e.target.value })}
-                          placeholder="Search..."
+                          placeholder="..."
                           list={`filter-${filter.id}-options`}
-                          className="bg-transparent border-none text-gray-900 text-sm focus:outline-none focus:ring-0 py-0 w-32"
+                          className="bg-transparent border-none text-gray-700 text-xs focus:outline-none focus:ring-0 py-0 w-24"
                         />
                         <datalist id={`filter-${filter.id}-options`}>
                           {getUniqueValues(filter.column).slice(0, 10).map((val) => (
@@ -594,9 +643,9 @@ export default function RegistrationTable({
 
                     <button
                       onClick={() => removeFilter(filter.id)}
-                      className="text-gray-400 hover:text-gray-600 ml-1"
+                      className="text-gray-400 hover:text-gray-600"
                     >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </button>
@@ -605,9 +654,9 @@ export default function RegistrationTable({
               })}
               <button
                 onClick={clearAllFilters}
-                className="text-sm text-gray-500 hover:text-gray-700"
+                className="text-xs text-gray-400 hover:text-gray-600"
               >
-                Clear all
+                Clear
               </button>
             </div>
           )}
@@ -617,28 +666,25 @@ export default function RegistrationTable({
           <table className="w-full">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="w-12 px-4 py-3">
+                <th className="w-8 px-2 py-2">
                   <input
                     type="checkbox"
-                    checked={
-                      selectedIds.size === filteredRegistrations.length &&
-                      filteredRegistrations.length > 0
-                    }
+                    checked={allPageSelected}
                     onChange={toggleSelectAll}
-                    className="w-4 h-4 text-rose-500 rounded border-gray-300 focus:ring-rose-500"
+                    className="w-3.5 h-3.5 text-rose-500 rounded border-gray-300 focus:ring-rose-500"
                   />
                 </th>
                 {visibleColumns.map((column) => (
                   <th
                     key={column.id}
                     onClick={() => handleSort(column.id)}
-                    className="text-left text-gray-600 font-medium px-6 py-3 cursor-pointer hover:text-gray-900"
+                    className="text-left text-gray-500 text-xs font-medium uppercase tracking-wider px-3 py-2 cursor-pointer hover:text-gray-700 whitespace-nowrap"
                   >
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-0.5">
                       {column.label}
                       {sortColumn === column.id && (
                         <svg
-                          className={`w-4 h-4 transition ${
+                          className={`w-3 h-3 transition ${
                             sortDirection === "desc" ? "rotate-180" : ""
                           }`}
                           fill="none"
@@ -656,31 +702,31 @@ export default function RegistrationTable({
                     </div>
                   </th>
                 ))}
-                <th className="w-12 px-4 py-3"></th>
+                <th className="w-8 px-2 py-2"></th>
               </tr>
             </thead>
             <tbody>
-              {sortedRegistrations.map((reg) => (
+              {paginatedRegistrations.map((reg) => (
                 <tr
                   key={reg.id}
-                  className={`border-b border-gray-100 hover:bg-gray-50 transition ${
-                    selectedIds.has(reg.id) ? "bg-rose-50" : ""
+                  className={`border-b border-gray-50 hover:bg-gray-50/50 transition ${
+                    selectedIds.has(reg.id) ? "bg-rose-50/50" : ""
                   }`}
                 >
-                  <td className="px-4 py-4">
+                  <td className="px-2 py-1.5">
                     <input
                       type="checkbox"
                       checked={selectedIds.has(reg.id)}
                       onChange={() => toggleSelect(reg.id)}
-                      className="w-4 h-4 text-rose-500 rounded border-gray-300 focus:ring-rose-500"
+                      className="w-3.5 h-3.5 text-rose-500 rounded border-gray-300 focus:ring-rose-500"
                     />
                   </td>
                   {visibleColumns.map((column) => (
-                    <td key={column.id} className="px-6 py-4">
+                    <td key={column.id} className="px-3 py-1.5">
                       {renderCell(reg, column.id)}
                     </td>
                   ))}
-                  <td className="px-4 py-4">
+                  <td className="px-2 py-1.5">
                     <ActionMenu
                       registrationId={reg.id}
                       onActionComplete={onRefresh}
@@ -693,20 +739,90 @@ export default function RegistrationTable({
         </div>
 
         {sortedRegistrations.length === 0 && (
-          <div className="text-center py-12">
+          <div className="text-center py-8">
             {filters.length > 0 ? (
               <>
-                <p className="text-gray-500">No registrations match your filters</p>
+                <p className="text-gray-500 text-sm">No registrations match filters</p>
                 <button
                   onClick={clearAllFilters}
-                  className="mt-2 text-sm text-rose-500 hover:text-rose-600"
+                  className="mt-1 text-xs text-rose-500 hover:text-rose-600"
                 >
-                  Clear all filters
+                  Clear filters
                 </button>
               </>
             ) : (
-              <p className="text-gray-500">No registrations found</p>
+              <p className="text-gray-500 text-sm">No registrations</p>
             )}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {sortedRegistrations.length > 0 && (
+          <div className="px-3 py-2 border-t border-gray-100 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-3">
+              <span className="text-gray-500">
+                {startIndex + 1}-{Math.min(endIndex, sortedRegistrations.length)} of {sortedRegistrations.length}
+              </span>
+              <div className="flex items-center gap-1">
+                <span className="text-gray-400">Show:</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                  className="border-none bg-transparent text-gray-700 text-xs focus:outline-none focus:ring-0 py-0 pr-6 cursor-pointer"
+                >
+                  {PAGE_SIZES.map((size) => (
+                    <option key={size} value={size}>
+                      {size}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => goToPage(1)}
+                disabled={currentPage === 1}
+                className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                title="First page"
+              >
+                <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                </svg>
+              </button>
+              <button
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                title="Previous page"
+              >
+                <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <span className="px-2 text-gray-600">
+                {currentPage} / {totalPages}
+              </span>
+              <button
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                title="Next page"
+              >
+                <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+              <button
+                onClick={() => goToPage(totalPages)}
+                disabled={currentPage === totalPages}
+                className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                title="Last page"
+              >
+                <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7m-8-14l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -776,6 +892,29 @@ function formatStatus(status: string): string {
   }
 }
 
+function formatStatusShort(status: string): string {
+  switch (status) {
+    case "REGISTERED":
+      return "Pend";
+    case "PENDING_REVIEW":
+      return "Review";
+    case "APPROVED":
+      return "Appr";
+    case "CONFIRMED":
+      return "Conf";
+    case "WAITLIST":
+      return "Wait";
+    case "REJECTED":
+      return "Rej";
+    case "CANCELLED":
+      return "Canc";
+    case "CHECKED_IN":
+      return "In";
+    default:
+      return status.slice(0, 4);
+  }
+}
+
 function formatPaymentStatus(status: string): string {
   switch (status) {
     case "PARTIALLY_PAID":
@@ -786,5 +925,26 @@ function formatPaymentStatus(status: string): string {
       return "Refunding";
     default:
       return status.charAt(0) + status.slice(1).toLowerCase();
+  }
+}
+
+function formatPaymentStatusShort(status: string): string {
+  switch (status) {
+    case "UNPAID":
+      return "Unpd";
+    case "PENDING":
+      return "Pend";
+    case "PAID":
+      return "Paid";
+    case "PARTIALLY_PAID":
+      return "Part";
+    case "PAYMENT_FAILED":
+      return "Fail";
+    case "REFUNDED":
+      return "Ref";
+    case "REFUND_PENDING":
+      return "Refg";
+    default:
+      return status.slice(0, 4);
   }
 }

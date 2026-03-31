@@ -31,11 +31,20 @@ export const sendEmailAction: ActionDefinition = {
 
   execute: async (context: ActionContext, input: ActionInput): Promise<ActionResult> => {
     try {
-      // Fetch registration details
+      // Fetch registration details with event and organizer
       const registration = await prisma.registration.findUnique({
         where: { id: context.registrationId },
         include: {
-          event: true,
+          event: {
+            include: {
+              organizer: {
+                select: {
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+          },
         },
       });
 
@@ -79,20 +88,36 @@ export const sendEmailAction: ActionDefinition = {
         htmlContent = wrapCustomMessage(String(input.message), registration.event.title);
       }
 
-      // Build variables
+      // Build variables - ensure ALL template variables are available
+      const baseUrl = process.env.NEXT_PUBLIC_URL || "https://4tango.com";
+      const paymentAmount = registration.paymentAmount
+        ? `${(registration.paymentAmount / 100).toFixed(2)} ${registration.event.currency || "EUR"}`
+        : "TBD";
+
       const variables: TemplateVariables = {
+        // Dancer info
         dancerName: registration.fullNameSnapshot,
         dancerEmail: registration.emailSnapshot,
         dancerRole: registration.roleSnapshot.toLowerCase(),
+        // Event info
         eventTitle: registration.event.title,
         eventLocation: `${registration.event.city}, ${registration.event.country}`,
         eventCity: registration.event.city,
         eventCountry: registration.event.country,
+        eventDates: formatDateRange(registration.event.startAt, registration.event.endAt),
+        // Registration info
         registrationStatus: registration.registrationStatus.replace(/_/g, " ").toLowerCase(),
         paymentStatus: registration.paymentStatus.replace(/_/g, " ").toLowerCase(),
-        customMessage: input.message ? String(input.message) : "",
         confirmationNumber: `4T-${registration.event.startAt.getFullYear()}-${registration.id.slice(-6).toUpperCase()}`,
-        registrationUrl: `${process.env.NEXT_PUBLIC_URL || "https://4tango.com"}/registration/${registration.accessToken}`,
+        registrationUrl: `${baseUrl}/registration/${registration.accessToken}`,
+        // Payment info
+        paymentAmount,
+        paymentLink: `${baseUrl}/registration/${registration.accessToken}`,
+        // Organizer info
+        organizerName: registration.event.organizer.name,
+        organizerEmail: registration.event.organizer.email || "",
+        // Custom
+        customMessage: input.message ? String(input.message) : "",
       };
 
       const result = await sendEmail({
@@ -132,6 +157,29 @@ export const sendEmailAction: ActionDefinition = {
     }
   },
 };
+
+// Helper to format date range
+function formatDateRange(start: Date, end: Date): string {
+  const options: Intl.DateTimeFormatOptions = {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  };
+
+  const startStr = start.toLocaleDateString("en-US", options);
+  const endStr = end.toLocaleDateString("en-US", options);
+
+  if (startStr === endStr) {
+    return startStr;
+  }
+
+  // If same month and year, shorten
+  if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+    return `${start.toLocaleDateString("en-US", { month: "long", day: "numeric" })} - ${end.toLocaleDateString("en-US", { day: "numeric", year: "numeric" })}`;
+  }
+
+  return `${startStr} - ${endStr}`;
+}
 
 function wrapCustomMessage(message: string, eventTitle: string): string {
   return `

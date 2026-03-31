@@ -176,7 +176,7 @@ export const ROLE_DISPLAY_NAMES: Record<OrganizerRole, string> = {
 
 // Role descriptions for UI
 export const ROLE_DESCRIPTIONS: Record<OrganizerRole, string> = {
-  OWNER: 'Full access including billing and team management',
+  OWNER: 'Full access including billing, team management, and can invite co-owners',
   ADMIN: 'Full event management, no billing access',
   SITE_MANAGER: 'Landing page design only',
   FINANCE_MANAGER: 'Payment and finance operations only',
@@ -188,7 +188,8 @@ export const ROLE_DESCRIPTIONS: Record<OrganizerRole, string> = {
 export function getAssignableRoles(role: OrganizerRole): OrganizerRole[] {
   switch (role) {
     case 'OWNER':
-      return ['ADMIN', 'SITE_MANAGER', 'FINANCE_MANAGER', 'REGISTRATION_MANAGER', 'VIEWER'];
+      // Owners can invite co-owners and all other roles
+      return ['OWNER', 'ADMIN', 'SITE_MANAGER', 'FINANCE_MANAGER', 'REGISTRATION_MANAGER', 'VIEWER'];
     case 'ADMIN':
       return ['SITE_MANAGER', 'FINANCE_MANAGER', 'REGISTRATION_MANAGER', 'VIEWER'];
     default:

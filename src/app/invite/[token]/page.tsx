@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import type { OrganizerRole } from "@prisma/client";
 import { ROLE_DISPLAY_NAMES, ROLE_DESCRIPTIONS } from "@/lib/permissions";
@@ -19,12 +19,9 @@ interface InvitationData {
   expiresAt: string;
 }
 
-export default function AcceptInvitePage({
-  params,
-}: {
-  params: Promise<{ token: string }>;
-}) {
-  const { token } = use(params);
+export default function AcceptInvitePage() {
+  const params = useParams();
+  const token = params.token as string;
   const router = useRouter();
   const [invitation, setInvitation] = useState<InvitationData | null>(null);
   const [loading, setLoading] = useState(true);

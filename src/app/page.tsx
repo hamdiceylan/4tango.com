@@ -1,6 +1,39 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { SmoothScrollLink } from "@/components/SmoothScrollLink";
 import { MobileNav } from "@/components/MobileNav";
+
+const baseUrl = process.env.NEXT_PUBLIC_URL || "https://4tango.com";
+
+export const metadata: Metadata = {
+  title: "4Tango - Event Management for Tango Organizers",
+  description:
+    "Run your tango events with less admin. Create beautiful event pages, collect registrations, manage attendees, and keep everything in one place. Built specifically for tango organizers.",
+  openGraph: {
+    title: "4Tango - Event Management for Tango Organizers",
+    description:
+      "Run your tango events with less admin. Create beautiful event pages, collect registrations, manage attendees, and keep everything in one place.",
+    url: baseUrl,
+    images: [
+      {
+        url: `${baseUrl}/og-image.png`,
+        width: 1200,
+        height: 630,
+        alt: "4Tango - Event Management for Tango Organizers",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "4Tango - Event Management for Tango Organizers",
+    description:
+      "Run your tango events with less admin. Create beautiful event pages, collect registrations, manage attendees, and keep everything in one place.",
+    images: [`${baseUrl}/og-image.png`],
+  },
+  alternates: {
+    canonical: baseUrl,
+  },
+};
 
 export default function Home() {
   return (

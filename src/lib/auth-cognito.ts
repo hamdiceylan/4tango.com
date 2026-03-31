@@ -169,7 +169,7 @@ async function authenticateOrganizer(
         create: {
           email,
           fullName,
-          role: 'ADMIN',
+          role: 'OWNER', // Creator of organization is always OWNER
           cognitoUserId,
         },
       },

@@ -40,13 +40,13 @@ export async function POST(request: Request) {
         }
       });
 
-      // Create organizer user
+      // Create organizer user as OWNER (they created the organization)
       const organizerUser = await tx.organizerUser.create({
         data: {
           organizerId: organizer.id,
           email: normalizedEmail,
           fullName: name,
-          role: "ADMIN",
+          role: "OWNER",
         }
       });
 

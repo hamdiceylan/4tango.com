@@ -15,41 +15,23 @@ export const sendEmailAction: ActionDefinition = {
 
   inputFields: [
     {
-      name: "emailType",
-      label: "Email type",
-      type: "select",
-      options: [
-        { value: "CUSTOM", label: "Custom message" },
-        { value: "REGISTRATION_CONFIRMATION", label: "Registration Confirmation" },
-        { value: "STATUS_UPDATE", label: "Status Update" },
-      ],
-      defaultValue: "CUSTOM",
-    },
-    {
       name: "subject",
       label: "Email subject",
       type: "text",
-      placeholder: "Subject line...",
-      required: true,
+      placeholder: "Subject line (optional if using template)",
+      required: false,
     },
     {
       name: "message",
       label: "Email message",
       type: "textarea",
-      placeholder: "Your message to the dancer...",
-      required: true,
+      placeholder: "Your message to the dancer (optional if using template)",
+      required: false,
     },
   ],
 
   execute: async (context: ActionContext, input: ActionInput): Promise<ActionResult> => {
     try {
-      if (!input.subject || !input.message) {
-        return {
-          success: false,
-          message: "Subject and message are required",
-        };
-      }
-
       // Fetch registration details
       const registration = await prisma.registration.findUnique({
         where: { id: context.registrationId },
@@ -65,8 +47,38 @@ export const sendEmailAction: ActionDefinition = {
         };
       }
 
+      let subject: string;
+      let htmlContent: string;
+      let templateId: string | undefined;
       const emailType = (input.emailType as EmailType) || "CUSTOM";
-      const defaultTemplate = getDefaultTemplate(emailType);
+
+      // Check if a template was selected
+      if (input.templateId && typeof input.templateId === "string") {
+        const template = await prisma.emailTemplate.findUnique({
+          where: { id: input.templateId },
+        });
+
+        if (template) {
+          subject = template.subject;
+          htmlContent = template.htmlContent;
+          templateId = template.id;
+        } else {
+          return {
+            success: false,
+            message: "Selected template not found",
+          };
+        }
+      } else {
+        // Use custom subject/message
+        if (!input.subject || !input.message) {
+          return {
+            success: false,
+            message: "Subject and message are required when not using a template",
+          };
+        }
+        subject = String(input.subject);
+        htmlContent = wrapCustomMessage(String(input.message), registration.event.title);
+      }
 
       // Build variables
       const variables: TemplateVariables = {
@@ -75,25 +87,25 @@ export const sendEmailAction: ActionDefinition = {
         dancerRole: registration.roleSnapshot.toLowerCase(),
         eventTitle: registration.event.title,
         eventLocation: `${registration.event.city}, ${registration.event.country}`,
+        eventCity: registration.event.city,
+        eventCountry: registration.event.country,
         registrationStatus: registration.registrationStatus.replace(/_/g, " ").toLowerCase(),
         paymentStatus: registration.paymentStatus.replace(/_/g, " ").toLowerCase(),
-        customMessage: String(input.message),
+        customMessage: input.message ? String(input.message) : "",
+        confirmationNumber: `4T-${registration.event.startAt.getFullYear()}-${registration.id.slice(-6).toUpperCase()}`,
+        registrationUrl: `${process.env.NEXT_PUBLIC_URL || "https://4tango.com"}/registration/${registration.accessToken}`,
       };
-
-      // For custom emails, wrap the message in basic HTML
-      const htmlContent = emailType === "CUSTOM"
-        ? wrapCustomMessage(String(input.message), registration.event.title)
-        : defaultTemplate.htmlContent;
 
       const result = await sendEmail({
         to: registration.emailSnapshot,
         toName: registration.fullNameSnapshot,
-        subject: String(input.subject),
+        subject,
         htmlContent,
         organizerId: context.organizerId,
         eventId: context.eventId,
         registrationId: context.registrationId,
         emailType,
+        templateId,
         variables,
       });
 

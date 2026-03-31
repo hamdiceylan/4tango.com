@@ -53,17 +53,60 @@ export async function GET(
       paymentAmount: registration.paymentAmount,
     };
 
+    // Fetch available templates for the send-email action
+    const templates = await prisma.emailTemplate.findMany({
+      where: {
+        organizerId: auth.organizerId,
+        isActive: true,
+        OR: [
+          { eventId: null }, // Organization-wide templates
+          { eventId: registration.eventId }, // Event-specific templates
+        ],
+      },
+      select: {
+        id: true,
+        name: true,
+        subject: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    const templateOptions = [
+      { value: "", label: "No template (custom message)" },
+      ...templates.map((t) => ({ value: t.id, label: t.name })),
+    ];
+
     // Get available actions
-    const availableActions = getAvailableActions(context).map((action) => ({
-      id: action.id,
-      name: action.name,
-      description: action.description,
-      category: action.category,
-      icon: action.icon,
-      inputFields: action.inputFields || [],
-      requiresConfirmation: action.requiresConfirmation || false,
-      confirmationMessage: action.confirmationMessage,
-    }));
+    const availableActions = getAvailableActions(context).map((action) => {
+      const baseAction = {
+        id: action.id,
+        name: action.name,
+        description: action.description,
+        category: action.category,
+        icon: action.icon,
+        inputFields: action.inputFields || [],
+        requiresConfirmation: action.requiresConfirmation || false,
+        confirmationMessage: action.confirmationMessage,
+      };
+
+      // Add template selector to send-email action
+      if (action.id === "send-email" && templates.length > 0) {
+        return {
+          ...baseAction,
+          inputFields: [
+            {
+              name: "templateId",
+              label: "Template",
+              type: "select",
+              options: templateOptions,
+            },
+            ...(baseAction.inputFields || []),
+          ],
+        };
+      }
+
+      return baseAction;
+    });
 
     return NextResponse.json({ actions: availableActions });
   } catch (error) {

@@ -265,21 +265,64 @@ aws amplify list-jobs --app-id <APP_ID> --branch-name <BRANCH> --region eu-west-
 2. Verify environment variables are set
 3. Run `npm run build` locally to catch errors early
 
-### 9. Key Files
+### 9. Email System
+
+**Full Documentation**: `docs/EMAIL_FEATURES.md`
+
+The email module provides comprehensive email functionality including:
+- Manual email sending from registration pages
+- Automatic transactional emails (confirmation, organizer notification)
+- Email templates with variable substitution
+- Open/click tracking
+- Email history and management UI
+
+**Key Email Files**:
+| File | Purpose |
+|------|---------|
+| `src/lib/email-service.ts` | Main email service (send, track, template handling) |
+| `src/lib/email-templates/defaults.ts` | Default HTML templates |
+| `src/lib/email-templates/seed-defaults.ts` | Seed function for default templates |
+| `src/app/(dashboard)/emails/page.tsx` | Email history UI |
+| `src/app/api/emails/route.ts` | Email list/send API |
+| `src/app/api/track/open/[trackingId]/route.ts` | Open tracking endpoint |
+| `src/app/api/track/click/[trackingId]/route.ts` | Click tracking endpoint |
+
+**Email Environment Variables**:
+| Variable | Purpose |
+|----------|---------|
+| `SES_REGION` | AWS SES region (eu-west-1) |
+| `SES_FROM_EMAIL` | Sender address (noreply@4tango.com) |
+| `SES_ACCESS_KEY_ID` | IAM access key for SES |
+| `SES_SECRET_ACCESS_KEY` | IAM secret key for SES |
+| `NEXT_PUBLIC_URL` | Base URL for tracking links |
+
+**Email Types** (EmailType enum):
+- `REGISTRATION_CONFIRMATION` - Sent to dancer on registration
+- `ORGANIZER_NOTIFICATION` - Sent to organizer on new registration
+- `PAYMENT_REMINDER` - Payment reminder emails
+- `STATUS_UPDATE` - Registration status changes
+- `CUSTOM` - Manual custom emails
+
+**Email Statuses** (EmailStatus enum):
+- `QUEUED` → `SENT` → `DELIVERED` → `OPENED` → `CLICKED`
+- `BOUNCED` / `FAILED` for error states
+
+### 10. Key Files
 
 | File | Purpose |
 |------|---------|
 | `prisma/schema.prisma` | Database schema |
 | `docs/TEST_SCENARIOS.md` | Test scenarios - **update when features change** |
 | `docs/plans.md` | Pricing plans, features, limits, and add-ons - **source of truth for subscription logic** |
-| `src/lib/email.ts` | SES email client |
+| `docs/EMAIL_FEATURES.md` | Email module documentation - **comprehensive email system reference** |
+| `src/lib/email-service.ts` | Email service with SES integration and tracking |
 | `src/lib/prisma.ts` | Prisma client singleton |
 | `src/lib/registration-actions/` | Registration action system |
 | `src/lib/permissions.ts` | Role-based permissions |
 | `src/app/api/public/events/[slug]/register/route.ts` | Registration API |
 | `src/app/[lang]/[slug]/page.tsx` | Public event page (i18n) |
 
-### 10. AWS Resource Reference
+### 11. AWS Resource Reference
 
 | Resource | Value |
 |----------|-------|

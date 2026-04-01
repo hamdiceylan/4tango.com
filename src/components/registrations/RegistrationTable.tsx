@@ -879,19 +879,6 @@ function getPaymentStatusColor(status: string): string {
   }
 }
 
-function formatStatus(status: string): string {
-  switch (status) {
-    case "REGISTERED":
-      return "Pending";
-    case "PENDING_REVIEW":
-      return "In Review";
-    case "CHECKED_IN":
-      return "Checked In";
-    default:
-      return status.charAt(0) + status.slice(1).toLowerCase();
-  }
-}
-
 function formatStatusShort(status: string): string {
   switch (status) {
     case "REGISTERED":
@@ -912,19 +899,6 @@ function formatStatusShort(status: string): string {
       return "In";
     default:
       return status.slice(0, 4);
-  }
-}
-
-function formatPaymentStatus(status: string): string {
-  switch (status) {
-    case "PARTIALLY_PAID":
-      return "Partial";
-    case "PAYMENT_FAILED":
-      return "Failed";
-    case "REFUND_PENDING":
-      return "Refunding";
-    default:
-      return status.charAt(0) + status.slice(1).toLowerCase();
   }
 }
 

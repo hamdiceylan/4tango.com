@@ -6,6 +6,20 @@ import ActionMenu from "./ActionMenu";
 import ColumnCustomizer, { ColumnConfig } from "./ColumnCustomizer";
 import BulkActions from "./BulkActions";
 
+interface CustomFieldValue {
+  id: string;
+  fieldId: string;
+  value: string;
+}
+
+interface FormField {
+  id: string;
+  name: string;
+  label: string;
+  fieldType: string;
+  options?: { value: string; label: string }[] | null;
+}
+
 interface Registration {
   id: string;
   fullName: string;
@@ -24,12 +38,14 @@ interface Registration {
   createdAt: string;
   dancerId?: string;
   dancerProfilePictureUrl?: string | null;
+  customFieldValues?: CustomFieldValue[];
 }
 
 interface RegistrationTableProps {
   registrations: Registration[];
   onRefresh: () => void;
   hideEventColumn?: boolean;
+  formFields?: FormField[];
 }
 
 interface Filter {
@@ -103,8 +119,20 @@ export default function RegistrationTable({
   registrations,
   onRefresh,
   hideEventColumn = false,
+  formFields = [],
 }: RegistrationTableProps) {
-  const [columns, setColumns] = useState<ColumnConfig[]>(DEFAULT_COLUMNS);
+  // Create dynamic columns including custom fields
+  const allColumns = useMemo(() => {
+    const customFieldColumns: ColumnConfig[] = formFields.map((field, index) => ({
+      id: `custom_${field.id}`,
+      label: field.label,
+      visible: true, // Custom fields visible by default
+      order: DEFAULT_COLUMNS.length + index,
+    }));
+    return [...DEFAULT_COLUMNS, ...customFieldColumns];
+  }, [formFields]);
+
+  const [columns, setColumns] = useState<ColumnConfig[]>(allColumns);
   const [showCustomizer, setShowCustomizer] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [sortColumn, setSortColumn] = useState<string>("createdAt");
@@ -128,12 +156,38 @@ export default function RegistrationTable({
     }
   }, [showFilterDropdown]);
 
+  // Update columns when formFields change
+  useEffect(() => {
+    setColumns((prev) => {
+      // Keep saved preferences for existing columns, add new custom field columns
+      const savedColumnMap = new Map(prev.map(c => [c.id, c]));
+      return allColumns.map(col => {
+        const saved = savedColumnMap.get(col.id);
+        if (saved) {
+          return { ...col, visible: saved.visible, order: saved.order };
+        }
+        return col;
+      });
+    });
+  }, [allColumns]);
+
   // Load saved column preferences, filters, and page size
   useEffect(() => {
     const savedColumns = localStorage.getItem(STORAGE_KEY);
     if (savedColumns) {
       try {
-        setColumns(JSON.parse(savedColumns));
+        const parsed = JSON.parse(savedColumns) as ColumnConfig[];
+        // Merge saved preferences with current columns (including custom fields)
+        setColumns((prev) => {
+          const savedMap = new Map(parsed.map(c => [c.id, c]));
+          return prev.map(col => {
+            const saved = savedMap.get(col.id);
+            if (saved) {
+              return { ...col, visible: saved.visible, order: saved.order };
+            }
+            return col;
+          });
+        });
       } catch {
         // Use defaults
       }
@@ -234,7 +288,15 @@ export default function RegistrationTable({
           case "paymentStatus": fieldValue = reg.paymentStatus; break;
           case "createdAt": fieldValue = reg.createdAt; break;
           case "paymentAmount": fieldValue = String(reg.paymentAmount || 0); break;
-          default: return true;
+          default:
+            // Handle custom fields
+            if (filter.column.startsWith("custom_")) {
+              const fieldId = filter.column.replace("custom_", "");
+              const customValue = reg.customFieldValues?.find(v => v.fieldId === fieldId);
+              fieldValue = customValue?.value || "";
+            } else {
+              return true;
+            }
         }
 
         const config = COLUMN_FILTER_CONFIG[filter.column];
@@ -484,6 +546,34 @@ export default function RegistrationTable({
           </span>
         );
       default:
+        // Handle custom fields
+        if (columnId.startsWith("custom_")) {
+          const fieldId = columnId.replace("custom_", "");
+          const fieldValue = reg.customFieldValues?.find(v => v.fieldId === fieldId);
+          const field = formFields.find(f => f.id === fieldId);
+
+          if (!fieldValue?.value) {
+            return <span className="text-gray-400 text-sm">-</span>;
+          }
+
+          // Handle checkbox fields (show Yes/No)
+          if (field?.fieldType === "CHECKBOX") {
+            return (
+              <span className={`text-sm ${fieldValue.value === "true" ? "text-green-600" : "text-gray-600"}`}>
+                {fieldValue.value === "true" ? "Yes" : "No"}
+              </span>
+            );
+          }
+
+          // Handle select/radio fields (show label instead of value)
+          if ((field?.fieldType === "SELECT" || field?.fieldType === "RADIO") && field.options) {
+            const option = field.options.find(o => o.value === fieldValue.value);
+            return <span className="text-gray-600 text-sm">{option?.label || fieldValue.value}</span>;
+          }
+
+          // Default text display
+          return <span className="text-gray-600 text-sm truncate max-w-[150px]" title={fieldValue.value}>{fieldValue.value}</span>;
+        }
         return null;
     }
   }
@@ -525,7 +615,7 @@ export default function RegistrationTable({
                 </button>
                 {showFilterDropdown && (
                   <div className="absolute right-0 top-full mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 z-50 py-1 max-h-64 overflow-y-auto">
-                    {DEFAULT_COLUMNS.map((col) => (
+                    {columns.map((col) => (
                       <button
                         key={col.id}
                         onClick={() => addFilter(col.id)}
@@ -554,7 +644,7 @@ export default function RegistrationTable({
           {filters.length > 0 && (
             <div className="flex flex-wrap gap-1.5 items-center mt-2">
               {filters.map((filter) => {
-                const col = DEFAULT_COLUMNS.find((c) => c.id === filter.column);
+                const col = columns.find((c) => c.id === filter.column);
                 const config = COLUMN_FILTER_CONFIG[filter.column];
 
                 return (

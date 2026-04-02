@@ -4,6 +4,20 @@ import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import RegistrationTable from "@/components/registrations/RegistrationTable";
 
+interface CustomFieldValue {
+  id: string;
+  fieldId: string;
+  value: string;
+}
+
+interface FormField {
+  id: string;
+  name: string;
+  label: string;
+  fieldType: string;
+  options?: { value: string; label: string }[] | null;
+}
+
 interface Registration {
   id: string;
   fullName: string;
@@ -20,6 +34,7 @@ interface Registration {
     slug: string;
   };
   createdAt: string;
+  customFieldValues?: CustomFieldValue[];
 }
 
 export default function RegistrationsPage() {
@@ -27,6 +42,7 @@ export default function RegistrationsPage() {
   const eventIdFromUrl = searchParams.get("eventId");
 
   const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [formFields, setFormFields] = useState<FormField[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -52,9 +68,32 @@ export default function RegistrationsPage() {
     }
   }, []);
 
+  // Fetch form fields for the selected event
+  const fetchFormFields = useCallback(async () => {
+    if (!eventIdFromUrl) {
+      setFormFields([]);
+      return;
+    }
+    try {
+      const response = await fetch(`/api/events/${eventIdFromUrl}/form-fields`, {
+        credentials: "include",
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setFormFields(data);
+      }
+    } catch (error) {
+      console.error("Error fetching form fields:", error);
+    }
+  }, [eventIdFromUrl]);
+
   useEffect(() => {
     fetchRegistrations();
   }, [fetchRegistrations]);
+
+  useEffect(() => {
+    fetchFormFields();
+  }, [fetchFormFields]);
 
   const filteredRegistrations = registrations.filter((reg) => {
     if (statusFilter !== "all" && reg.registrationStatus !== statusFilter)
@@ -226,6 +265,7 @@ export default function RegistrationsPage() {
         registrations={filteredRegistrations}
         onRefresh={fetchRegistrations}
         hideEventColumn={true}
+        formFields={formFields}
       />
     </div>
   );

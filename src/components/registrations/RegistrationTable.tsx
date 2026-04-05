@@ -566,7 +566,7 @@ export default function RegistrationTable({
           }
 
           // Handle select/radio fields (show label instead of value)
-          if ((field?.fieldType === "SELECT" || field?.fieldType === "RADIO") && field.options) {
+          if ((field?.fieldType === "SELECT" || field?.fieldType === "RADIO") && Array.isArray(field.options)) {
             const option = field.options.find(o => o.value === fieldValue.value);
             return <span className="text-gray-600 text-sm">{option?.label || fieldValue.value}</span>;
           }

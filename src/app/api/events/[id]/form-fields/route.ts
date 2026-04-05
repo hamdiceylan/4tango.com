@@ -5,15 +5,22 @@ import { FieldType, generateFieldName } from '@/lib/field-types';
 // GET /api/events/[id]/form-fields - Get all form fields for an event
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const fields = await prisma.eventFormField.findMany({
-      where: { eventId: params.id },
+      where: { eventId: id },
       orderBy: { order: 'asc' },
     });
 
-    return NextResponse.json(fields);
+    // Ensure options is always an array or null (handle legacy string data)
+    const normalizedFields = fields.map(field => ({
+      ...field,
+      options: Array.isArray(field.options) ? field.options : null,
+    }));
+
+    return NextResponse.json(normalizedFields);
   } catch (error) {
     console.error('Error fetching form fields:', error);
     return NextResponse.json(
@@ -26,9 +33,10 @@ export async function GET(
 // POST /api/events/[id]/form-fields - Create a new form field
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const {
       fieldType,
@@ -64,7 +72,7 @@ export async function POST(
 
     // Get the highest order number for this event
     const lastField = await prisma.eventFormField.findFirst({
-      where: { eventId: params.id },
+      where: { eventId: id },
       orderBy: { order: 'desc' },
     });
 
@@ -83,7 +91,7 @@ export async function POST(
 
     const field = await prisma.eventFormField.create({
       data: {
-        eventId: params.id,
+        eventId: id,
         fieldType: fieldType as FieldType,
         name: fieldName,
         label,
@@ -110,9 +118,10 @@ export async function POST(
 // PUT /api/events/[id]/form-fields - Reorder fields
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const { fieldIds } = body;
 
@@ -135,7 +144,7 @@ export async function PUT(
 
     // Fetch and return updated fields
     const fields = await prisma.eventFormField.findMany({
-      where: { eventId: params.id },
+      where: { eventId: id },
       orderBy: { order: 'asc' },
     });
 

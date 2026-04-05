@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { FieldType, generateFieldName } from '@/lib/field-types';
 
+// Helper to extract string from potentially i18n value
+function getStringValue(value: unknown, fallback: string = ''): string {
+  if (!value) return fallback;
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object' && value !== null) {
+    const obj = value as Record<string, string>;
+    return obj.en || Object.values(obj)[0] || fallback;
+  }
+  return fallback;
+}
+
 // GET /api/events/[id]/form-fields - Get all form fields for an event
 export async function GET(
   request: NextRequest,
@@ -39,6 +50,15 @@ export async function GET(
         label = field.name;
       }
 
+      // Normalize options - ensure all option labels are strings (not i18n objects)
+      let normalizedOptions = null;
+      if (Array.isArray(field.options)) {
+        normalizedOptions = field.options.map((opt: { value: string; label: unknown }) => ({
+          value: opt.value,
+          label: getStringValue(opt.label, opt.value),
+        }));
+      }
+
       // Return only the fields needed by the client (exclude i18n objects)
       return {
         id: field.id,
@@ -50,7 +70,7 @@ export async function GET(
         helpText: typeof field.helpText === 'string' ? field.helpText : null,
         isRequired: field.isRequired,
         order: field.order,
-        options: Array.isArray(field.options) ? field.options : null,
+        options: normalizedOptions,
         validation: field.validation,
         conditionalOn: field.conditionalOn,
         createdAt: field.createdAt,

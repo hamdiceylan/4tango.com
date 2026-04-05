@@ -17,8 +17,18 @@ interface FormField {
   name: string;
   label: string | Record<string, string>; // Can be i18n object from API
   fieldType: string;
-  options?: { value: string; label: string }[] | null;
+  options?: { value: string; label: string | Record<string, string> }[] | null;
   labels?: Record<string, string> | null; // i18n labels
+}
+
+// Helper to extract string from potentially i18n value
+function getStringValue(value: string | Record<string, string> | undefined | null, fallback: string = ''): string {
+  if (!value) return fallback;
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object') {
+    return value.en || Object.values(value)[0] || fallback;
+  }
+  return fallback;
 }
 
 // Helper to extract string label from field (handles i18n objects)
@@ -588,7 +598,9 @@ export default function RegistrationTable({
           // Handle select/radio fields (show label instead of value)
           if ((field?.fieldType === "SELECT" || field?.fieldType === "RADIO") && Array.isArray(field.options)) {
             const option = field.options.find(o => o.value === fieldValue.value);
-            return <span className="text-gray-600 text-sm">{option?.label || fieldValue.value}</span>;
+            // option.label can be i18n object, so use helper to extract string
+            const optionLabel = option ? getStringValue(option.label, fieldValue.value) : fieldValue.value;
+            return <span className="text-gray-600 text-sm">{optionLabel}</span>;
           }
 
           // Default text display

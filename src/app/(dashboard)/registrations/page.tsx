@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import RegistrationTable from "@/components/registrations/RegistrationTable";
 
@@ -37,7 +37,7 @@ interface Registration {
   customFieldValues?: CustomFieldValue[];
 }
 
-export default function RegistrationsPage() {
+function RegistrationsPageContent() {
   const searchParams = useSearchParams();
   const eventIdFromUrl = searchParams.get("eventId");
 
@@ -268,5 +268,25 @@ export default function RegistrationsPage() {
         formFields={formFields}
       />
     </div>
+  );
+}
+
+export default function RegistrationsPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-8">
+        <div className="animate-pulse">
+          <div className="h-8 w-48 bg-gray-200 rounded mb-8"></div>
+          <div className="grid grid-cols-4 gap-4 mb-8">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-20 bg-gray-100 rounded-xl"></div>
+            ))}
+          </div>
+          <div className="h-64 bg-gray-100 rounded-xl"></div>
+        </div>
+      </div>
+    }>
+      <RegistrationsPageContent />
+    </Suspense>
   );
 }

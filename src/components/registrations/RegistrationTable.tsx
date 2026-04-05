@@ -123,12 +123,24 @@ export default function RegistrationTable({
 }: RegistrationTableProps) {
   // Create dynamic columns including custom fields
   const allColumns = useMemo(() => {
-    const customFieldColumns: ColumnConfig[] = formFields.map((field, index) => ({
-      id: `custom_${field.id}`,
-      label: field.label,
-      visible: true, // Custom fields visible by default
-      order: DEFAULT_COLUMNS.length + index,
-    }));
+    const customFieldColumns: ColumnConfig[] = formFields.map((field, index) => {
+      // Ensure label is a string (handle i18n labels object)
+      let label = field.label;
+      if (typeof label !== 'string') {
+        if (label && typeof label === 'object') {
+          const labels = label as Record<string, string>;
+          label = labels.en || Object.values(labels)[0] || field.name;
+        } else {
+          label = field.name;
+        }
+      }
+      return {
+        id: `custom_${field.id}`,
+        label,
+        visible: true, // Custom fields visible by default
+        order: DEFAULT_COLUMNS.length + index,
+      };
+    });
     return [...DEFAULT_COLUMNS, ...customFieldColumns];
   }, [formFields]);
 

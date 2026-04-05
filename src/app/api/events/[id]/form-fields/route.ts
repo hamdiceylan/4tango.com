@@ -14,11 +14,22 @@ export async function GET(
       orderBy: { order: 'asc' },
     });
 
-    // Ensure options is always an array or null (handle legacy string data)
-    const normalizedFields = fields.map(field => ({
-      ...field,
-      options: Array.isArray(field.options) ? field.options : null,
-    }));
+    // Normalize fields for client consumption
+    const normalizedFields = fields.map(field => {
+      // Ensure label is always a string (handle i18n labels object)
+      let label = field.label;
+      if (!label && field.labels && typeof field.labels === 'object') {
+        const labels = field.labels as Record<string, string>;
+        // Try English first, then first available language
+        label = labels.en || Object.values(labels)[0] || field.name;
+      }
+
+      return {
+        ...field,
+        label: label || field.name, // Fallback to name if no label
+        options: Array.isArray(field.options) ? field.options : null,
+      };
+    });
 
     return NextResponse.json(normalizedFields);
   } catch (error) {

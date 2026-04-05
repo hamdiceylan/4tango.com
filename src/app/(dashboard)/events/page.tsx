@@ -15,6 +15,7 @@ interface Event {
   capacityLimit: number | null;
   registrationCount: number;
   coverImageUrl: string | null;
+  logoUrl: string | null;
 }
 
 export default function EventsPage() {
@@ -135,9 +136,24 @@ export default function EventsPage() {
             {filteredEvents.map((event) => (
               <tr key={event.id} className="border-b border-gray-100 hover:bg-gray-50 transition">
                 <td className="px-6 py-4">
-                  <div>
-                    <p className="text-gray-900 font-medium">{event.title}</p>
-                    <p className="text-gray-500 text-sm">{event.city}, {event.country}</p>
+                  <div className="flex items-center gap-3">
+                    {event.logoUrl ? (
+                      <img
+                        src={event.logoUrl}
+                        alt={event.title}
+                        className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-lg bg-rose-100 flex items-center justify-center flex-shrink-0">
+                        <span className="text-rose-600 font-semibold text-lg">
+                          {event.title.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-gray-900 font-medium">{event.title}</p>
+                      <p className="text-gray-500 text-sm">{event.city}, {event.country}</p>
+                    </div>
                   </div>
                 </td>
                 <td className="px-6 py-4 text-gray-700">{formatDate(event.startAt, event.endAt)}</td>

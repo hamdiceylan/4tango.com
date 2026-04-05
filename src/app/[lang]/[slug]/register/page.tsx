@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import type { Language } from "@/lib/i18n";
 import LanguageSelector from "@/components/ui/LanguageSelector";
+import { getRegistrationTranslations } from "@/lib/i18n/registration-translations";
 
 interface FormField {
   id: string;
@@ -37,6 +38,7 @@ interface EventData {
   priceAmount: number;
   currency: string;
   primaryColor?: string | null;
+  logoUrl?: string | null;
   formFields: FormField[];
   packages: Package[];
   organizer: {
@@ -45,13 +47,6 @@ interface EventData {
   availableLanguages?: string[];
   defaultLanguage?: string;
 }
-
-const EXPERIENCE_LEVELS = [
-  { value: "1-2", label: "1-2 years" },
-  { value: "3-5", label: "3-5 years" },
-  { value: "6-10", label: "6-10 years" },
-  { value: "10+", label: "More than 10 years" },
-];
 
 const COUNTRIES = [
   "Argentina", "Australia", "Austria", "Belgium", "Brazil", "Canada", "Chile",
@@ -67,6 +62,9 @@ export default function RegisterPage() {
   const lang = params.lang as string;
   const slug = params.slug as string;
   const router = useRouter();
+
+  // Get translations for current language
+  const t = getRegistrationTranslations(lang);
 
   const [event, setEvent] = useState<EventData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -90,6 +88,21 @@ export default function RegisterPage() {
 
   // Custom fields (dynamic)
   const [customFields, setCustomFields] = useState<Record<string, string | boolean>>({});
+
+  // Experience levels with translations
+  const experienceLevels = [
+    { value: "1-2", label: t.exp1to2 },
+    { value: "3-5", label: t.exp3to5 },
+    { value: "6-10", label: t.exp6to10 },
+    { value: "10+", label: t.exp10plus },
+  ];
+
+  // Dance roles with translations
+  const danceRoles = [
+    { value: "LEADER", label: t.leader, color: "blue" },
+    { value: "FOLLOWER", label: t.follower, color: "pink" },
+    { value: "SWITCH", label: t.switch, color: "purple" },
+  ];
 
   useEffect(() => {
     async function fetchData() {
@@ -119,7 +132,7 @@ export default function RegisterPage() {
       }
     }
     fetchData();
-  }, [slug]);
+  }, [slug, lang]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -143,20 +156,20 @@ export default function RegisterPage() {
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.firstName.trim()) newErrors.firstName = "First name is required";
-    if (!formData.lastName.trim()) newErrors.lastName = "Last name is required";
-    if (!formData.email.trim()) newErrors.email = "Email is required";
+    if (!formData.firstName.trim()) newErrors.firstName = t.firstNameRequired;
+    if (!formData.lastName.trim()) newErrors.lastName = t.lastNameRequired;
+    if (!formData.email.trim()) newErrors.email = t.emailRequired;
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Please enter a valid email";
+      newErrors.email = t.emailInvalid;
     }
-    if (!formData.role) newErrors.role = "Please select your dance role";
-    if (!formData.country) newErrors.country = "Please select your country";
-    if (!formData.agreeToTerms) newErrors.agreeToTerms = "You must agree to the terms";
+    if (!formData.role) newErrors.role = t.roleRequired;
+    if (!formData.country) newErrors.country = t.countryRequired;
+    if (!formData.agreeToTerms) newErrors.agreeToTerms = t.termsRequired;
 
     // Validate required custom fields
     event?.formFields?.forEach((field) => {
       if (field.isRequired && !customFields[field.id]) {
-        newErrors[field.id] = `${field.label} is required`;
+        newErrors[field.id] = `${field.label} ${t.fieldRequired}`;
       }
     });
 
@@ -205,7 +218,7 @@ export default function RegisterPage() {
   };
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("en-US", {
+    return new Date(dateStr).toLocaleDateString(lang === "en" ? "en-US" : lang, {
       weekday: "short",
       day: "numeric",
       month: "short",
@@ -237,32 +250,35 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href={`/${lang}/${event.slug}`} className="text-gray-500 hover:text-rose-500 transition flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to event
-          </Link>
-          <LanguageSelector
-            currentLang={lang as Language}
-            availableLanguages={(event.availableLanguages || [lang]) as Language[]}
-            slug={`${event.slug}/register`}
-            variant="compact"
-            className="[&_button]:bg-gray-100 [&_button]:border-gray-200 [&_button]:hover:bg-gray-200 [&_svg]:text-gray-500"
-          />
-        </div>
-      </header>
-
       <div className="max-w-2xl mx-auto px-4 py-12">
         {/* Event Summary */}
         <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">{event.title}</h1>
-          <p className="text-gray-500">
-            {event.city}, {event.country} &middot; {formatDate(event.startAt)} - {formatDate(event.endAt)}
-          </p>
+          <div className="flex items-start justify-between gap-4">
+            <div className={`flex ${event.logoUrl ? 'items-center gap-4' : 'flex-col'} flex-1`}>
+              {event.logoUrl && (
+                <img
+                  src={event.logoUrl}
+                  alt={event.title}
+                  className="h-16 w-16 object-contain flex-shrink-0"
+                />
+              )}
+              <div className={event.logoUrl ? '' : 'text-center'}>
+                <h1 className="text-2xl font-bold text-gray-900 mb-1">{event.title}</h1>
+                <p className="text-gray-500">
+                  {event.city}, {event.country} &middot; {formatDate(event.startAt)} - {formatDate(event.endAt)}
+                </p>
+              </div>
+            </div>
+            {(event.availableLanguages?.length ?? 0) > 1 && (
+              <LanguageSelector
+                currentLang={lang as Language}
+                availableLanguages={(event.availableLanguages || [lang]) as Language[]}
+                slug={`${event.slug}/register`}
+                variant="compact"
+                className="[&_button]:bg-gray-100 [&_button]:border-gray-200 [&_button]:hover:bg-gray-200 [&_svg]:text-gray-500"
+              />
+            )}
+          </div>
         </div>
 
         {/* Registration Form */}
@@ -273,13 +289,13 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {/* Personal Information */}
+          {/* Personal & Tango Information */}
           <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">{t.personalInfo}</h2>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  First Name <span className="text-rose-500">*</span>
+                  {t.firstName} <span className="text-rose-500">{t.required}</span>
                 </label>
                 <input
                   type="text"
@@ -292,7 +308,7 @@ export default function RegisterPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Last Name <span className="text-rose-500">*</span>
+                  {t.lastName} <span className="text-rose-500">{t.required}</span>
                 </label>
                 <input
                   type="text"
@@ -307,7 +323,7 @@ export default function RegisterPage() {
 
             <div className="mt-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email <span className="text-rose-500">*</span>
+                {t.email} <span className="text-rose-500">{t.required}</span>
               </label>
               <input
                 type="email"
@@ -321,7 +337,7 @@ export default function RegisterPage() {
 
             <div className="grid grid-cols-2 gap-4 mt-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t.city}</label>
                 <input
                   type="text"
                   name="city"
@@ -332,7 +348,7 @@ export default function RegisterPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Country <span className="text-rose-500">*</span>
+                  {t.country} <span className="text-rose-500">{t.required}</span>
                 </label>
                 <select
                   name="country"
@@ -340,7 +356,7 @@ export default function RegisterPage() {
                   onChange={handleChange}
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent ${errors.country ? "border-red-300" : "border-gray-200"}`}
                 >
-                  <option value="">Select country</option>
+                  <option value="">{t.selectCountry}</option>
                   {COUNTRIES.map((c) => (
                     <option key={c} value={c}>{c}</option>
                   ))}
@@ -348,22 +364,13 @@ export default function RegisterPage() {
                 {errors.country && <p className="text-red-500 text-xs mt-1">{errors.country}</p>}
               </div>
             </div>
-          </div>
 
-          {/* Tango Information */}
-          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Tango Information</h2>
-
-            <div>
+            <div className="mt-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Dance Role <span className="text-rose-500">*</span>
+                {t.danceRole} <span className="text-rose-500">{t.required}</span>
               </label>
               <div className="grid grid-cols-3 gap-3">
-                {[
-                  { value: "LEADER", label: "Leader", color: "blue" },
-                  { value: "FOLLOWER", label: "Follower", color: "pink" },
-                  { value: "SWITCH", label: "Switch", color: "purple" },
-                ].map((option) => (
+                {danceRoles.map((option) => (
                   <label
                     key={option.value}
                     className={`flex items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition ${
@@ -388,15 +395,15 @@ export default function RegisterPage() {
             </div>
 
             <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Experience Level</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.experienceLevel}</label>
               <select
                 name="experience"
                 value={formData.experience}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
               >
-                <option value="">Select experience</option>
-                {EXPERIENCE_LEVELS.map((level) => (
+                <option value="">{t.selectExperience}</option>
+                {experienceLevels.map((level) => (
                   <option key={level.value} value={level.value}>{level.label}</option>
                 ))}
               </select>
@@ -406,7 +413,7 @@ export default function RegisterPage() {
           {/* Packages (if any) */}
           {event.packages && event.packages.length > 0 && (
             <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Select Package</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">{t.selectPackage}</h2>
               <div className="space-y-3">
                 {event.packages.map((pkg) => (
                   <label
@@ -448,14 +455,14 @@ export default function RegisterPage() {
           {/* Custom Fields (if any) */}
           {event.formFields && event.formFields.length > 0 && (
             <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Additional Information</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">{t.additionalInfo}</h2>
               <div className="space-y-4">
                 {event.formFields.map((field) => {
                   const fieldType = field.fieldType.toUpperCase();
                   return (
                     <div key={field.id}>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {field.label} {field.isRequired && <span className="text-rose-500">*</span>}
+                        {field.label} {field.isRequired && <span className="text-rose-500">{t.required}</span>}
                       </label>
 
                       {(fieldType === "TEXT" || fieldType === "EMAIL" || fieldType === "PHONE") && (
@@ -567,12 +574,12 @@ export default function RegisterPage() {
 
           {/* Comments */}
           <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Comments</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">{t.comments}</h2>
             <textarea
               name="comments"
               value={formData.comments}
               onChange={handleChange}
-              placeholder="Any additional information or special requests..."
+              placeholder={t.commentsPlaceholder}
               rows={3}
               className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
             />
@@ -589,7 +596,7 @@ export default function RegisterPage() {
                 className="mt-1 text-rose-500 focus:ring-rose-500 rounded"
               />
               <span className="text-gray-700 text-sm">
-                I agree to the event terms and conditions and consent to my data being processed for registration purposes. <span className="text-rose-500">*</span>
+                {t.termsText} <span className="text-rose-500">{t.required}</span>
               </span>
             </label>
             {errors.agreeToTerms && <p className="text-red-500 text-xs mt-1">{errors.agreeToTerms}</p>}
@@ -609,10 +616,10 @@ export default function RegisterPage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  Submitting...
+                  {t.submitting}
                 </>
               ) : (
-                "Register"
+                t.register
               )}
             </button>
           </div>
@@ -620,7 +627,7 @@ export default function RegisterPage() {
 
         {/* Footer */}
         <p className="text-center text-gray-400 text-sm mt-8">
-          Powered by <Link href={`/${lang}`} className="hover:underline" style={{ color: primaryColor }}>4Tango</Link>
+          {t.poweredBy} <Link href={`/${lang}`} className="hover:underline" style={{ color: primaryColor }}>4Tango</Link>
         </p>
       </div>
     </div>

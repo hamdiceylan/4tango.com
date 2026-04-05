@@ -283,6 +283,49 @@ PROD_S3_VER=$(aws s3api get-bucket-versioning --bucket 4tango-prod-uploads --reg
     --query 'Status' --output text 2>/dev/null || echo "Disabled")
 check_match "Versioning" "$DEV_S3_VER" "$PROD_S3_VER" "yes"
 
+# Public Access Block settings
+echo ""
+echo "  Public Access Settings:"
+DEV_PUBLIC_BLOCK=$(aws s3api get-public-access-block --bucket 4tango-dev-uploads \
+    --query 'PublicAccessBlockConfiguration.BlockPublicPolicy' --output text 2>/dev/null || echo "false")
+PROD_PUBLIC_BLOCK=$(aws s3api get-public-access-block --bucket 4tango-prod-uploads \
+    --query 'PublicAccessBlockConfiguration.BlockPublicPolicy' --output text 2>/dev/null || echo "false")
+check_match "Block Public Policy" "$DEV_PUBLIC_BLOCK" "$PROD_PUBLIC_BLOCK"
+
+# Check if public read policy exists
+DEV_HAS_POLICY=$(aws s3api get-bucket-policy --bucket 4tango-dev-uploads 2>/dev/null && echo "yes" || echo "no")
+PROD_HAS_POLICY=$(aws s3api get-bucket-policy --bucket 4tango-prod-uploads 2>/dev/null && echo "yes" || echo "no")
+check_match "Has Bucket Policy" "$DEV_HAS_POLICY" "$PROD_HAS_POLICY"
+
+# CORS Configuration
+echo ""
+echo "  CORS Configuration:"
+DEV_CORS_METHODS=$(aws s3api get-bucket-cors --bucket 4tango-dev-uploads \
+    --query 'CORSRules[0].AllowedMethods' --output text 2>/dev/null | tr '\t' ',' || echo "NONE")
+PROD_CORS_METHODS=$(aws s3api get-bucket-cors --bucket 4tango-prod-uploads \
+    --query 'CORSRules[0].AllowedMethods' --output text 2>/dev/null | tr '\t' ',' || echo "NONE")
+check_match "CORS Methods" "$DEV_CORS_METHODS" "$PROD_CORS_METHODS"
+
+# Check CORS origins (expected to differ)
+DEV_CORS_ORIGINS=$(aws s3api get-bucket-cors --bucket 4tango-dev-uploads \
+    --query 'CORSRules[0].AllowedOrigins' --output text 2>/dev/null | tr '\t' ',' || echo "NONE")
+PROD_CORS_ORIGINS=$(aws s3api get-bucket-cors --bucket 4tango-prod-uploads \
+    --query 'CORSRules[0].AllowedOrigins' --output text 2>/dev/null | tr '\t' ',' || echo "NONE")
+check_match "CORS Origins" "$DEV_CORS_ORIGINS" "$PROD_CORS_ORIGINS" "yes"
+
+# IAM User Permissions for S3
+echo ""
+echo "  IAM Permissions (4tango-ses-sender):"
+S3_POLICY=$(aws iam get-user-policy --user-name 4tango-ses-sender --policy-name 4tango-s3-uploads \
+    --query 'PolicyDocument.Statement[0].Action' --output text 2>/dev/null | tr '\t' ',' || echo "NONE")
+if [ "$S3_POLICY" != "NONE" ]; then
+    echo -e "  ${GREEN}✓${NC} S3 upload policy exists: $S3_POLICY"
+else
+    echo -e "  ${RED}✗${NC} S3 upload policy missing for IAM user!"
+    echo "      Run: aws iam put-user-policy --user-name 4tango-ses-sender --policy-name 4tango-s3-uploads ..."
+    ISSUES=$((ISSUES + 1))
+fi
+
 # ============================================
 # 6. Database Schema Comparison
 # ============================================

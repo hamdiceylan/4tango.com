@@ -5,10 +5,10 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 // S3 configuration
 const s3Config = {
-  region: process.env.AWS_REGION || "eu-west-1",
+  region: process.env.S3_REGION || process.env.AWS_REGION || "eu-west-1",
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
+    accessKeyId: process.env.S3_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID || "",
+    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY || "",
   },
 };
 

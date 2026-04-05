@@ -35,6 +35,7 @@ export async function GET() {
       capacityLimit: event.capacityLimit,
       registrationCount: event._count.registrations,
       coverImageUrl: event.coverImageUrl,
+      logoUrl: event.logoUrl,
       createdAt: event.createdAt.toISOString(),
     })));
   } catch (error) {
@@ -71,6 +72,7 @@ export async function POST(request: Request) {
       capacityLimit,
       djs,
       coverImageUrl,
+      logoUrl,
     } = body;
 
     // Validate required fields
@@ -129,6 +131,7 @@ export async function POST(request: Request) {
         capacityLimit: capacityLimit || null,
         djs: djs || [],
         coverImageUrl: coverImageUrl || null,
+        logoUrl: logoUrl || null,
         status: "DRAFT",
       }
     });

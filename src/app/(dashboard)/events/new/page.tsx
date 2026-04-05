@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import ImageUploader from "@/components/page-builder/common/ImageUploader";
 
 function generateSlug(title: string): string {
   return title
@@ -21,7 +22,8 @@ export default function NewEventPage() {
     title: "",
     shortDescription: "",
     description: "",
-    coverImage: "",
+    coverImageUrl: "",
+    logoUrl: "",
     djs: "",
     city: "",
     country: "",
@@ -76,7 +78,8 @@ export default function NewEventPage() {
           currency: formData.currency,
           capacityLimit: formData.capacity ? parseInt(formData.capacity) : null,
           djs: formData.djs ? formData.djs.split(",").map(dj => dj.trim()).filter(Boolean) : [],
-          coverImageUrl: formData.coverImage || null,
+          coverImageUrl: formData.coverImageUrl || null,
+          logoUrl: formData.logoUrl || null,
         }),
         credentials: "include",
       });
@@ -163,21 +166,6 @@ export default function NewEventPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Cover Image URL
-              </label>
-              <input
-                type="url"
-                name="coverImage"
-                value={formData.coverImage}
-                onChange={handleChange}
-                placeholder="https://example.com/image.jpg"
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-              />
-              <p className="text-gray-500 text-sm mt-1">Enter image URL (file upload coming soon)</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
                 DJs / Artists
               </label>
               <input
@@ -189,6 +177,35 @@ export default function NewEventPage() {
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
               />
               <p className="text-gray-500 text-sm mt-1">Separate multiple names with commas</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Event Images */}
+        <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">Event Images</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Event Logo</label>
+              <ImageUploader
+                value={formData.logoUrl}
+                onChange={(url) => setFormData({ ...formData, logoUrl: url })}
+                category="event"
+                aspectRatio="square"
+                placeholder="Upload event logo"
+              />
+              <p className="text-gray-500 text-sm mt-2">Square image, displayed in navigation and forms</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Cover Image</label>
+              <ImageUploader
+                value={formData.coverImageUrl}
+                onChange={(url) => setFormData({ ...formData, coverImageUrl: url })}
+                category="event"
+                aspectRatio="video"
+                placeholder="Upload cover image"
+              />
+              <p className="text-gray-500 text-sm mt-2">16:9 aspect ratio, used as hero background</p>
             </div>
           </div>
         </div>

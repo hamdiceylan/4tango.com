@@ -165,13 +165,24 @@ export default function EventDetailPage() {
     <div className="p-8">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3">
             <h1 className="text-3xl font-bold text-gray-900">{event.title}</h1>
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${
               event.status === "PUBLISHED" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
             }`}>
               {event.status.toLowerCase()}
             </span>
+          </div>
+          <Link
+            href={`/events/${event.id}/edit`}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition font-medium"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            Edit Event
+          </Link>
         </div>
         <p className="text-gray-500">{event.city}, {event.country} · {formatDate(event.startAt)} to {formatDate(event.endAt)}</p>
       </div>

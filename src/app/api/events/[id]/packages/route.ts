@@ -4,11 +4,12 @@ import { prisma } from '@/lib/prisma';
 // GET /api/events/[id]/packages - Get all packages for an event
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const packages = await prisma.eventPackage.findMany({
-      where: { eventId: params.id },
+      where: { eventId: id },
       orderBy: { order: 'asc' },
     });
 
@@ -25,9 +26,10 @@ export async function GET(
 // POST /api/events/[id]/packages - Create a new package
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const {
       name,
@@ -54,7 +56,7 @@ export async function POST(
 
     // Get the highest order number for this event
     const lastPackage = await prisma.eventPackage.findFirst({
-      where: { eventId: params.id },
+      where: { eventId: id },
       orderBy: { order: 'desc' },
     });
 
@@ -62,7 +64,7 @@ export async function POST(
 
     const eventPackage = await prisma.eventPackage.create({
       data: {
-        eventId: params.id,
+        eventId: id,
         name,
         description,
         price,
@@ -86,9 +88,10 @@ export async function POST(
 // PUT /api/events/[id]/packages - Reorder packages
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const { packageIds } = body;
 
@@ -100,9 +103,9 @@ export async function PUT(
     }
 
     // Update order for each package
-    const updates = packageIds.map((id: string, index: number) =>
+    const updates = packageIds.map((pkgId: string, index: number) =>
       prisma.eventPackage.update({
-        where: { id },
+        where: { id: pkgId },
         data: { order: index },
       })
     );
@@ -111,7 +114,7 @@ export async function PUT(
 
     // Fetch and return updated packages
     const packages = await prisma.eventPackage.findMany({
-      where: { eventId: params.id },
+      where: { eventId: id },
       orderBy: { order: 'asc' },
     });
 

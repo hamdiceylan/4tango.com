@@ -90,6 +90,26 @@ PROD_PLATFORM=$(aws amplify get-app --app-id $PROD_APP_ID --region $AWS_REGION \
     --query 'app.platform' --output text 2>/dev/null)
 check_match "Platform" "$DEV_PLATFORM" "$PROD_PLATFORM"
 
+# Check required env vars are in build spec
+REQUIRED_BUILD_VARS="DATABASE_URL SES_REGION SES_FROM_EMAIL SES_ACCESS_KEY_ID SES_SECRET_ACCESS_KEY COGNITO_USER_POOL_ID COGNITO_CLIENT_ID COGNITO_REGION S3_REGION S3_BUCKET_NAME S3_ACCESS_KEY_ID S3_SECRET_ACCESS_KEY"
+
+PROD_BUILDSPEC_FULL=$(aws amplify get-app --app-id $PROD_APP_ID --region $AWS_REGION \
+    --query 'app.buildSpec' --output text 2>/dev/null)
+
+MISSING_IN_BUILDSPEC=""
+for var in $REQUIRED_BUILD_VARS; do
+    if ! echo "$PROD_BUILDSPEC_FULL" | grep -q "$var"; then
+        MISSING_IN_BUILDSPEC="$MISSING_IN_BUILDSPEC $var"
+    fi
+done
+
+if [ -z "$MISSING_IN_BUILDSPEC" ]; then
+    echo -e "  ${GREEN}✓${NC} All required env vars in build spec"
+else
+    echo -e "  ${RED}✗${NC} Missing from build spec:$MISSING_IN_BUILDSPEC"
+    ISSUES=$((ISSUES + 1))
+fi
+
 # ============================================
 # 2. Environment Variables (Exact Name Comparison)
 # ============================================

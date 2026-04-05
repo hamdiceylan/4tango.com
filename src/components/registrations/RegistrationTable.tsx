@@ -15,9 +15,29 @@ interface CustomFieldValue {
 interface FormField {
   id: string;
   name: string;
-  label: string;
+  label: string | Record<string, string>; // Can be i18n object from API
   fieldType: string;
   options?: { value: string; label: string }[] | null;
+  labels?: Record<string, string> | null; // i18n labels
+}
+
+// Helper to extract string label from field (handles i18n objects)
+function getFieldLabel(field: FormField): string {
+  // If label is a string, use it
+  if (typeof field.label === 'string' && field.label) {
+    return field.label;
+  }
+  // If label is an object, extract English or first available
+  if (field.label && typeof field.label === 'object') {
+    const labelObj = field.label as Record<string, string>;
+    return labelObj.en || Object.values(labelObj)[0] || field.name;
+  }
+  // Try i18n labels field
+  if (field.labels && typeof field.labels === 'object') {
+    return field.labels.en || Object.values(field.labels)[0] || field.name;
+  }
+  // Fallback to name
+  return field.name;
 }
 
 interface Registration {
@@ -123,24 +143,12 @@ export default function RegistrationTable({
 }: RegistrationTableProps) {
   // Create dynamic columns including custom fields
   const allColumns = useMemo(() => {
-    const customFieldColumns: ColumnConfig[] = formFields.map((field, index) => {
-      // Ensure label is a string (handle i18n labels object)
-      let label = field.label;
-      if (typeof label !== 'string') {
-        if (label && typeof label === 'object') {
-          const labels = label as Record<string, string>;
-          label = labels.en || Object.values(labels)[0] || field.name;
-        } else {
-          label = field.name;
-        }
-      }
-      return {
-        id: `custom_${field.id}`,
-        label,
-        visible: true, // Custom fields visible by default
-        order: DEFAULT_COLUMNS.length + index,
-      };
-    });
+    const customFieldColumns: ColumnConfig[] = formFields.map((field, index) => ({
+      id: `custom_${field.id}`,
+      label: getFieldLabel(field),
+      visible: true, // Custom fields visible by default
+      order: DEFAULT_COLUMNS.length + index,
+    }));
     return [...DEFAULT_COLUMNS, ...customFieldColumns];
   }, [formFields]);
 

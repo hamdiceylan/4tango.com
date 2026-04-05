@@ -17,16 +17,31 @@ export async function GET(
     // Normalize fields for client consumption
     const normalizedFields = fields.map(field => {
       // Ensure label is always a string (handle i18n labels object)
-      let label = field.label;
-      if (!label && field.labels && typeof field.labels === 'object') {
+      let label: string = '';
+
+      // First try field.label if it's a string
+      if (typeof field.label === 'string' && field.label) {
+        label = field.label;
+      }
+      // If label is an object (shouldn't happen but defensive check)
+      else if (field.label && typeof field.label === 'object') {
+        const labelObj = field.label as unknown as Record<string, string>;
+        label = labelObj.en || Object.values(labelObj)[0] || '';
+      }
+      // Try i18n labels field
+      else if (field.labels && typeof field.labels === 'object') {
         const labels = field.labels as Record<string, string>;
-        // Try English first, then first available language
-        label = labels.en || Object.values(labels)[0] || field.name;
+        label = labels.en || Object.values(labels)[0] || '';
+      }
+
+      // Final fallback to field name
+      if (!label) {
+        label = field.name;
       }
 
       return {
         ...field,
-        label: label || field.name, // Fallback to name if no label
+        label,
         options: Array.isArray(field.options) ? field.options : null,
       };
     });

@@ -39,10 +39,23 @@ export async function GET(
         label = field.name;
       }
 
+      // Return only the fields needed by the client (exclude i18n objects)
       return {
-        ...field,
-        label,
+        id: field.id,
+        eventId: field.eventId,
+        fieldType: field.fieldType,
+        name: field.name,
+        label, // Normalized string label
+        placeholder: typeof field.placeholder === 'string' ? field.placeholder : null,
+        helpText: typeof field.helpText === 'string' ? field.helpText : null,
+        isRequired: field.isRequired,
+        order: field.order,
         options: Array.isArray(field.options) ? field.options : null,
+        validation: field.validation,
+        conditionalOn: field.conditionalOn,
+        createdAt: field.createdAt,
+        updatedAt: field.updatedAt,
+        // Explicitly exclude: labels, placeholders, helpTexts (i18n objects)
       };
     });
 

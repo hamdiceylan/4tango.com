@@ -89,13 +89,15 @@ export function localizeContent<T>(
       return localizedContent[fallbackLang] as T;
     }
 
-    // Return first available
+    // Return first available language value
     const firstKey = Object.keys(localizedContent).find(isValidLanguage) as Language | undefined;
     if (firstKey && localizedContent[firstKey] !== undefined) {
       return localizedContent[firstKey] as T;
     }
 
-    return content;
+    // If we couldn't extract any value, return empty string for string types
+    // This prevents returning the i18n object itself which would cause React errors
+    return "" as T;
   }
 
   // Regular object - recursively process each property

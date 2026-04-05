@@ -53,7 +53,7 @@ export async function GET(
       // Normalize options - ensure all option labels are strings (not i18n objects)
       let normalizedOptions = null;
       if (Array.isArray(field.options)) {
-        normalizedOptions = field.options.map((opt: { value: string; label: unknown }) => ({
+        normalizedOptions = (field.options as Array<{ value: string; label: unknown }>).map((opt) => ({
           value: opt.value,
           label: getStringValue(opt.label, opt.value),
         }));

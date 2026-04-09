@@ -208,22 +208,23 @@ export default function FormBuilderPage({ params }: { params: { id: string } }) 
         credentials: "include",
       });
 
-      // Save selected field if any
-      if (selectedField && !selectedField.isDefault) {
-        await fetch(`/api/events/${params.id}/form-fields/${selectedField.id}`, {
+      // Save all custom fields (not just the selected one)
+      for (const field of customFields) {
+        if (field.isDefault) continue;
+        await fetch(`/api/events/${params.id}/form-fields/${field.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            label: selectedField.label,
-            placeholder: selectedField.placeholder,
-            helpText: selectedField.helpText,
-            isRequired: selectedField.isRequired,
-            options: selectedField.options,
-            validation: selectedField.validation,
-            conditionalOn: selectedField.conditionalOn,
-            labels: selectedField.labels,
-            placeholders: selectedField.placeholders,
-            helpTexts: selectedField.helpTexts,
+            label: field.label,
+            placeholder: field.placeholder,
+            helpText: field.helpText,
+            isRequired: field.isRequired,
+            options: field.options,
+            validation: field.validation,
+            conditionalOn: field.conditionalOn,
+            labels: field.labels,
+            placeholders: field.placeholders,
+            helpTexts: field.helpTexts,
           }),
           credentials: "include",
         });

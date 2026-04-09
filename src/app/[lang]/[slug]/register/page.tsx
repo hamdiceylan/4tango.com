@@ -475,9 +475,11 @@ export default function RegisterPage() {
                   const fieldType = field.fieldType.toUpperCase();
                   return (
                     <div key={field.id}>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {field.label} {field.isRequired && <span className="text-rose-500">{t.required}</span>}
-                      </label>
+                      {fieldType !== "CHECKBOX" && (
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          {field.label} {field.isRequired && <span className="text-rose-500">{t.required}</span>}
+                        </label>
+                      )}
 
                       {(fieldType === "TEXT" || fieldType === "EMAIL" || fieldType === "TEL" || fieldType === "PHONE") && (
                         <input
@@ -547,14 +549,16 @@ export default function RegisterPage() {
                       )}
 
                       {fieldType === "CHECKBOX" && (
-                        <label className="flex items-center gap-2">
+                        <label className="flex items-start gap-2">
                           <input
                             type="checkbox"
                             checked={customFields[field.id] as boolean || false}
                             onChange={(e) => handleCustomFieldChange(field.id, e.target.checked)}
-                            className="text-rose-500 focus:ring-rose-500 rounded"
+                            className="mt-1 text-rose-500 focus:ring-rose-500 rounded"
                           />
-                          <span className="text-gray-700">{field.placeholder || field.label}</span>
+                          <span className="text-gray-700 text-sm">
+                            {field.label} {field.isRequired && <span className="text-rose-500">{t.required}</span>}
+                          </span>
                         </label>
                       )}
 

@@ -132,6 +132,8 @@ model Event {
   darkColor            String?     @default("#0a0a1a") // dark navy background
   logoUrl              String?
   bannerUrl            String?
+  // Contact email for registration notifications (overrides organizer email)
+  contactEmail         String?
   // i18n settings
   defaultLanguage      String      @default("en")
   availableLanguages   String[]    @default(["en"])

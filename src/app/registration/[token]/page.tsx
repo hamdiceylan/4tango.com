@@ -55,8 +55,14 @@ export default async function RegistrationLookupPage({ params }: RegistrationLoo
 
       <div className="max-w-2xl mx-auto px-4 py-12">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Your Registration</h1>
-          <p className="text-gray-600">View your event registration details below.</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {registration.registrationStatus === "REGISTERED" ? "Registration Received!" : "Your Registration"}
+          </h1>
+          <p className="text-gray-600">
+            {registration.registrationStatus === "REGISTERED"
+              ? "Thank you for registering! Your application is being reviewed by the organizer. We will get in touch with you soon."
+              : "View your event registration details below."}
+          </p>
         </div>
 
         {/* Registration Card */}
@@ -152,7 +158,7 @@ export default async function RegistrationLookupPage({ params }: RegistrationLoo
                     registration.registrationStatus === "WAITLIST" ? "bg-blue-100 text-blue-800" :
                     "bg-gray-100 text-gray-800"
                   }`}>
-                    {registration.registrationStatus === "REGISTERED" ? "Pending" : registration.registrationStatus}
+                    {registration.registrationStatus === "REGISTERED" ? "Pending Review" : registration.registrationStatus}
                   </span>
                 </div>
                 <div>

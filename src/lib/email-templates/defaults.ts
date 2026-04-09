@@ -50,40 +50,72 @@ const wrapTemplate = (content: string): string => `
 `;
 
 const registrationConfirmationTemplate: DefaultTemplate = {
-  subject: "Registration Confirmed - {{eventTitle}}",
+  subject: "Registration Received - {{eventTitle}}",
   htmlContent: wrapTemplate(`
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 500px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 500px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+          <!-- Rose header with confirmation number -->
           <tr>
-            <td style="padding: 40px; text-align: center;">
-              <div style="width: 64px; height: 64px; background-color: #dcfce7; border-radius: 50%; margin: 0 auto 24px; line-height: 64px;">
-                <span style="font-size: 32px;">&#10003;</span>
-              </div>
-              <h1 style="margin: 0 0 8px; color: #18181b; font-size: 24px; font-weight: 600;">Registration Confirmed!</h1>
-              <p style="margin: 0 0 24px; color: #52525b; font-size: 16px;">
-                {{eventTitle}}
+            <td style="background-color: #f43f5e; padding: 24px 40px; color: #ffffff;">
+              <p style="margin: 0 0 4px; color: rgba(255,255,255,0.8); font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Confirmation Number</p>
+              <p style="margin: 0; font-size: 22px; font-weight: 700; font-family: monospace; letter-spacing: 1px;">{{confirmationNumber}}</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 32px 40px;">
+              <h1 style="margin: 0 0 8px; color: #18181b; font-size: 22px; font-weight: 600;">Registration Received!</h1>
+              <p style="margin: 0 0 24px; color: #52525b; font-size: 15px; line-height: 22px;">
+                Thank you for registering for <strong>{{eventTitle}}</strong>. Your application is being reviewed by the organizer. We will get in touch with you soon.
               </p>
 
-              <div style="background-color: #f4f4f5; border-radius: 8px; padding: 24px; margin-bottom: 24px; text-align: left;">
-                <p style="margin: 0 0 12px; color: #71717a; font-size: 14px;">
-                  <strong style="color: #18181b;">Name:</strong> {{dancerName}}
-                </p>
-                <p style="margin: 0 0 12px; color: #71717a; font-size: 14px;">
-                  <strong style="color: #18181b;">Role:</strong> {{dancerRole}}
-                </p>
-                <p style="margin: 0 0 12px; color: #71717a; font-size: 14px;">
-                  <strong style="color: #18181b;">Event Date:</strong> {{eventDates}}
-                </p>
-                <p style="margin: 0 0 12px; color: #71717a; font-size: 14px;">
-                  <strong style="color: #18181b;">Location:</strong> {{eventLocation}}
-                </p>
-                <p style="margin: 0; color: #71717a; font-size: 14px;">
-                  <strong style="color: #18181b;">Confirmation #:</strong> {{confirmationNumber}}
-                </p>
-              </div>
+              <!-- Event info -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 24px;">
+                <tr>
+                  <td style="padding: 4px 0; color: #71717a; font-size: 14px;">&#128197; {{eventDates}}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 4px 0; color: #71717a; font-size: 14px;">&#128205; {{eventLocation}}</td>
+                </tr>
+              </table>
 
-              <a href="{{registrationUrl}}" style="display: inline-block; padding: 14px 32px; background-color: #f43f5e; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; border-radius: 8px;">
-                View Registration
-              </a>
+              <hr style="border: none; border-top: 1px solid #e4e4e7; margin: 0 0 24px;" />
+
+              <!-- Your Details -->
+              <p style="margin: 0 0 16px; color: #71717a; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Your Details</p>
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 24px;">
+                <tr>
+                  <td width="50%" style="padding: 4px 0;">
+                    <p style="margin: 0; color: #71717a; font-size: 13px;">Name</p>
+                    <p style="margin: 2px 0 0; color: #18181b; font-size: 15px; font-weight: 500;">{{dancerName}}</p>
+                  </td>
+                  <td width="50%" style="padding: 4px 0;">
+                    <p style="margin: 0; color: #71717a; font-size: 13px;">Role</p>
+                    <p style="margin: 2px 0 0; color: #18181b; font-size: 15px; font-weight: 500;">{{dancerRole}}</p>
+                  </td>
+                </tr>
+              </table>
+
+              <hr style="border: none; border-top: 1px solid #e4e4e7; margin: 0 0 24px;" />
+
+              <!-- Status -->
+              <p style="margin: 0 0 16px; color: #71717a; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Status</p>
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 24px;">
+                <tr>
+                  <td width="50%" style="padding: 4px 0;">
+                    <p style="margin: 0; color: #71717a; font-size: 13px;">Registration</p>
+                    <span style="display: inline-block; padding: 2px 10px; background-color: #fef3c7; color: #92400e; font-size: 12px; font-weight: 600; border-radius: 12px;">Pending Review</span>
+                  </td>
+                  <td width="50%" style="padding: 4px 0;">
+                    <p style="margin: 0; color: #71717a; font-size: 13px;">Payment</p>
+                    <span style="display: inline-block; padding: 2px 10px; background-color: #fef3c7; color: #92400e; font-size: 12px; font-weight: 600; border-radius: 12px;">Pending</span>
+                  </td>
+                </tr>
+              </table>
+
+              <div style="text-align: center;">
+                <a href="{{registrationUrl}}" style="display: inline-block; padding: 14px 32px; background-color: #f43f5e; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; border-radius: 8px;">
+                  View Registration
+                </a>
+              </div>
             </td>
           </tr>
         </table>
@@ -91,33 +123,50 @@ const registrationConfirmationTemplate: DefaultTemplate = {
 };
 
 const organizerNotificationTemplate: DefaultTemplate = {
-  subject: "New Registration for {{eventTitle}}",
+  subject: "New Registration for {{eventTitle}} - {{dancerName}}",
   htmlContent: wrapTemplate(`
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 500px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 500px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+          <!-- Blue header -->
           <tr>
-            <td style="padding: 40px; text-align: center;">
-              <div style="width: 64px; height: 64px; background-color: #dbeafe; border-radius: 50%; margin: 0 auto 24px; line-height: 64px;">
-                <span style="font-size: 32px;">&#128100;</span>
-              </div>
-              <h1 style="margin: 0 0 8px; color: #18181b; font-size: 24px; font-weight: 600;">New Registration</h1>
-              <p style="margin: 0 0 24px; color: #52525b; font-size: 16px;">
-                {{eventTitle}}
+            <td style="background-color: #3b82f6; padding: 24px 40px; color: #ffffff;">
+              <p style="margin: 0 0 4px; color: rgba(255,255,255,0.8); font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">New Registration</p>
+              <p style="margin: 0; font-size: 20px; font-weight: 700;">{{eventTitle}}</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 32px 40px;">
+              <p style="margin: 0 0 24px; color: #52525b; font-size: 15px; line-height: 22px;">
+                A new dancer has registered for your event. Please review their application in the dashboard.
               </p>
 
-              <div style="background-color: #f4f4f5; border-radius: 8px; padding: 24px; margin-bottom: 24px; text-align: left;">
-                <p style="margin: 0 0 12px; color: #71717a; font-size: 14px;">
-                  <strong style="color: #18181b;">Name:</strong> {{dancerName}}
-                </p>
-                <p style="margin: 0 0 12px; color: #71717a; font-size: 14px;">
-                  <strong style="color: #18181b;">Email:</strong> {{dancerEmail}}
-                </p>
-                <p style="margin: 0; color: #71717a; font-size: 14px;">
-                  <strong style="color: #18181b;">Role:</strong> {{dancerRole}}
-                </p>
-              </div>
+              <!-- Dancer Details -->
+              <p style="margin: 0 0 16px; color: #71717a; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Dancer Details</p>
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 24px;">
+                <tr>
+                  <td width="50%" style="padding: 4px 0;">
+                    <p style="margin: 0; color: #71717a; font-size: 13px;">Name</p>
+                    <p style="margin: 2px 0 0; color: #18181b; font-size: 15px; font-weight: 500;">{{dancerName}}</p>
+                  </td>
+                  <td width="50%" style="padding: 4px 0;">
+                    <p style="margin: 0; color: #71717a; font-size: 13px;">Role</p>
+                    <p style="margin: 2px 0 0; color: #18181b; font-size: 15px; font-weight: 500;">{{dancerRole}}</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="2" style="padding: 8px 0 0;">
+                    <p style="margin: 0; color: #71717a; font-size: 13px;">Email</p>
+                    <p style="margin: 2px 0 0; color: #18181b; font-size: 15px; font-weight: 500;">{{dancerEmail}}</p>
+                  </td>
+                </tr>
+              </table>
 
-              <p style="margin: 0; color: #71717a; font-size: 14px;">
-                Log in to your dashboard to manage this registration.
+              <hr style="border: none; border-top: 1px solid #e4e4e7; margin: 0 0 24px;" />
+
+              <p style="margin: 0 0 16px; color: #71717a; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Status</p>
+              <span style="display: inline-block; padding: 2px 10px; background-color: #fef3c7; color: #92400e; font-size: 12px; font-weight: 600; border-radius: 12px;">Pending Your Approval</span>
+
+              <p style="margin: 24px 0 0; color: #71717a; font-size: 14px;">
+                Log in to your dashboard to review and approve this registration.
               </p>
             </td>
           </tr>

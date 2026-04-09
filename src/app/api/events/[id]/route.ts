@@ -129,6 +129,7 @@ export async function PATCH(
       coverImageUrl,
       availableLanguages,
       defaultLanguage,
+      contactEmail,
     } = body;
 
     // Check slug uniqueness if changed
@@ -175,6 +176,7 @@ export async function PATCH(
         ...(coverImageUrl !== undefined && { coverImageUrl }),
         ...(availableLanguages !== undefined && { availableLanguages }),
         ...(defaultLanguage !== undefined && { defaultLanguage }),
+        ...(contactEmail !== undefined && { contactEmail }),
       }
     });
 

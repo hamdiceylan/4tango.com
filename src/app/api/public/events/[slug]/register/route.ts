@@ -233,7 +233,7 @@ export async function POST(
           },
           organizer: {
             id: organizer.id,
-            email: organizer.email,
+            email: event.contactEmail || organizer.email,
             name: organizer.name,
           },
         });

@@ -24,6 +24,7 @@ interface EventData {
   capacityLimit: number | null;
   registrationOpensAt: string | null;
   registrationClosesAt: string | null;
+  contactEmail: string | null;
   status: string;
   djs: string[];
 }
@@ -57,6 +58,7 @@ export default function EditEventPage() {
     registrationCloses: "",
     status: "DRAFT",
     djs: "",
+    contactEmail: "",
   });
 
   useEffect(() => {
@@ -96,6 +98,7 @@ export default function EditEventPage() {
           registrationCloses: regCloses ? regCloses.toISOString().split("T")[0] : "",
           status: event.status,
           djs: event.djs?.join(", ") || "",
+          contactEmail: event.contactEmail || "",
         });
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load event");
@@ -147,6 +150,7 @@ export default function EditEventPage() {
           djs: formData.djs ? formData.djs.split(",").map(dj => dj.trim()).filter(Boolean) : [],
           coverImageUrl: formData.coverImageUrl || null,
           logoUrl: formData.logoUrl || null,
+          contactEmail: formData.contactEmail || null,
         }),
         credentials: "include",
       });
@@ -379,9 +383,21 @@ export default function EditEventPage() {
           </div>
         </div>
 
-        {/* Registration Period */}
+        {/* Registration Settings */}
         <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Registration Period</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">Registration Settings</h2>
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Contact Email for Notifications</label>
+            <input
+              type="email"
+              name="contactEmail"
+              value={formData.contactEmail}
+              onChange={handleChange}
+              placeholder="Email to receive registration notifications"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+            />
+            <p className="text-gray-500 text-xs mt-1">If empty, notifications go to your account email.</p>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Registration Opens</label>

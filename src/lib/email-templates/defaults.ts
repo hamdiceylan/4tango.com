@@ -55,9 +55,9 @@ const registrationConfirmationTemplate: DefaultTemplate = {
         <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 500px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
           <!-- Rose header with confirmation number -->
           <tr>
-            <td style="background-color: #f43f5e; padding: 24px 40px; color: #ffffff;">
+            <td style="background-color: #f43f5e; padding: 24px 40px;">
               <p style="margin: 0 0 4px; color: rgba(255,255,255,0.8); font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Confirmation Number</p>
-              <p style="margin: 0; font-size: 22px; font-weight: 700; font-family: monospace; letter-spacing: 1px;">{{confirmationNumber}}</p>
+              <p style="margin: 0; font-size: 22px; font-weight: 700; font-family: monospace; letter-spacing: 1px; color: #ffffff;">{{confirmationNumber}}</p>
             </td>
           </tr>
           <tr>
@@ -128,9 +128,9 @@ const organizerNotificationTemplate: DefaultTemplate = {
         <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 500px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
           <!-- Blue header -->
           <tr>
-            <td style="background-color: #3b82f6; padding: 24px 40px; color: #ffffff;">
+            <td style="background-color: #3b82f6; padding: 24px 40px;">
               <p style="margin: 0 0 4px; color: rgba(255,255,255,0.8); font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">New Registration</p>
-              <p style="margin: 0; font-size: 20px; font-weight: 700;">{{eventTitle}}</p>
+              <p style="margin: 0; font-size: 20px; font-weight: 700; color: #ffffff;">{{eventTitle}}</p>
             </td>
           </tr>
           <tr>

@@ -9,7 +9,7 @@ export const approveAction: ActionDefinition = {
   icon: "check-circle",
 
   isAvailable: (context: ActionContext) => {
-    return ["REGISTERED", "PENDING_REVIEW", "WAITLIST", "REJECTED"].includes(context.currentStatus);
+    return ["REGISTERED", "PENDING_REVIEW", "WAITLIST", "REJECTED", "CANCELLED"].includes(context.currentStatus);
   },
 
   inputFields: [
@@ -35,11 +35,11 @@ export const approveAction: ActionDefinition = {
 
   execute: async (context: ActionContext, input: ActionInput): Promise<ActionResult> => {
     try {
-      // Update registration status
+      // Approve and auto-confirm (no separate payment step needed)
       await prisma.registration.update({
         where: { id: context.registrationId },
         data: {
-          registrationStatus: "APPROVED",
+          registrationStatus: "CONFIRMED",
         },
       });
 
@@ -51,9 +51,9 @@ export const approveAction: ActionDefinition = {
 
       return {
         success: true,
-        message: "Registration approved successfully",
+        message: "Registration approved and confirmed",
         data: {
-          newStatus: "APPROVED",
+          newStatus: "CONFIRMED",
           notificationSent: input.sendNotification === "yes",
         },
       };

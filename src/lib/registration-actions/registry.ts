@@ -5,7 +5,6 @@ import { ActionDefinition, ActionContext, ActionCategory } from "./types";
 // Status actions
 import { approveAction } from "./actions/status/approve";
 import { rejectAction } from "./actions/status/reject";
-import { confirmAction } from "./actions/status/confirm";
 import { cancelAction } from "./actions/status/cancel";
 import { checkInAction } from "./actions/status/check-in";
 import { waitlistAction } from "./actions/status/waitlist";
@@ -13,34 +12,23 @@ import { waitlistAction } from "./actions/status/waitlist";
 // Payment actions
 import { markPaidAction } from "./actions/payment/mark-paid";
 import { markPartiallyPaidAction } from "./actions/payment/mark-partially-paid";
-import { requestPaymentAction } from "./actions/payment/request-payment";
-import { initiateRefundAction } from "./actions/payment/initiate-refund";
-import { retryPaymentAction } from "./actions/payment/retry-payment";
 
 // Communication actions
 import { sendEmailAction } from "./actions/communication/send-email";
-import { sendReminderAction } from "./actions/communication/send-reminder";
-import { sendPaymentReminderAction } from "./actions/communication/send-payment-reminder";
 
 // All registered actions
 const allActions: ActionDefinition[] = [
   // Status actions
   approveAction,
   rejectAction,
-  confirmAction,
+  waitlistAction,
   cancelAction,
   checkInAction,
-  waitlistAction,
   // Payment actions
   markPaidAction,
   markPartiallyPaidAction,
-  requestPaymentAction,
-  initiateRefundAction,
-  retryPaymentAction,
   // Communication actions
   sendEmailAction,
-  sendReminderAction,
-  sendPaymentReminderAction,
 ];
 
 // Action registry class

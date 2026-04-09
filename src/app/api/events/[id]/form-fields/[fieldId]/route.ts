@@ -44,6 +44,9 @@ export async function PATCH(
       options,
       validation,
       conditionalOn,
+      labels,
+      placeholders,
+      helpTexts,
     } = body;
 
     // Build update data object with only provided fields
@@ -56,6 +59,9 @@ export async function PATCH(
     if (options !== undefined) updateData.options = options;
     if (validation !== undefined) updateData.validation = validation;
     if (conditionalOn !== undefined) updateData.conditionalOn = conditionalOn;
+    if (labels !== undefined) updateData.labels = labels;
+    if (placeholders !== undefined) updateData.placeholders = placeholders;
+    if (helpTexts !== undefined) updateData.helpTexts = helpTexts;
 
     const field = await prisma.eventFormField.update({
       where: { id: params.fieldId },

@@ -7,6 +7,12 @@ import type { Language } from "@/lib/i18n";
 import LanguageSelector from "@/components/ui/LanguageSelector";
 import { getRegistrationTranslations } from "@/lib/i18n/registration-translations";
 
+interface ConditionalRule {
+  fieldName: string;
+  operator: string;
+  value?: string;
+}
+
 interface FormField {
   id: string;
   name: string;
@@ -17,6 +23,7 @@ interface FormField {
   placeholder: string | null;
   helpText: string | null;
   order: number;
+  conditionalOn?: ConditionalRule | null;
 }
 
 interface Package {
@@ -473,6 +480,24 @@ export default function RegisterPage() {
               <div className="space-y-4">
                 {event.formFields.map((field) => {
                   const fieldType = field.fieldType.toUpperCase();
+
+                  // Evaluate conditional display
+                  if (field.conditionalOn?.fieldName) {
+                    const rule = field.conditionalOn;
+                    // Find the dependent field's current value
+                    const depField = event.formFields.find(f => f.name === rule.fieldName);
+                    const depValue = depField ? customFields[depField.id] : undefined;
+                    const op = rule.operator || "notEmpty";
+
+                    let show = true;
+                    if (op === "equals") show = String(depValue) === rule.value;
+                    else if (op === "notEquals") show = String(depValue) !== rule.value;
+                    else if (op === "contains") show = typeof depValue === "string" && typeof rule.value === "string" && depValue.includes(rule.value);
+                    else if (op === "notEmpty") show = depValue !== "" && depValue !== false && depValue !== undefined;
+
+                    if (!show) return null;
+                  }
+
                   return (
                     <div key={field.id}>
                       {fieldType !== "CHECKBOX" && (

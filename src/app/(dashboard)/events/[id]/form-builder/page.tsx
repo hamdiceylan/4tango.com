@@ -31,6 +31,9 @@ interface FormField {
   options?: { value: string; label: string }[] | null;
   validation?: FieldValidation | null;
   conditionalOn?: ConditionalRule | null;
+  labels?: Record<string, string> | null;
+  placeholders?: Record<string, string> | null;
+  helpTexts?: Record<string, string> | null;
   isDefault?: boolean;
   isMandatory?: boolean;
 }
@@ -218,6 +221,9 @@ export default function FormBuilderPage({ params }: { params: { id: string } }) 
             options: selectedField.options,
             validation: selectedField.validation,
             conditionalOn: selectedField.conditionalOn,
+            labels: selectedField.labels,
+            placeholders: selectedField.placeholders,
+            helpTexts: selectedField.helpTexts,
           }),
           credentials: "include",
         });

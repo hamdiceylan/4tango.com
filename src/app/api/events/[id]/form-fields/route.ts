@@ -75,7 +75,10 @@ export async function GET(
         conditionalOn: field.conditionalOn,
         createdAt: field.createdAt,
         updatedAt: field.updatedAt,
-        // Explicitly exclude: labels, placeholders, helpTexts (i18n objects)
+        // Include i18n fields for form builder editing
+        labels: field.labels || null,
+        placeholders: field.placeholders || null,
+        helpTexts: field.helpTexts || null,
       };
     });
 

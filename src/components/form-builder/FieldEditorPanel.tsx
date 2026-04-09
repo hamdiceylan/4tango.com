@@ -17,9 +17,22 @@ interface FormField {
   options?: { value: string; label: string }[] | null;
   validation?: FieldValidation | null;
   conditionalOn?: ConditionalRule | null;
+  labels?: Record<string, string> | null;
+  placeholders?: Record<string, string> | null;
+  helpTexts?: Record<string, string> | null;
   isDefault?: boolean;
   isMandatory?: boolean;
 }
+
+const LANGUAGES = [
+  { code: "en", name: "English", flag: "\ud83c\uddec\ud83c\udde7" },
+  { code: "es", name: "Espa\u00f1ol", flag: "\ud83c\uddea\ud83c\uddf8" },
+  { code: "de", name: "Deutsch", flag: "\ud83c\udde9\ud83c\uddea" },
+  { code: "fr", name: "Fran\u00e7ais", flag: "\ud83c\uddeb\ud83c\uddf7" },
+  { code: "it", name: "Italiano", flag: "\ud83c\uddee\ud83c\uddf9" },
+  { code: "pl", name: "Polski", flag: "\ud83c\uddf5\ud83c\uddf1" },
+  { code: "tr", name: "T\u00fcrk\u00e7e", flag: "\ud83c\uddf9\ud83c\uddf7" },
+];
 
 interface FieldEditorPanelProps {
   field: FormField;
@@ -28,7 +41,7 @@ interface FieldEditorPanelProps {
   onClose: () => void;
 }
 
-type Tab = "basic" | "validation" | "conditional";
+type Tab = "basic" | "translations" | "validation" | "conditional";
 
 export default function FieldEditorPanel({
   field,
@@ -42,6 +55,7 @@ export default function FieldEditorPanel({
 
   const tabs: { id: Tab; label: string }[] = [
     { id: "basic", label: "Basic" },
+    { id: "translations", label: "Translations" },
     { id: "validation", label: "Validation" },
     { id: "conditional", label: "Conditional" },
   ];
@@ -182,6 +196,87 @@ export default function FieldEditorPanel({
                 disabled={isMandatory}
               />
             )}
+          </div>
+        )}
+
+        {activeTab === "translations" && (
+          <div className="space-y-6 max-w-xl">
+            <p className="text-sm text-gray-500">
+              Add translations for each language. English is the default and uses the label from the Basic tab.
+            </p>
+            {LANGUAGES.map((lang) => (
+              <div key={lang.code} className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                <h4 className="text-sm font-medium text-gray-900 mb-3">
+                  {lang.flag} {lang.name}
+                  {lang.code === "en" && <span className="text-gray-400 ml-1">(default)</span>}
+                </h4>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Label</label>
+                    <input
+                      type="text"
+                      value={
+                        lang.code === "en"
+                          ? field.label
+                          : (field.labels?.[lang.code] || "")
+                      }
+                      onChange={(e) => {
+                        if (lang.code === "en") {
+                          onUpdate({ label: e.target.value });
+                        } else {
+                          const updated = { ...(field.labels || {}), [lang.code]: e.target.value };
+                          onUpdate({ labels: updated });
+                        }
+                      }}
+                      placeholder={field.label}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Placeholder</label>
+                    <input
+                      type="text"
+                      value={
+                        lang.code === "en"
+                          ? (field.placeholder || "")
+                          : (field.placeholders?.[lang.code] || "")
+                      }
+                      onChange={(e) => {
+                        if (lang.code === "en") {
+                          onUpdate({ placeholder: e.target.value || null });
+                        } else {
+                          const updated = { ...(field.placeholders || {}), [lang.code]: e.target.value };
+                          onUpdate({ placeholders: updated });
+                        }
+                      }}
+                      placeholder={field.placeholder || ""}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Help Text</label>
+                    <input
+                      type="text"
+                      value={
+                        lang.code === "en"
+                          ? (field.helpText || "")
+                          : (field.helpTexts?.[lang.code] || "")
+                      }
+                      onChange={(e) => {
+                        if (lang.code === "en") {
+                          onUpdate({ helpText: e.target.value || null });
+                        } else {
+                          const updated = { ...(field.helpTexts || {}), [lang.code]: e.target.value };
+                          onUpdate({ helpTexts: updated });
+                        }
+                      }}
+                      placeholder={field.helpText || ""}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 

@@ -61,8 +61,19 @@ export async function GET(
             slug: true,
             startAt: true,
             endAt: true,
+            formFields: {
+              orderBy: { order: 'asc' },
+              select: {
+                id: true,
+                name: true,
+                label: true,
+                fieldType: true,
+                labels: true,
+              },
+            },
           },
         },
+        customFieldValues: true,
       },
       orderBy: {
         createdAt: 'desc',

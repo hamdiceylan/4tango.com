@@ -21,19 +21,39 @@ interface Note {
   };
 }
 
+interface CustomFieldValue {
+  id: string;
+  fieldId: string;
+  value: string;
+}
+
+interface FormField {
+  id: string;
+  name: string;
+  label: string | Record<string, string>;
+  fieldType: string;
+  labels?: Record<string, string> | null;
+}
+
 interface Registration {
   id: string;
   registrationStatus: string;
   paymentStatus: string;
   paymentAmount: number | null;
   roleSnapshot: string;
+  notes: string | null;
+  experience: string | null;
+  citySnapshot: string | null;
+  countrySnapshot: string | null;
   createdAt: string;
+  customFieldValues?: CustomFieldValue[];
   event: {
     id: string;
     title: string;
     slug: string;
     startAt: string;
     endAt: string;
+    formFields?: FormField[];
   };
 }
 
@@ -107,6 +127,7 @@ export default function DancerDetailPage() {
   const [emails, setEmails] = useState<EmailEvent[]>([]);
   const [emailsLoading, setEmailsLoading] = useState(false);
   const [resendingEmail, setResendingEmail] = useState<string | null>(null);
+  const [expandedRegId, setExpandedRegId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDancer();
@@ -611,6 +632,7 @@ export default function DancerDetailPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-200">
+                      <th className="text-left text-gray-600 font-medium px-4 py-2"></th>
                       <th className="text-left text-gray-600 font-medium px-4 py-2">Event</th>
                       <th className="text-left text-gray-600 font-medium px-4 py-2">Role</th>
                       <th className="text-left text-gray-600 font-medium px-4 py-2">Status</th>
@@ -620,46 +642,108 @@ export default function DancerDetailPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {dancer.registrations.map((reg) => (
-                      <tr key={reg.id} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="px-4 py-3">
-                          <Link
-                            href={`/events/${reg.event.id}`}
-                            className="text-rose-500 hover:underline"
-                          >
-                            {reg.event.title}
-                          </Link>
-                          <p className="text-xs text-gray-500">
-                            {new Date(reg.event.startAt).toLocaleDateString()}
-                          </p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            reg.roleSnapshot === 'LEADER'
-                              ? 'bg-blue-100 text-blue-700'
-                              : 'bg-pink-100 text-pink-700'
-                          }`}>
-                            {reg.roleSnapshot}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(reg.registrationStatus)}`}>
-                            {formatStatus(reg.registrationStatus)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${getPaymentStatusColor(reg.paymentStatus)}`}>
-                            {formatPaymentStatus(reg.paymentStatus)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-gray-600">
-                          {reg.paymentAmount ? `€${(reg.paymentAmount / 100).toFixed(2)}` : '-'}
-                        </td>
-                        <td className="px-4 py-3 text-gray-600">
-                          {new Date(reg.createdAt).toLocaleDateString()}
-                        </td>
-                      </tr>
-                    ))}
+                    {dancer.registrations.map((reg) => {
+                      const isExpanded = expandedRegId === reg.id;
+                      const hasDetails = (reg.customFieldValues && reg.customFieldValues.length > 0) || reg.notes || reg.experience;
+                      const getLabel = (f: FormField) => {
+                        if (typeof f.label === 'string') return f.label;
+                        if (f.labels && typeof f.labels === 'object') return (f.labels as Record<string, string>).en || Object.values(f.labels)[0] || f.name;
+                        if (typeof f.label === 'object') return (f.label as Record<string, string>).en || Object.values(f.label)[0] || f.name;
+                        return f.name;
+                      };
+                      return (
+                        <>
+                          <tr key={reg.id} className={`border-b border-gray-100 hover:bg-gray-50 ${hasDetails ? 'cursor-pointer' : ''}`} onClick={() => hasDetails && setExpandedRegId(isExpanded ? null : reg.id)}>
+                            <td className="px-2 py-3 text-center w-8">
+                              {hasDetails && (
+                                <svg className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                              )}
+                            </td>
+                            <td className="px-4 py-3">
+                              <Link
+                                href={`/events/${reg.event.id}`}
+                                className="text-rose-500 hover:underline"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {reg.event.title}
+                              </Link>
+                              <p className="text-xs text-gray-500">
+                                {new Date(reg.event.startAt).toLocaleDateString()}
+                              </p>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                reg.roleSnapshot === 'LEADER'
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : 'bg-pink-100 text-pink-700'
+                              }`}>
+                                {reg.roleSnapshot}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(reg.registrationStatus)}`}>
+                                {formatStatus(reg.registrationStatus)}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${getPaymentStatusColor(reg.paymentStatus)}`}>
+                                {formatPaymentStatus(reg.paymentStatus)}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-gray-600">
+                              {reg.paymentAmount ? `€${(reg.paymentAmount / 100).toFixed(2)}` : '-'}
+                            </td>
+                            <td className="px-4 py-3 text-gray-600">
+                              {new Date(reg.createdAt).toLocaleDateString()}
+                            </td>
+                          </tr>
+                          {isExpanded && (
+                            <tr key={`${reg.id}-details`} className="bg-gray-50">
+                              <td colSpan={7} className="px-8 py-4">
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                  {reg.experience && (
+                                    <div>
+                                      <p className="text-xs text-gray-500">Experience</p>
+                                      <p className="text-sm text-gray-900">{reg.experience} years</p>
+                                    </div>
+                                  )}
+                                  {reg.citySnapshot && (
+                                    <div>
+                                      <p className="text-xs text-gray-500">City</p>
+                                      <p className="text-sm text-gray-900">{reg.citySnapshot}</p>
+                                    </div>
+                                  )}
+                                  {reg.countrySnapshot && (
+                                    <div>
+                                      <p className="text-xs text-gray-500">Country</p>
+                                      <p className="text-sm text-gray-900">{reg.countrySnapshot}</p>
+                                    </div>
+                                  )}
+                                  {reg.customFieldValues?.map((cfv) => {
+                                    const field = reg.event.formFields?.find(f => f.id === cfv.fieldId);
+                                    const label = field ? getLabel(field) : cfv.fieldId;
+                                    return (
+                                      <div key={cfv.id}>
+                                        <p className="text-xs text-gray-500">{label}</p>
+                                        <p className="text-sm text-gray-900 whitespace-pre-wrap">{cfv.value === 'true' ? 'Yes' : cfv.value === 'false' ? 'No' : cfv.value || '-'}</p>
+                                      </div>
+                                    );
+                                  })}
+                                  {reg.notes && (
+                                    <div className="col-span-full">
+                                      <p className="text-xs text-gray-500">Comments</p>
+                                      <p className="text-sm text-gray-900 whitespace-pre-wrap">{reg.notes}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

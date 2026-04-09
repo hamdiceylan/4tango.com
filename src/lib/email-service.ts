@@ -366,6 +366,7 @@ export async function sendRegistrationConfirmation(params: {
     endAt: Date;
     city: string;
     country: string;
+    logoUrl?: string | null;
   };
   organizerId: string;
 }): Promise<{ success: boolean; error?: string }> {
@@ -383,6 +384,10 @@ export async function sendRegistrationConfirmation(params: {
     eventCity: event.city,
     eventCountry: event.country,
     eventLocation: `${event.city}, ${event.country}`,
+    eventLogoUrl: event.logoUrl || "",
+    eventLogoHtml: event.logoUrl
+      ? `<img src="${event.logoUrl}" alt="${event.title}" style="height: 56px; width: auto; margin-bottom: 12px; object-fit: contain;" />`
+      : "",
     confirmationNumber,
     registrationUrl,
   };
@@ -411,6 +416,7 @@ export async function sendOrganizerNotification(params: {
   event: {
     id: string;
     title: string;
+    logoUrl?: string | null;
   };
   organizer: {
     id: string;
@@ -425,6 +431,10 @@ export async function sendOrganizerNotification(params: {
     dancerEmail: registration.emailSnapshot,
     dancerRole: registration.roleSnapshot.toLowerCase(),
     eventTitle: event.title,
+    eventLogoUrl: event.logoUrl || "",
+    eventLogoHtml: event.logoUrl
+      ? `<img src="${event.logoUrl}" alt="${event.title}" style="height: 56px; width: auto; margin-bottom: 12px; object-fit: contain;" />`
+      : "",
     organizerName: organizer.name,
   };
 

@@ -67,6 +67,13 @@ export default async function RegistrationLookupPage({ params }: RegistrationLoo
 
         {/* Registration Card */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-8">
+          {/* Event logo + name */}
+          <div className="flex items-center gap-4 p-6 pb-4 justify-center">
+            {event.logoUrl && (
+              <img src={event.logoUrl} alt={event.title} className="h-14 w-14 object-contain" />
+            )}
+            <h2 className="text-lg font-bold text-gray-900">{event.title}</h2>
+          </div>
           <div className="bg-rose-500 text-white p-6">
             <p className="text-rose-100 text-sm mb-1">Confirmation Number</p>
             <p className="text-2xl font-bold font-mono">{confirmationNumber}</p>

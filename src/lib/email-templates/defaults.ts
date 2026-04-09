@@ -53,9 +53,16 @@ const registrationConfirmationTemplate: DefaultTemplate = {
   subject: "Registration Received - {{eventTitle}}",
   htmlContent: wrapTemplate(`
         <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 500px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+          <!-- Event logo + name -->
+          <tr>
+            <td style="padding: 24px 40px 16px; text-align: center;">
+              {{eventLogoHtml}}
+              <p style="margin: 0; font-size: 18px; font-weight: 700; color: #18181b;">{{eventTitle}}</p>
+            </td>
+          </tr>
           <!-- Rose header with confirmation number -->
           <tr>
-            <td style="background-color: #f43f5e; padding: 24px 40px;">
+            <td style="background-color: #f43f5e; padding: 20px 40px;">
               <p style="margin: 0 0 4px; color: rgba(255,255,255,0.8); font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Confirmation Number</p>
               <p style="margin: 0; font-size: 22px; font-weight: 700; font-family: monospace; letter-spacing: 1px; color: #ffffff;">{{confirmationNumber}}</p>
             </td>
@@ -126,11 +133,17 @@ const organizerNotificationTemplate: DefaultTemplate = {
   subject: "New Registration for {{eventTitle}} - {{dancerName}}",
   htmlContent: wrapTemplate(`
         <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 500px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+          <!-- Event logo + name -->
+          <tr>
+            <td style="padding: 24px 40px 16px; text-align: center;">
+              {{eventLogoHtml}}
+              <p style="margin: 0; font-size: 18px; font-weight: 700; color: #18181b;">{{eventTitle}}</p>
+            </td>
+          </tr>
           <!-- Blue header -->
           <tr>
-            <td style="background-color: #3b82f6; padding: 24px 40px;">
-              <p style="margin: 0 0 4px; color: rgba(255,255,255,0.8); font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">New Registration</p>
-              <p style="margin: 0; font-size: 20px; font-weight: 700; color: #ffffff;">{{eventTitle}}</p>
+            <td style="background-color: #3b82f6; padding: 16px 40px;">
+              <p style="margin: 0; font-size: 16px; font-weight: 600; color: #ffffff;">New Registration</p>
             </td>
           </tr>
           <tr>

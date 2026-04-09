@@ -201,6 +201,7 @@ export async function POST(
           endAt: event.endAt,
           city: event.city,
           country: event.country,
+          logoUrl: event.logoUrl,
         },
         organizerId: event.organizerId,
       });
@@ -230,6 +231,7 @@ export async function POST(
           event: {
             id: event.id,
             title: event.title,
+            logoUrl: event.logoUrl,
           },
           organizer: {
             id: organizer.id,

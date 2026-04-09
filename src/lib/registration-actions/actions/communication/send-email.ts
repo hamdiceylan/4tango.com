@@ -10,7 +10,9 @@ export const sendEmailAction: ActionDefinition = {
   category: "communication",
   icon: "envelope",
 
-  isAvailable: () => true,
+  isAvailable: (context: ActionContext) => {
+    return context.currentStatus !== "CHECKED_IN";
+  },
 
   inputFields: [
     {

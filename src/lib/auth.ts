@@ -92,6 +92,45 @@ export async function createSession(
   return sessionToken;
 }
 
+// Dancer session types and helper
+export interface DancerUser {
+  id: string;
+  email: string;
+  fullName: string;
+}
+
+export async function getDancerSession(): Promise<DancerUser | null> {
+  try {
+    const cookieStore = await cookies();
+    const sessionToken = cookieStore.get("dancer_session")?.value;
+
+    if (!sessionToken) return null;
+
+    const session = await prisma.session.findUnique({
+      where: { token: sessionToken },
+    });
+
+    if (!session || session.expiresAt < new Date()) {
+      if (session) {
+        await prisma.session.delete({ where: { id: session.id } }).catch(() => {});
+      }
+      return null;
+    }
+
+    if (session.userType !== "dancer") return null;
+
+    const dancer = await prisma.dancer.findUnique({
+      where: { id: session.userId },
+    });
+
+    if (!dancer) return null;
+
+    return { id: dancer.id, email: dancer.email, fullName: dancer.fullName };
+  } catch {
+    return null;
+  }
+}
+
 // Delete a session
 export async function deleteSession(token: string): Promise<void> {
   await prisma.session.delete({

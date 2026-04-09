@@ -66,6 +66,7 @@ interface Registration {
     slug: string;
   };
   createdAt: string;
+  notes?: string | null;
   dancerId?: string;
   dancerProfilePictureUrl?: string | null;
   customFieldValues?: CustomFieldValue[];
@@ -96,6 +97,7 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
   { id: "city", label: "City", visible: false, order: 7 },
   { id: "email", label: "Email", visible: false, order: 8 },
   { id: "paymentAmount", label: "Amount", visible: false, order: 9 },
+  { id: "notes", label: "Comments", visible: false, order: 10 },
 ];
 
 const COLUMN_FILTER_CONFIG: Record<string, { type: "text" | "select" | "date" | "number"; options?: { value: string; label: string }[] }> = {
@@ -567,6 +569,12 @@ export default function RegistrationTable({
         return (
           <span className="text-gray-600 text-sm">
             {reg.paymentAmount ? `€${(reg.paymentAmount / 100).toFixed(0)}` : "-"}
+          </span>
+        );
+      case "notes":
+        return (
+          <span className="text-gray-600 text-sm truncate block max-w-[200px]" title={reg.notes || ""}>
+            {reg.notes || "-"}
           </span>
         );
       case "createdAt":

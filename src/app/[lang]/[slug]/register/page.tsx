@@ -164,6 +164,11 @@ export default function RegisterPage() {
     }
     if (!formData.role) newErrors.role = t.roleRequired;
     if (!formData.country) newErrors.country = t.countryRequired;
+    if (!formData.city.trim()) newErrors.city = t.cityRequired;
+    if (!formData.experience) newErrors.experience = t.experienceRequired;
+    if (event?.packages && event.packages.length > 0 && !formData.packageId) {
+      newErrors.packageId = t.packageRequired;
+    }
     if (!formData.agreeToTerms) newErrors.agreeToTerms = t.termsRequired;
 
     // Validate required custom fields
@@ -337,14 +342,17 @@ export default function RegisterPage() {
 
             <div className="grid grid-cols-2 gap-4 mt-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t.city}</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t.city} <span className="text-rose-500">{t.required}</span>
+                </label>
                 <input
                   type="text"
                   name="city"
                   value={formData.city}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent ${errors.city ? "border-red-300" : "border-gray-200"}`}
                 />
+                {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -395,25 +403,31 @@ export default function RegisterPage() {
             </div>
 
             <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t.experienceLevel}</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t.experienceLevel} <span className="text-rose-500">{t.required}</span>
+              </label>
               <select
                 name="experience"
                 value={formData.experience}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent ${errors.experience ? "border-red-300" : "border-gray-200"}`}
               >
                 <option value="">{t.selectExperience}</option>
                 {experienceLevels.map((level) => (
                   <option key={level.value} value={level.value}>{level.label}</option>
                 ))}
               </select>
+              {errors.experience && <p className="text-red-500 text-xs mt-1">{errors.experience}</p>}
             </div>
           </div>
 
           {/* Packages (if any) */}
           {event.packages && event.packages.length > 0 && (
             <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">{t.selectPackage}</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                {t.selectPackage} <span className="text-rose-500">{t.required}</span>
+              </h2>
+              {errors.packageId && <p className="text-red-500 text-xs mb-3">{errors.packageId}</p>}
               <div className="space-y-3">
                 {event.packages.map((pkg) => (
                   <label
@@ -465,9 +479,9 @@ export default function RegisterPage() {
                         {field.label} {field.isRequired && <span className="text-rose-500">{t.required}</span>}
                       </label>
 
-                      {(fieldType === "TEXT" || fieldType === "EMAIL" || fieldType === "PHONE") && (
+                      {(fieldType === "TEXT" || fieldType === "EMAIL" || fieldType === "TEL" || fieldType === "PHONE") && (
                         <input
-                          type={fieldType === "EMAIL" ? "email" : fieldType === "PHONE" ? "tel" : "text"}
+                          type={fieldType === "EMAIL" ? "email" : (fieldType === "TEL" || fieldType === "PHONE") ? "tel" : "text"}
                           value={customFields[field.id] as string || ""}
                           onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
                           placeholder={field.placeholder || ""}

@@ -29,7 +29,7 @@ export async function POST(
     } = body;
 
     // Validate required fields
-    if (!firstName || !lastName || !email || !role) {
+    if (!firstName || !lastName || !email || !role || !city || !experience) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -49,6 +49,14 @@ export async function POST(
       return NextResponse.json(
         { error: "Event not found" },
         { status: 404 }
+      );
+    }
+
+    // Validate package selection when event has packages
+    if (event.packages.length > 0 && !packageId) {
+      return NextResponse.json(
+        { error: "Package selection is required" },
+        { status: 400 }
       );
     }
 

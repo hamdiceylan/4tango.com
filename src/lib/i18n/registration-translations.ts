@@ -47,6 +47,9 @@ export const registrationTranslations = {
     emailInvalid: "Please enter a valid email",
     roleRequired: "Please select your dance role",
     countryRequired: "Please select your country",
+    cityRequired: "City is required",
+    experienceRequired: "Please select your experience level",
+    packageRequired: "Please select a package",
     termsRequired: "You must agree to the terms",
     fieldRequired: "is required",
 
@@ -93,6 +96,9 @@ export const registrationTranslations = {
     emailInvalid: "Por favor ingrese un correo válido",
     roleRequired: "Por favor seleccione su rol de baile",
     countryRequired: "Por favor seleccione su país",
+    cityRequired: "La ciudad es obligatoria",
+    experienceRequired: "Por favor seleccione su nivel de experiencia",
+    packageRequired: "Por favor seleccione un paquete",
     termsRequired: "Debe aceptar los términos",
     fieldRequired: "es obligatorio",
 
@@ -138,6 +144,9 @@ export const registrationTranslations = {
     emailInvalid: "Bitte geben Sie eine gültige E-Mail ein",
     roleRequired: "Bitte wählen Sie Ihre Tanzrolle",
     countryRequired: "Bitte wählen Sie Ihr Land",
+    cityRequired: "Stadt ist erforderlich",
+    experienceRequired: "Bitte wählen Sie Ihre Erfahrungsstufe",
+    packageRequired: "Bitte wählen Sie ein Paket",
     termsRequired: "Sie müssen den Bedingungen zustimmen",
     fieldRequired: "ist erforderlich",
 
@@ -183,6 +192,9 @@ export const registrationTranslations = {
     emailInvalid: "Veuillez entrer un e-mail valide",
     roleRequired: "Veuillez sélectionner votre rôle de danse",
     countryRequired: "Veuillez sélectionner votre pays",
+    cityRequired: "La ville est requise",
+    experienceRequired: "Veuillez sélectionner votre niveau d'expérience",
+    packageRequired: "Veuillez sélectionner un forfait",
     termsRequired: "Vous devez accepter les conditions",
     fieldRequired: "est requis",
 
@@ -228,6 +240,9 @@ export const registrationTranslations = {
     emailInvalid: "Inserisci un'e-mail valida",
     roleRequired: "Seleziona il tuo ruolo di ballo",
     countryRequired: "Seleziona il tuo paese",
+    cityRequired: "La città è obbligatoria",
+    experienceRequired: "Seleziona il tuo livello di esperienza",
+    packageRequired: "Seleziona un pacchetto",
     termsRequired: "Devi accettare i termini",
     fieldRequired: "è obbligatorio",
 
@@ -273,6 +288,9 @@ export const registrationTranslations = {
     emailInvalid: "Wprowadź poprawny e-mail",
     roleRequired: "Wybierz swoją rolę taneczną",
     countryRequired: "Wybierz swój kraj",
+    cityRequired: "Miasto jest wymagane",
+    experienceRequired: "Wybierz swój poziom doświadczenia",
+    packageRequired: "Wybierz pakiet",
     termsRequired: "Musisz zaakceptować warunki",
     fieldRequired: "jest wymagane",
 
@@ -318,6 +336,9 @@ export const registrationTranslations = {
     emailInvalid: "Geçerli bir e-posta girin",
     roleRequired: "Dans rolünüzü seçin",
     countryRequired: "Ülkenizi seçin",
+    cityRequired: "Şehir gereklidir",
+    experienceRequired: "Deneyim seviyenizi seçin",
+    packageRequired: "Lütfen bir paket seçin",
     termsRequired: "Şartları kabul etmelisiniz",
     fieldRequired: "gereklidir",
 

@@ -155,8 +155,8 @@ export async function POST(
         dietaryRestrictions: dietaryRestrictions || null,
         notes: comments || null,
         packageId: packageId || null,
-        registrationStatus: event.priceAmount > 0 ? "REGISTERED" : "CONFIRMED",
-        paymentStatus: event.priceAmount > 0 ? "UNPAID" : "PAID",
+        registrationStatus: "REGISTERED",
+        paymentStatus: "UNPAID",
         paymentAmount: event.priceAmount,
       }
     });

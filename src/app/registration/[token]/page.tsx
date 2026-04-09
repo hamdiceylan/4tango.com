@@ -138,9 +138,10 @@ export default async function RegistrationLookupPage({ params }: RegistrationLoo
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                     registration.paymentStatus === "PAID" ? "bg-green-100 text-green-800" :
                     registration.paymentStatus === "PENDING" ? "bg-yellow-100 text-yellow-800" :
+                    registration.paymentStatus === "UNPAID" ? "bg-yellow-100 text-yellow-800" :
                     "bg-gray-100 text-gray-800"
                   }`}>
-                    {registration.paymentStatus}
+                    {registration.paymentStatus === "UNPAID" ? "Pending" : registration.paymentStatus}
                   </span>
                 </div>
                 <div>
@@ -181,26 +182,6 @@ export default async function RegistrationLookupPage({ params }: RegistrationLoo
           </button>
         </div>
 
-        {/* Organizer Contact */}
-        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-          <h3 className="font-semibold text-gray-900 mb-2">Need to make changes?</h3>
-          <p className="text-gray-600 text-sm mb-4">
-            Contact the event organizer directly for any modifications or cancellations.
-          </p>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-rose-100 rounded-full flex items-center justify-center">
-              <span className="text-rose-600 font-semibold text-sm">
-                {event.organizer.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-              </span>
-            </div>
-            <div>
-              <p className="font-medium text-gray-900">{event.organizer.name}</p>
-              <a href={`mailto:${event.organizer.email}`} className="text-rose-500 text-sm hover:underline">
-                {event.organizer.email}
-              </a>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Footer */}

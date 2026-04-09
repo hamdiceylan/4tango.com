@@ -58,8 +58,18 @@ export async function GET(request: Request) {
     // Create session
     const sessionToken = await createSession(dancer.id, "dancer");
 
-    // Redirect to registrations
-    const response = NextResponse.redirect(`${baseUrl}/dancer/registrations`);
+    // Check how many registrations the dancer has
+    const registrations = await prisma.registration.findMany({
+      where: { dancerId: dancer.id },
+      select: { id: true },
+    });
+
+    // If single registration, go straight to edit; otherwise show list
+    const redirectUrl = registrations.length === 1
+      ? `${baseUrl}/dancer/registrations/${registrations[0].id}/edit`
+      : `${baseUrl}/dancer/registrations`;
+
+    const response = NextResponse.redirect(redirectUrl);
 
     response.cookies.set("dancer_session", sessionToken, {
       httpOnly: true,

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import RegistrationTable from "@/components/registrations/RegistrationTable";
+import { useEvents } from "@/contexts/EventsContext";
 
 interface CustomFieldValue {
   id: string;
@@ -40,6 +41,10 @@ interface Registration {
 function RegistrationsPageContent() {
   const searchParams = useSearchParams();
   const eventIdFromUrl = searchParams.get("eventId");
+  const { selectedEventId } = useEvents();
+
+  // Use URL param first, fall back to context's selected event
+  const activeEventId = eventIdFromUrl || selectedEventId;
 
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [formFields, setFormFields] = useState<FormField[]>([]);
@@ -50,7 +55,7 @@ function RegistrationsPageContent() {
   const [roleFilter, setRoleFilter] = useState("all");
 
   // Always filter by event from URL
-  const eventFilter = eventIdFromUrl || "all";
+  const eventFilter = activeEventId || "all";
 
   const fetchRegistrations = useCallback(async () => {
     try {
@@ -70,12 +75,12 @@ function RegistrationsPageContent() {
 
   // Fetch form fields for the selected event
   const fetchFormFields = useCallback(async () => {
-    if (!eventIdFromUrl) {
+    if (!activeEventId) {
       setFormFields([]);
       return;
     }
     try {
-      const response = await fetch(`/api/events/${eventIdFromUrl}/form-fields`, {
+      const response = await fetch(`/api/events/${activeEventId}/form-fields`, {
         credentials: "include",
       });
       if (response.ok) {
@@ -85,7 +90,7 @@ function RegistrationsPageContent() {
     } catch (error) {
       console.error("Error fetching form fields:", error);
     }
-  }, [eventIdFromUrl]);
+  }, [activeEventId]);
 
   useEffect(() => {
     fetchRegistrations();
@@ -112,7 +117,7 @@ function RegistrationsPageContent() {
   });
 
   // Get current event name
-  const currentEvent = registrations.find(r => r.event.id === eventIdFromUrl)?.event;
+  const currentEvent = registrations.find(r => r.event.id === activeEventId)?.event;
 
   // Use filtered registrations for stats
   const statsSource = filteredRegistrations;

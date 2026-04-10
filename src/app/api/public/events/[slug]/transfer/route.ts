@@ -62,7 +62,7 @@ export async function POST(
         where: { id: event.organizerId },
       });
       if (organizer) {
-        const { sendEmail: sendSesEmail, getDancerMagicLinkEmailHtml } = await import("@/lib/email");
+        const { sendEmail: sendSesEmail } = await import("@/lib/email");
         const contactEmail = event.contactEmail || organizer.email;
         await sendSesEmail({
           to: contactEmail,

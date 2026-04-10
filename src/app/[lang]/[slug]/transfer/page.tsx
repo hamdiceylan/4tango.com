@@ -235,7 +235,7 @@ export default function TransferPage() {
             </div>
             <div className="mt-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Phone Number
+                {t.phone}
               </label>
               <input type="tel" name="phone" value={formData.phone} onChange={handleChange}
                 placeholder="+90 555 123 4567"

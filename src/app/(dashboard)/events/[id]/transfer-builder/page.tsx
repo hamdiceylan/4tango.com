@@ -30,7 +30,13 @@ interface Event {
   slug: string;
 }
 
-// Transfer form has fixed mandatory fields: firstName, lastName, email (rendered separately in the form, not in DB)
+// Transfer form default mandatory fields (displayed in builder but not editable/deletable)
+const defaultFields: FormField[] = [
+  { id: "default_1", name: "firstName", label: "First Name", fieldType: "TEXT" as FieldType, isRequired: true, order: -4, isDefault: true, isMandatory: true },
+  { id: "default_2", name: "lastName", label: "Last Name", fieldType: "TEXT" as FieldType, isRequired: true, order: -3, isDefault: true, isMandatory: true },
+  { id: "default_3", name: "email", label: "Email", fieldType: "EMAIL" as FieldType, isRequired: true, order: -2, isDefault: true, isMandatory: true },
+  { id: "default_4", name: "phone", label: "Phone Number", fieldType: "TEL" as FieldType, isRequired: false, order: -1, isDefault: true, isMandatory: false },
+];
 
 export default function TransferBuilderPage({ params }: { params: { id: string } }) {
   const [event, setEvent] = useState<Event | null>(null);
@@ -185,12 +191,11 @@ export default function TransferBuilderPage({ params }: { params: { id: string }
         <div className="p-4 border-b border-gray-200">
           <h1 className="text-xl font-bold text-gray-900">Transfer Builder</h1>
           <p className="text-gray-500 text-sm">{event.title}</p>
-          <p className="text-xs text-gray-400 mt-1">Fixed fields: First Name, Last Name, Email</p>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Custom Fields</h2>
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Fields</h2>
             <button onClick={() => setShowAddPanel(!showAddPanel)} className="text-rose-500 hover:text-rose-600 p-1">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -216,6 +221,37 @@ export default function TransferBuilderPage({ params }: { params: { id: string }
           )}
 
           <div className="space-y-2">
+            {/* Default mandatory fields */}
+            {defaultFields.map((field) => (
+              <div
+                key={field.id}
+                onClick={() => setSelectedField(field)}
+                className={`p-3 rounded-lg border cursor-pointer transition ${
+                  selectedField?.id === field.id ? "border-rose-500 ring-2 ring-rose-500/20 bg-white" : "border-gray-200 bg-gray-50"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="text-amber-500">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </div>
+                  <div className="w-8 h-8 rounded flex items-center justify-center flex-shrink-0 bg-amber-100">
+                    <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={getFieldIcon(field.fieldType)} />
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{field.label}</p>
+                    <p className="text-xs text-gray-500">
+                      {field.fieldType} {field.isRequired && <span className="text-rose-500">*</span>} <span className="bg-amber-100 text-amber-700 px-1 rounded text-xs">Mandatory</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* Custom fields */}
             {customFields.map((field, index) => (
               <div key={field.id} draggable onDragStart={() => handleDragStart(index)}
                 onDragOver={(e) => handleDragOver(e, index)} onDragEnd={handleDragEnd}
@@ -258,7 +294,7 @@ export default function TransferBuilderPage({ params }: { params: { id: string }
       {/* Editor */}
       <div className="flex-1 flex flex-col">
         {selectedField ? (
-          <FieldEditorPanel field={selectedField} allFields={customFields} onUpdate={updateSelectedField} onClose={() => setSelectedField(null)} />
+          <FieldEditorPanel field={selectedField} allFields={[...defaultFields, ...customFields]} onUpdate={updateSelectedField} onClose={() => setSelectedField(null)} />
         ) : (
           <div className="flex-1 flex items-center justify-center bg-gray-50">
             <div className="text-center">

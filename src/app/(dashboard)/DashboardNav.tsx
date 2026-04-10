@@ -105,6 +105,7 @@ export default function DashboardNav() {
   const eventNavItems: NavItem[] = [
     { name: "Overview", href: `/dashboard`, icon: "overview", permission: "event:view" },
     { name: "Registrations", href: `/registrations?eventId=${selectedEventId}`, icon: "registrations", permission: "registration:view" },
+    { name: "Transfers", href: `/transfers?eventId=${selectedEventId}`, icon: "registrations", permission: "registration:view" },
     { name: "Emails", href: `/emails`, icon: "emails", permission: "registration:view" },
     { name: "Settings", href: `/events/${selectedEventId}`, icon: "eventSettings", permission: "event:edit" },
     { name: "Activity Log", href: "/settings/activity-log", icon: "activityLog", permission: "org:settings:view" },
@@ -114,6 +115,7 @@ export default function DashboardNav() {
   const builderNavItems: NavItem[] = [
     { name: "Page Builder", href: `/events/${selectedEventId}/page-builder`, icon: "pageBuilder", permission: "landing:edit" },
     { name: "Form Builder", href: `/events/${selectedEventId}/form-builder`, icon: "forms", permission: "form:edit" },
+    { name: "Transfer Builder", href: `/events/${selectedEventId}/transfer-builder`, icon: "forms", permission: "form:edit" },
   ];
 
   // Account navigation items

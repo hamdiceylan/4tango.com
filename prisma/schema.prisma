@@ -145,8 +145,10 @@ model Event {
   pageSections   EventPageSection[]
   formFields     EventFormField[]
   packages       EventPackage[]
-  emailTemplates EmailTemplate[]
-  emailEvents    EmailEvent[]
+  emailTemplates     EmailTemplate[]
+  emailEvents        EmailEvent[]
+  transferRequests   TransferRequest[]
+  transferFormFields TransferFormField[]
 }
 
 enum EventStatus {
@@ -588,4 +590,64 @@ model ActivityLog {
   @@index([organizerId, actorId])
   @@index([eventId])
   @@index([registrationId])
+}
+
+// Transfer Request Module
+enum TransferStatus {
+  PENDING     // Just submitted
+  CONFIRMED   // Organizer confirmed
+  CANCELLED   // Cancelled
+}
+
+model TransferRequest {
+  id           String         @id @default(cuid())
+  eventId      String
+  fullName     String
+  email        String
+  status       TransferStatus @default(PENDING)
+  internalNote String?
+  accessToken  String         @unique @default(cuid())
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  event        Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  fieldValues  TransferFieldValue[]
+
+  @@index([eventId])
+}
+
+model TransferFormField {
+  id            String    @id @default(cuid())
+  eventId       String
+  fieldType     FieldType
+  name          String
+  label         String
+  placeholder   String?
+  helpText      String?
+  isRequired    Boolean   @default(false)
+  order         Int
+  options       Json?
+  validation    Json?
+  conditionalOn Json?
+  labels        Json?
+  placeholders  Json?
+  helpTexts     Json?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  event         Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, order])
+}
+
+model TransferFieldValue {
+  id                String @id @default(cuid())
+  transferRequestId String
+  fieldId           String
+  value             String @db.Text
+
+  transferRequest   TransferRequest @relation(fields: [transferRequestId], references: [id], onDelete: Cascade)
+
+  @@unique([transferRequestId, fieldId])
+  @@index([transferRequestId])
 }

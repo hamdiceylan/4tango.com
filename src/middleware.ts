@@ -16,6 +16,7 @@ const SKIP_LANGUAGE_PATHS = [
   '/events',
   '/settings',
   '/registrations',
+  '/transfers',
   '/emails',
   '/onboarding',
   '/login',

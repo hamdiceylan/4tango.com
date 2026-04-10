@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 
 // GET /api/transfers/[id]
 export async function GET(
@@ -8,7 +8,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const auth = await requireAuth();
+    const user = await getSession();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = user;
 
     const transfer = await prisma.transferRequest.findFirst({
       where: { id: params.id, event: { organizerId: auth.organizerId } },
@@ -41,7 +43,9 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const auth = await requireAuth();
+    const user = await getSession();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = user;
     const body = await request.json();
     const { status, internalNote } = body;
 

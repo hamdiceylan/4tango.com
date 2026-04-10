@@ -1,20 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 
 // GET /api/transfers - List transfer requests for organizer
 export async function GET(request: NextRequest) {
   try {
-    const auth = await requireAuth();
+    const user = await getSession();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const eventId = searchParams.get("eventId");
     const status = searchParams.get("status");
 
-    const where = {
-      event: { organizerId: auth.organizerId },
-      ...(eventId && { eventId }),
-      ...(status && { status: status as "PENDING" | "CONFIRMED" | "CANCELLED" }),
+    const where: Record<string, unknown> = {
+      event: { organizerId: user.organizerId },
     };
+    if (eventId) where.eventId = eventId;
+    if (status) where.status = status;
 
     const transfers = await prisma.transferRequest.findMany({
       where,

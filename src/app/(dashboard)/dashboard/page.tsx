@@ -76,6 +76,7 @@ export default function DashboardPage() {
 
   const [eventStats, setEventStats] = useState<EventStats | null>(null);
   const [recentRegistrations, setRecentRegistrations] = useState<Registration[]>([]);
+  const [recentTransfers, setRecentTransfers] = useState<{ id: string; fullName: string; email: string; status: string; createdAt: string }[]>([]);
   const [recentActivity, setRecentActivity] = useState<ActivityLogEntry[]>([]);
   const [statsLoading, setStatsLoading] = useState(false);
   const [userName, setUserName] = useState<string>("");
@@ -133,6 +134,15 @@ export default function DashboardPage() {
               createdAt: r.createdAt,
             })) || []
         );
+      }
+
+      // Fetch recent transfers
+      const transfersRes = await fetch(`/api/transfers?eventId=${selectedEventId}`, {
+        credentials: "include",
+      });
+      if (transfersRes.ok) {
+        const data = await transfersRes.json();
+        setRecentTransfers(data.slice(0, 5));
       }
 
       // Fetch recent activity for this event
@@ -599,6 +609,50 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Recent Transfers */}
+      {recentTransfers.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm mb-6">
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h2 className="font-semibold text-gray-900">Recent Transfers</h2>
+            <Link
+              href={`/transfers?eventId=${event.id}`}
+              className="text-rose-500 hover:text-rose-600 text-sm font-medium"
+            >
+              View all
+            </Link>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {recentTransfers.map((tr) => (
+              <div key={tr.id} className="px-5 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+                    <span className="text-orange-600 text-xs font-bold">
+                      {tr.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{tr.fullName}</p>
+                    <p className="text-xs text-gray-500 truncate">{tr.email}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                    tr.status === "CONFIRMED" ? "bg-green-100 text-green-700" :
+                    tr.status === "CANCELLED" ? "bg-gray-100 text-gray-700" :
+                    "bg-yellow-100 text-yellow-700"
+                  }`}>
+                    {tr.status === "PENDING" ? "Pending" : tr.status === "CONFIRMED" ? "Confirmed" : "Cancelled"}
+                  </span>
+                  <span className="text-xs text-gray-400">
+                    {new Date(tr.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div>

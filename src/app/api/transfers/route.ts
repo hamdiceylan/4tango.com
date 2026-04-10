@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
         id: t.id,
         fullName: t.fullName,
         email: t.email,
+        phone: t.phone,
         status: t.status,
         internalNote: t.internalNote,
         createdAt: t.createdAt.toISOString(),

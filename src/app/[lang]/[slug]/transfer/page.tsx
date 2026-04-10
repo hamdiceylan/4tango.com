@@ -47,7 +47,7 @@ export default function TransferPage() {
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const [formData, setFormData] = useState({ firstName: "", lastName: "", email: "" });
+  const [formData, setFormData] = useState({ firstName: "", lastName: "", email: "", phone: "" });
   const [customFields, setCustomFields] = useState<Record<string, string | boolean>>({});
 
   useEffect(() => {
@@ -232,6 +232,14 @@ export default function TransferPage() {
               <input type="email" name="email" value={formData.email} onChange={handleChange}
                 className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent ${errors.email ? "border-red-300" : "border-gray-200"}`} />
               {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+            </div>
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Phone Number
+              </label>
+              <input type="tel" name="phone" value={formData.phone} onChange={handleChange}
+                placeholder="+90 555 123 4567"
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent" />
             </div>
           </div>
 

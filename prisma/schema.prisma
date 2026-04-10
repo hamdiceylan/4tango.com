@@ -604,6 +604,7 @@ model TransferRequest {
   eventId      String
   fullName     String
   email        String
+  phone        String?
   status       TransferStatus @default(PENDING)
   internalNote String?
   accessToken  String         @unique @default(cuid())

@@ -8,7 +8,7 @@ export async function POST(
 ) {
   try {
     const body = await request.json();
-    const { firstName, lastName, email, customFields } = body;
+    const { firstName, lastName, email, phone, customFields } = body;
 
     if (!firstName || !lastName || !email) {
       return NextResponse.json(
@@ -38,6 +38,7 @@ export async function POST(
         eventId: event.id,
         fullName,
         email: normalizedEmail,
+        phone: phone || null,
       },
     });
 

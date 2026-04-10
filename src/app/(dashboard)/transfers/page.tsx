@@ -21,6 +21,7 @@ interface TransferRequest {
   id: string;
   fullName: string;
   email: string;
+  phone: string | null;
   status: string;
   createdAt: string;
   event: { id: string; title: string; slug: string };
@@ -162,6 +163,7 @@ export default function TransfersPage() {
             <tr className="border-b border-gray-200 bg-gray-50">
               <th className="text-left text-xs font-medium text-gray-500 uppercase px-4 py-3">Name</th>
               <th className="text-left text-xs font-medium text-gray-500 uppercase px-4 py-3">Email</th>
+              <th className="text-left text-xs font-medium text-gray-500 uppercase px-4 py-3">Phone</th>
               <th className="text-left text-xs font-medium text-gray-500 uppercase px-4 py-3">Status</th>
               {formFields.map((f) => (
                 <th key={f.id} className="text-left text-xs font-medium text-gray-500 uppercase px-4 py-3">{getFieldLabel(f.id)}</th>
@@ -172,12 +174,13 @@ export default function TransfersPage() {
           </thead>
           <tbody>
             {filtered.length === 0 ? (
-              <tr><td colSpan={5 + formFields.length} className="px-4 py-8 text-center text-gray-500">No transfer requests</td></tr>
+              <tr><td colSpan={6 + formFields.length} className="px-4 py-8 text-center text-gray-500">No transfer requests</td></tr>
             ) : (
               filtered.map((t) => (
                 <tr key={t.id} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="px-4 py-3 text-sm font-medium text-gray-900">{t.fullName}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{t.email}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{t.phone || "-"}</td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[t.status] || "bg-gray-100 text-gray-800"}`}>
                       {t.status}

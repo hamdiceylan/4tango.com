@@ -10,7 +10,9 @@ export default function ContactPage() {
     email: "",
     subject: "general",
     message: "",
+    website: "", // honeypot
   });
+  const [formLoadedAt] = useState(Date.now());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
@@ -29,7 +31,7 @@ export default function ContactPage() {
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, _timestamp: formLoadedAt }),
       });
 
       const data = await res.json();
@@ -145,6 +147,18 @@ export default function ContactPage() {
                     required
                     rows={5}
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent resize-none"
+                  />
+                </div>
+
+                {/* Honeypot - hidden from real users */}
+                <div className="absolute opacity-0 h-0 overflow-hidden" aria-hidden="true" tabIndex={-1}>
+                  <input
+                    type="text"
+                    name="website"
+                    value={formData.website}
+                    onChange={handleChange}
+                    tabIndex={-1}
+                    autoComplete="off"
                   />
                 </div>
 

@@ -69,10 +69,44 @@ function getContactEmailHtml(params: {
 `;
 }
 
+// Simple in-memory rate limiter (per IP, max 3 submissions per 10 minutes)
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + 10 * 60 * 1000 });
+    return false;
+  }
+  entry.count++;
+  return entry.count > 3;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, email, subject, message } = body;
+    const { name, email, subject, message, website, _timestamp } = body;
+
+    // Honeypot: if 'website' field is filled, it's a bot (field is hidden via CSS)
+    if (website) {
+      // Silently accept to not reveal the trap
+      return NextResponse.json({ success: true });
+    }
+
+    // Time-based check: form must take at least 3 seconds to fill
+    if (_timestamp && Date.now() - _timestamp < 3000) {
+      return NextResponse.json({ success: true }); // Too fast, likely bot
+    }
+
+    // Rate limiting by IP
+    const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown";
+    if (isRateLimited(ip)) {
+      return NextResponse.json(
+        { error: "Too many submissions. Please try again later." },
+        { status: 429 }
+      );
+    }
 
     // Validate required fields
     if (!name || !email || !message) {
@@ -89,6 +123,11 @@ export async function POST(request: NextRequest) {
         { error: "Invalid email address" },
         { status: 400 }
       );
+    }
+
+    // Content spam checks: reject gibberish names and messages
+    if (/^[A-Z][a-z]+[A-Z]/.test(name) && name.length > 15) {
+      return NextResponse.json({ success: true }); // CamelCase gibberish name
     }
 
     // Send email

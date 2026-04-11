@@ -84,7 +84,7 @@ export default function ContactPage() {
                 <button
                   onClick={() => {
                     setIsSubmitted(false);
-                    setFormData({ name: "", email: "", subject: "general", message: "" });
+                    setFormData({ name: "", email: "", subject: "general", message: "", website: "" });
                   }}
                   className="text-rose-500 hover:text-rose-600 font-medium"
                 >

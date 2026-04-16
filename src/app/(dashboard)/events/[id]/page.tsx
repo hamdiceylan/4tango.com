@@ -64,6 +64,7 @@ export default function EventDetailPage() {
   const [packagesLoading, setPackagesLoading] = useState(false);
   const [editingPackage, setEditingPackage] = useState<EventPackage | null>(null);
   const [showPackageForm, setShowPackageForm] = useState(false);
+  const [draggedPkgIndex, setDraggedPkgIndex] = useState<number | null>(null);
   const [packageForm, setPackageForm] = useState({
     name: "",
     description: "",
@@ -206,6 +207,31 @@ export default function EventDetailPage() {
       }
     } catch (err) {
       console.error("Failed to toggle package:", err);
+    }
+  }
+
+  function handlePkgDragOver(e: React.DragEvent, index: number) {
+    e.preventDefault();
+    if (draggedPkgIndex === null || draggedPkgIndex === index) return;
+    const newPkgs = [...packages];
+    const dragged = newPkgs[draggedPkgIndex];
+    newPkgs.splice(draggedPkgIndex, 1);
+    newPkgs.splice(index, 0, dragged);
+    setPackages(newPkgs);
+    setDraggedPkgIndex(index);
+  }
+
+  async function savePkgOrder() {
+    if (!event) return;
+    try {
+      await fetch(`/api/events/${event.id}/packages`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ packageIds: packages.map(p => p.id) }),
+        credentials: "include",
+      });
+    } catch (err) {
+      console.error("Failed to save package order:", err);
     }
   }
 
@@ -611,14 +637,23 @@ export default function EventDetailPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {packages.map((pkg) => (
+                {packages.map((pkg, index) => (
                   <div
                     key={pkg.id}
+                    draggable
+                    onDragStart={() => setDraggedPkgIndex(index)}
+                    onDragOver={(e) => handlePkgDragOver(e, index)}
+                    onDragEnd={() => { setDraggedPkgIndex(null); savePkgOrder(); }}
                     className={`flex items-center justify-between p-4 rounded-lg border ${
                       pkg.isActive ? "bg-white border-gray-200" : "bg-gray-50 border-gray-100"
-                    }`}
+                    } ${draggedPkgIndex === index ? "ring-2 ring-rose-500/20" : ""}`}
                   >
                     <div className="flex items-center gap-4">
+                      <div className="cursor-grab text-gray-400 hover:text-gray-600">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                        </svg>
+                      </div>
                       <div className={`w-2 h-12 rounded-full ${pkg.isActive ? "bg-green-500" : "bg-gray-300"}`}></div>
                       <div>
                         <p className={`font-medium ${pkg.isActive ? "text-gray-900" : "text-gray-500"}`}>

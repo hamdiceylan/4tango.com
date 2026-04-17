@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import Link from "next/link";
 import ActionMenu from "./ActionMenu";
 import ColumnCustomizer, { ColumnConfig } from "./ColumnCustomizer";
@@ -176,6 +176,30 @@ export default function RegistrationTable({
   const filterDropdownRef = useRef<HTMLDivElement>(null);
   const [pageSize, setPageSize] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Dual scrollbar sync
+  const topScrollRef = useRef<HTMLDivElement>(null);
+  const tableScrollRef = useRef<HTMLDivElement>(null);
+  const [tableScrollWidth, setTableScrollWidth] = useState(0);
+
+  const syncScroll = useCallback((source: "top" | "bottom") => {
+    const top = topScrollRef.current;
+    const bottom = tableScrollRef.current;
+    if (!top || !bottom) return;
+    if (source === "top") bottom.scrollLeft = top.scrollLeft;
+    else top.scrollLeft = bottom.scrollLeft;
+  }, []);
+
+  useEffect(() => {
+    const el = tableScrollRef.current;
+    if (el) {
+      const update = () => setTableScrollWidth(el.scrollWidth);
+      update();
+      const observer = new ResizeObserver(update);
+      observer.observe(el);
+      return () => observer.disconnect();
+    }
+  }, [columns, formFields]);
 
   // Close filter dropdown on outside click
   useEffect(() => {
@@ -796,7 +820,12 @@ export default function RegistrationTable({
           )}
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Top scrollbar */}
+        <div ref={topScrollRef} className="overflow-x-auto" style={{ height: 12 }} onScroll={() => syncScroll("top")}>
+          <div style={{ width: tableScrollWidth, height: 1 }} />
+        </div>
+
+        <div ref={tableScrollRef} className="overflow-x-auto" onScroll={() => syncScroll("bottom")}>
           <table className="w-full">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">

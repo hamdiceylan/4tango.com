@@ -37,13 +37,6 @@ function CheckEmailContent() {
             <p className="text-gray-600 text-sm">Click the link in the email to sign in. The link will expire in 10 minutes.</p>
           </div>
 
-          <Link
-            href="/dashboard"
-            className="w-full bg-rose-500 hover:bg-rose-600 text-white py-3 rounded-xl font-semibold transition flex items-center justify-center gap-2 shadow-lg shadow-rose-500/25"
-          >
-            Demo: Go to Dashboard
-          </Link>
-          <p className="text-gray-400 text-xs mt-4">(In production, this button would not exist)</p>
         </div>
 
         <div className="mt-8">

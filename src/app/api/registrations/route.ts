@@ -43,7 +43,7 @@ export async function GET(request: Request) {
     });
 
     // Fetch package names for mapping
-    const packageIds = [...new Set(registrations.map(r => r.packageId).filter(Boolean))] as string[];
+    const packageIds = Array.from(new Set(registrations.map(r => r.packageId).filter((id): id is string => !!id)));
     const packages = packageIds.length > 0
       ? await prisma.eventPackage.findMany({
           where: { id: { in: packageIds } },

@@ -67,6 +67,7 @@ interface Registration {
   };
   createdAt: string;
   notes?: string | null;
+  packageName?: string | null;
   dancerId?: string;
   dancerProfilePictureUrl?: string | null;
   customFieldValues?: CustomFieldValue[];
@@ -98,6 +99,7 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
   { id: "email", label: "Email", visible: false, order: 8 },
   { id: "paymentAmount", label: "Amount", visible: false, order: 9 },
   { id: "notes", label: "Comments", visible: false, order: 10 },
+  { id: "packageName", label: "Package", visible: true, order: 11 },
 ];
 
 const COLUMN_FILTER_CONFIG: Record<string, { type: "text" | "select" | "date" | "number"; options?: { value: string; label: string }[] }> = {
@@ -577,6 +579,8 @@ export default function RegistrationTable({
             {reg.notes || "-"}
           </span>
         );
+      case "packageName":
+        return <span className="text-gray-600 text-sm truncate">{reg.packageName || "-"}</span>;
       case "createdAt":
         return (
           <span className="text-gray-500 text-xs">

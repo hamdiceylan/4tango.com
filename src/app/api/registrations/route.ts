@@ -42,6 +42,16 @@ export async function GET(request: Request) {
       orderBy: { createdAt: "desc" },
     });
 
+    // Fetch package names for mapping
+    const packageIds = [...new Set(registrations.map(r => r.packageId).filter(Boolean))] as string[];
+    const packages = packageIds.length > 0
+      ? await prisma.eventPackage.findMany({
+          where: { id: { in: packageIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const packageMap = new Map(packages.map(p => [p.id, p.name]));
+
     return NextResponse.json(registrations.map(reg => ({
       id: reg.id,
       fullName: reg.fullNameSnapshot,
@@ -66,6 +76,7 @@ export async function GET(request: Request) {
       },
       createdAt: reg.createdAt.toISOString(),
       customFieldValues: reg.customFieldValues,
+      packageName: reg.packageId ? packageMap.get(reg.packageId) || null : null,
       dancerId: reg.dancer?.id,
       dancerProfilePictureUrl: reg.dancer?.profilePictureUrl,
     })));

@@ -65,7 +65,7 @@ function LoginForm() {
             Welcome back
           </h1>
           <p className="text-gray-500 text-center mb-6">
-            Enter your email and we'll send you a sign-in link
+            Enter your email and we&apos;ll send you a sign-in link
           </p>
 
           {error && (
@@ -117,7 +117,7 @@ function LoginForm() {
 
         <div className="mt-8 text-center">
           <p className="text-gray-500 text-sm">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link href="/signup" className="text-rose-500 hover:text-rose-600 font-medium transition">
               Sign up for free
             </Link>

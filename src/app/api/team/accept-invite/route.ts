@@ -63,10 +63,22 @@ export async function POST(request: Request) {
         },
       });
 
+      // Create session so the existing user is logged in
+      const sessionToken = await createSession(existingUser.id, 'organizer');
+      const cookieStore = await cookies();
+      cookieStore.set('session', sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 30 * 24 * 60 * 60,
+        path: '/',
+      });
+
       return NextResponse.json({
         success: true,
         message: 'You are already a member of this organization',
         organizerId: invitation.organizerId,
+        organizerName: invitation.organizer.name,
       });
     }
 

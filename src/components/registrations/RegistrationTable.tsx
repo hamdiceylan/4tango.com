@@ -201,57 +201,6 @@ export default function RegistrationTable({
     }
   }, [columns, formFields]);
 
-  // Export to CSV using visible columns
-  const exportToCsv = useCallback(() => {
-    const visibleCols = columns.filter(c => c.visible).sort((a, b) => a.order - b.order);
-
-    const getCellValue = (reg: Registration, colId: string): string => {
-      switch (colId) {
-        case "fullName": return reg.fullName;
-        case "email": return reg.email;
-        case "event": return reg.event.title;
-        case "role": return reg.role;
-        case "country": return reg.country || "";
-        case "city": return reg.city || "";
-        case "registrationStatus": return reg.registrationStatus;
-        case "paymentStatus": return reg.paymentStatus;
-        case "paymentAmount": return reg.paymentAmount ? (reg.paymentAmount / 100).toFixed(2) : "";
-        case "createdAt": return new Date(reg.createdAt).toLocaleDateString("en-GB");
-        case "notes": return reg.notes || "";
-        case "packageName": return reg.packageName || "";
-        default:
-          if (colId.startsWith("custom_")) {
-            const fieldId = colId.replace("custom_", "");
-            const val = reg.customFieldValues?.find(v => v.fieldId === fieldId);
-            if (!val) return "";
-            return val.value === "true" ? "Yes" : val.value === "false" ? "No" : val.value;
-          }
-          return "";
-      }
-    };
-
-    const escape = (v: string) => {
-      if (v.includes(",") || v.includes('"') || v.includes("\n")) {
-        return '"' + v.replace(/"/g, '""') + '"';
-      }
-      return v;
-    };
-
-    const header = visibleCols.map(c => escape(c.label)).join(",");
-    const rows = sortedRegistrations.map(reg =>
-      visibleCols.map(c => escape(getCellValue(reg, c.id))).join(",")
-    );
-    const csv = "\uFEFF" + [header, ...rows].join("\n"); // BOM for Excel UTF-8
-
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `registrations-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [columns, sortedRegistrations]);
-
   // Close filter dropdown on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -542,6 +491,46 @@ export default function RegistrationTable({
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
   const paginatedRegistrations = sortedRegistrations.slice(startIndex, endIndex);
+
+  // Export to CSV using visible columns
+  const exportToCsv = () => {
+    const visibleCols = columns.filter(c => c.visible).sort((a, b) => a.order - b.order);
+    const getCellValue = (reg: Registration, colId: string): string => {
+      switch (colId) {
+        case "fullName": return reg.fullName;
+        case "email": return reg.email;
+        case "event": return reg.event.title;
+        case "role": return reg.role;
+        case "country": return reg.country || "";
+        case "city": return reg.city || "";
+        case "registrationStatus": return reg.registrationStatus;
+        case "paymentStatus": return reg.paymentStatus;
+        case "paymentAmount": return reg.paymentAmount ? (reg.paymentAmount / 100).toFixed(2) : "";
+        case "createdAt": return new Date(reg.createdAt).toLocaleDateString("en-GB");
+        case "notes": return reg.notes || "";
+        case "packageName": return reg.packageName || "";
+        default:
+          if (colId.startsWith("custom_")) {
+            const fieldId = colId.replace("custom_", "");
+            const val = reg.customFieldValues?.find(v => v.fieldId === fieldId);
+            if (!val) return "";
+            return val.value === "true" ? "Yes" : val.value === "false" ? "No" : val.value;
+          }
+          return "";
+      }
+    };
+    const escape = (v: string) => (v.includes(",") || v.includes('"') || v.includes("\n")) ? '"' + v.replace(/"/g, '""') + '"' : v;
+    const header = visibleCols.map(c => escape(c.label)).join(",");
+    const rows = sortedRegistrations.map(reg => visibleCols.map(c => escape(getCellValue(reg, c.id))).join(","));
+    const csv = "\uFEFF" + [header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `registrations-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   function handlePageSizeChange(newSize: number) {
     setPageSize(newSize);

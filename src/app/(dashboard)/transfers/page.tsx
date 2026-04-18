@@ -106,6 +106,30 @@ export default function TransfersPage() {
     return field.name;
   };
 
+  const exportToCsv = () => {
+    const escape = (v: string) => {
+      if (v.includes(",") || v.includes('"') || v.includes("\n")) return '"' + v.replace(/"/g, '""') + '"';
+      return v;
+    };
+    const headers = ["Name", "Email", "Phone", "Status", ...formFields.map(f => getFieldLabel(f.id)), "Date"];
+    const rows = filtered.map(t => [
+      t.fullName, t.email, t.phone || "", t.status,
+      ...formFields.map(f => {
+        const val = t.fieldValues.find(v => v.fieldId === f.id);
+        return val?.value === "true" ? "Yes" : val?.value === "false" ? "No" : val?.value || "";
+      }),
+      new Date(t.createdAt).toLocaleDateString("en-GB"),
+    ].map(escape).join(","));
+    const csv = "\uFEFF" + [headers.map(escape).join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `transfers-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (loading) {
     return (
       <div className="p-8">
@@ -153,6 +177,14 @@ export default function TransfersPage() {
             <option value="CONFIRMED">Confirmed</option>
             <option value="CANCELLED">Cancelled</option>
           </select>
+          <button onClick={exportToCsv}
+            className="px-2 py-1.5 text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1 rounded-lg hover:bg-gray-100"
+            title="Export to Excel/CSV">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Export
+          </button>
         </div>
       </div>
 

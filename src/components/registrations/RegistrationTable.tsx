@@ -201,6 +201,57 @@ export default function RegistrationTable({
     }
   }, [columns, formFields]);
 
+  // Export to CSV using visible columns
+  const exportToCsv = useCallback(() => {
+    const visibleCols = columns.filter(c => c.visible).sort((a, b) => a.order - b.order);
+
+    const getCellValue = (reg: Registration, colId: string): string => {
+      switch (colId) {
+        case "fullName": return reg.fullName;
+        case "email": return reg.email;
+        case "event": return reg.event.title;
+        case "role": return reg.role;
+        case "country": return reg.country || "";
+        case "city": return reg.city || "";
+        case "registrationStatus": return reg.registrationStatus;
+        case "paymentStatus": return reg.paymentStatus;
+        case "paymentAmount": return reg.paymentAmount ? (reg.paymentAmount / 100).toFixed(2) : "";
+        case "createdAt": return new Date(reg.createdAt).toLocaleDateString("en-GB");
+        case "notes": return reg.notes || "";
+        case "packageName": return reg.packageName || "";
+        default:
+          if (colId.startsWith("custom_")) {
+            const fieldId = colId.replace("custom_", "");
+            const val = reg.customFieldValues?.find(v => v.fieldId === fieldId);
+            if (!val) return "";
+            return val.value === "true" ? "Yes" : val.value === "false" ? "No" : val.value;
+          }
+          return "";
+      }
+    };
+
+    const escape = (v: string) => {
+      if (v.includes(",") || v.includes('"') || v.includes("\n")) {
+        return '"' + v.replace(/"/g, '""') + '"';
+      }
+      return v;
+    };
+
+    const header = visibleCols.map(c => escape(c.label)).join(",");
+    const rows = sortedRegistrations.map(reg =>
+      visibleCols.map(c => escape(getCellValue(reg, c.id))).join(",")
+    );
+    const csv = "\uFEFF" + [header, ...rows].join("\n"); // BOM for Excel UTF-8
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `registrations-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [columns, sortedRegistrations]);
+
   // Close filter dropdown on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -695,6 +746,16 @@ export default function RegistrationTable({
                   </div>
                 )}
               </div>
+              <button
+                onClick={exportToCsv}
+                className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100"
+                title="Export to Excel/CSV"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Export
+              </button>
               <button
                 onClick={() => setShowCustomizer(true)}
                 className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100"
